@@ -1,3 +1,9 @@
+"""
+Utility file
+Parse file configuration and add them to the input configuration, creating a config Namespace
+Set up all the logging for the project
+"""
+
 import logging
 import os
 import pprint
@@ -11,7 +17,7 @@ from yaml import safe_load
 
 from utils.create_dirs import create_dirs
 
-CONFIG_FOLDER_PATH = 'D:\\Uni\\TESI\\GaTp\\yaml_configs'
+CONFIG_FOLDER_PATH = 'yaml_configs'
 
 
 def setup_logging(log_dir):
@@ -85,11 +91,16 @@ def process_config(args):
     # load yaml with the selected configuration into a Namespace
     config = get_config_from_yaml(args.config_name)
 
-    # add all args, parsed from main.py inputs, as Namespace attributes
+    ''' 
+    Add all args, parsed from main.py inputs, as Namespace attributes
+    '''
+    config.mode = args.mode     # train or test
+    # map and scenario configuration
     config.map_type = args.map_type
-    config.num_agents = args.num_agents
     config.map_size = args.map_size
     config.map_density = args.map_density
+    config.num_agents = args.num_agents
+    config.tasks_number = args.tasks_number
 
     # set up experiment name with configuration summary:
     #   environment description, hyper parameters, timestamp

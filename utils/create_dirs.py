@@ -1,3 +1,7 @@
+"""
+Utility file, creates directories when they do not exist
+"""
+
 import logging
 import os
 
