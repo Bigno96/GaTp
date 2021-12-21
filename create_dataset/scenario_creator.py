@@ -59,7 +59,7 @@ def create_task(input_map, mode='free', start_pos=None, task_list=None):
     # no restrictions
     if mode == 'free':
         # filters out obstacles coords
-        where_res = np.where(copy_map == 0)
+        where_res = np.nonzero(copy_map == 0)
         free_cell_list = list(zip(where_res[0], where_res[1]))
         # get the task
         task = __extract_task(coord_list=free_cell_list)
@@ -70,7 +70,7 @@ def create_task(input_map, mode='free', start_pos=None, task_list=None):
         for pos in start_pos:
             copy_map[pos] = 2
         # filters out obstacles coords and of starting positions
-        where_res = np.where(copy_map == 0)
+        where_res = np.nonzero(copy_map == 0)
         free_cell_list = list(zip(where_res[0], where_res[1]))
         # get the task
         task = __extract_task(coord_list=free_cell_list)
@@ -90,7 +90,7 @@ def create_task(input_map, mode='free', start_pos=None, task_list=None):
                 copy_map[pickup] = 2
             copy_map[delivery] = 2        # delivery is always not None, else the task is not active
         # filters out obstacles coords, other active tasks locations and if 'avoid all' also start pos
-        where_res = np.where(copy_map == 0)
+        where_res = np.nonzero(copy_map == 0)
         free_cell_list = list(zip(where_res[0], where_res[1]))
         # get the task
         task = __extract_task(coord_list=free_cell_list)
@@ -107,13 +107,13 @@ class ScenarioCreator:
     Class for creating scenarios inside a given map
     x -> number of the row, y -> number of the column
     Scenario:
-        agents starting positions, as array of tuples (x,y)
-        set of tasks
+        agents starting positions -> [(x0,y0), (x1,y1), ...]
+        list of tasks -> [(task1), (task2), ...]
     Task:
-        pickup and delivery positions, tuple ((x,y),(x,y)) -> ((pickup),(delivery))
+        pickup and delivery positions, tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
 
     Outside entry points -> create_scenario() for setting up a scenario with N task
-                            get_task() for retrieving a task for a map
+                            get_task() for retrieving a new task for a given map
     """
 
     def __init__(self, agent_num=10):
@@ -150,7 +150,7 @@ class ScenarioCreator:
             flat_map[p[:self.__agent_num]] = 2
             start_map = flat_map.reshape(copy_map.shape)
             # collect starting coordinates in a list
-            where_res = np.where(start_map == 2)
+            where_res = np.nonzero(start_map == 2)
             start_pos_list = list(zip(where_res[0], where_res[1]))
 
         # fixed generation

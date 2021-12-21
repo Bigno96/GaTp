@@ -39,16 +39,20 @@ def save_image(dataset_dir, input_map, map_id, start_pos, sc_id):
 def __random_grid_dataset():
     """
     Pipeline:
-        Create Maps:
+
+        Create Maps (see map_creator.py for more details):
             MAP_NUMBER different random grid maps for the same setting (size, density)
-        Create Scenarios:
+
+        Create Scenarios (see scenario_creator.py for more details):
             SCENARIO_NUMBER different scenarios for each map
             AGENT_NUMBER different starting positions for agents
             TASK_NUMBER series of tasks (pickup and delivery positions)
             print images of the produced map+scenarios
+
         Run Expert:
             collect agents schedule in the expert solution
             collect interesting metrics
+
         Generate Dataset:
             group map, scenario and expert solution
             split into train, valid and test set
