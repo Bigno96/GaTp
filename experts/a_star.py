@@ -11,9 +11,9 @@ Similarly, the edge from state (l; t) to state (l_0; t + 1) is removed from the 
 a_i moving from location l to location l_0 at timestep t results in it colliding
 with other agents a_j that move along their paths in the token.
 
-The following implementation is inspired by:
+The following implementation is based on:
     - A* implementation by Andrew Dahdouh,
-        Copyright (c) 2017, Andrew Dahdouh
+        Copyright (c) 2017, Andrew Dahdouh.
         All rights reserved.
     - Token Passing pseudo-code as described in
         Ma, H., Li, J., Kumar, T. K., & Koenig, S. (2017).
@@ -21,7 +21,12 @@ The following implementation is inspired by:
         arXiv preprint arXiv:1705.10868.
 """
 
+import logging
+from types import SimpleNamespace
+
 import numpy as np
+from scipy.spatial import distance
+
 from create_dataset.map_creator import MapCreator
 
 # moves dictionary
@@ -41,7 +46,7 @@ def __compute_heuristic(input_map, goal):
     :return: heuristic, np.ndarray, heuristic.shape = input_map.shape
     """
     # abs(current_cell.x – goal.x) + abs(current_cell.y – goal.y)
-    heuristic = [np.linalg.norm(np.array((row, col)) - np.array(goal), ord=1)
+    heuristic = [distance.cityblock(np.array((row, col)), np.array(goal))
                  for row in range(input_map.shape[0])
                  for col in range(input_map.shape[1])]
 
@@ -61,17 +66,23 @@ def __is_goal(coord, goal):
 
 def __is_valid(coord, input_map, closed_list, token=None, timestep=None):
     """
-    Check if the cell is available for the expansion
+    Check if is possible to expand the new cell
     1) Check if the cell is inside map boundaries
     2) Check if the cell has already been expanded
-    3) Check if the cell has any obstacles
+    3) Check if the cell has an obstacle inside
     4) Check token for avoiding conflicts with other agents
     :param coord: (x, y), int tuple of current position
     :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
     :param closed_list: implemented as matrix with shape = input_map.shape
     :param token: summary of other agents planned paths
-    :param timestep: int, current timestep = depth of the path
-    :return: True if the cell marked by the coordinated is valid for being expanded, False else
+                  Namespace -> agent_id : path
+                  with path = [(x_0, y_0, t_0), (x_1, y_1, t_1), ...]
+                  x, y -> cartesian coords, t -> timestep, starting from t=0
+    :param timestep: int, current timestep, used positionally
+                     e.g. timestep = 2 -> looking for tuple (x,y,t) at depth 2 in the path
+                     YES: path[2]
+                     NO: path[i] if path[i].t == 2
+    :return: True if all 4 checks are passed, False else
     """
     x = coord[0]
     y = coord[1]
@@ -88,9 +99,13 @@ def __is_valid(coord, input_map, closed_list, token=None, timestep=None):
     if input_map[x][y] == 1:
         return False
 
-    # TODO: check 4), check that at token[timestamp] there are no conflicting cells
-
-    return True
+    # check 4), check that at token[timestamp] there are no conflicting cells
+    # when called by token passing, all paths in the token are from different agents
+    # if you have a path in the token, you don't need to compute a path and call a*
+    moves_curr_ts = [path_[timestep] for path_ in token.__dict__.values()
+                     if len(path_) > timestep]     # [(x1_t, y1_t, t), (x2_t, y2_t, t), ..., ]
+    # if attempted move not conflicting, return True
+    return (x, y, timestep) not in moves_curr_ts
 
 
 def a_star(input_map, start, goal, token=None):
@@ -103,7 +118,7 @@ def a_star(input_map, start, goal, token=None):
     :param start: (x, y), tuple of int with start cartesian coordinates
     :param goal: (x, y), tuple of int with goal cartesian coordinates
     :param token: summary of other agents planned paths
-                  Namespace -> agent_name : path
+                  Namespace -> agent_id : path
                   with path = [(x_0, y_0, t_0), (x_1, y_1, t_1), ...]
                   x, y -> cartesian coords, t -> timestep, starting from t=0
             Default: None, defaults to classic A*
@@ -111,7 +126,7 @@ def a_star(input_map, start, goal, token=None):
              path_length: int
     :raise ValueError if no path are found
     """
-    # pre-compute Manhattan heuristic
+    # pre-compute heuristic
     heuristic = __compute_heuristic(input_map=input_map,
                                     goal=goal)
 
@@ -135,7 +150,7 @@ def a_star(input_map, start, goal, token=None):
     t = 0  # timestep
 
     open_list = [(f, g, x, y, t)]  # fringe
-    closed_list[x][y] = 1  # close the starting cell
+    closed_list[x][y] = 1  # visit the starting cell
 
     '''
     Main execution loop
@@ -188,15 +203,25 @@ def a_star(input_map, start, goal, token=None):
     raise ValueError('No path found')
 
 
+# test a_star
+# mind that start or end position, since hardcoded, might end up being in an obstacle position, therefore unreachable
 if __name__ == '__main__':
     __spec__ = None
     map_creator = MapCreator(map_size=(10, 10),
                              map_density=0.2)
     random_grid_map = map_creator.create_random_grid_map()
-
-    path, length = a_star(input_map=random_grid_map,
-                          start=(1, 1),
-                          goal=(8, 8))
-
     print(random_grid_map)
-    print(path)
+
+    tok = SimpleNamespace()
+    tok.one = [(2, 2, 0), (1, 2, 1), (1, 3, 2)]
+    tok.two = [(3, 1, 0), (2, 1, 1), (1, 1, 2)]
+
+    try:
+        path, length = a_star(input_map=random_grid_map,
+                              start=(1, 1),
+                              goal=(8, 8),
+                              token=tok)
+        print(path)
+
+    except ValueError as err:
+        logging.getLogger().warning(err)
