@@ -37,7 +37,7 @@ def create_task(input_map, mode='free', start_pos=None, task_list=None):
     """
     Return a task for the given map and starting positions
     Whether tasks can coincide with starting locations or with other tasks is controlled by 'mode'
-    :param input_map: np.ndarray, size:H*W, matrix of 0 and 1
+    :param input_map: np.ndarray, size:H*W, matrix of 0 and 1.
     :param mode:
                 'free'
                     no restriction on new task position (obviously avoiding obstacles)
@@ -54,10 +54,12 @@ def create_task(input_map, mode='free', start_pos=None, task_list=None):
                       passing 'task_list' only makes sense when 'mode' = 'no_task_repetition' or 'avoid_all'
     :return: tuple ((x,y),(x,y)) -> ((pickup_pos),(delivery_pos))
     """
+    # copy to avoid modifications
+    copy_map = input_map.copy()
     # no restrictions
     if mode == 'free':
         # filters out obstacles coords
-        where_res = np.where(input_map == 0)
+        where_res = np.where(copy_map == 0)
         free_cell_list = list(zip(where_res[0], where_res[1]))
         # get the task
         task = __extract_task(coord_list=free_cell_list)
@@ -66,9 +68,9 @@ def create_task(input_map, mode='free', start_pos=None, task_list=None):
     elif mode == 'no_start_repetition':
         # set all starting position = 1 in the map
         for pos in start_pos:
-            input_map[pos] = 1
+            copy_map[pos] = 2
         # filters out obstacles coords and of starting positions
-        where_res = np.where(input_map == 0)
+        where_res = np.where(copy_map == 0)
         free_cell_list = list(zip(where_res[0], where_res[1]))
         # get the task
         task = __extract_task(coord_list=free_cell_list)
@@ -78,17 +80,17 @@ def create_task(input_map, mode='free', start_pos=None, task_list=None):
 
         # avoid both starting positions and other active tasks
         if mode == 'avoid_all':
-            # set all starting position = 1 in the map
+            # set all starting position = 2 in the map
             for pos in start_pos:
-                input_map[pos] = 1
+                copy_map[pos] = 2
 
         # set all other active tasks locations to 1
         for pickup, delivery in task_list:
             if pickup:                  # pickup location can be None (package picked up but not delivered)
-                input_map[pickup] = 1
-            input_map[delivery] = 1        # delivery is always not None, else the task is not active
+                copy_map[pickup] = 2
+            copy_map[delivery] = 2        # delivery is always not None, else the task is not active
         # filters out obstacles coords, other active tasks locations and if 'avoid all' also start pos
-        where_res = np.where(input_map == 0)
+        where_res = np.where(copy_map == 0)
         free_cell_list = list(zip(where_res[0], where_res[1]))
         # get the task
         task = __extract_task(coord_list=free_cell_list)
@@ -134,17 +136,19 @@ class ScenarioCreator:
                                only used when 'start_pos_mode' = 'fixed'
         :return: start_pos: list of int tuples, (x,y) -> starting positions of agents
         """
+        # copy to avoid modifications
+        copy_map = input_map.copy()
         # random generation
         if mode == 'random':
             # flatten the map, get position of 0s
-            flat_map = input_map.flatten()
+            flat_map = copy_map.flatten()
             zeroes_idx_list = [i for i, x in np.ndenumerate(flat_map)
                                if x == 0]
             # random permutation of the index list
             p = np.random.permutation(zeroes_idx_list)
             # set selected indexes to 2, reshape as matrix
             flat_map[p[:self.__agent_num]] = 2
-            start_map = flat_map.reshape(input_map.shape)
+            start_map = flat_map.reshape(copy_map.shape)
             # collect starting coordinates in a list
             where_res = np.where(start_map == 2)
             start_pos_list = list(zip(where_res[0], where_res[1]))
@@ -154,9 +158,8 @@ class ScenarioCreator:
             if self.__agent_num > len(fixed_pos_list):
                 raise ValueError('Not enough starting positions for all the agents')
             p = np.random.permutation(len(fixed_pos_list))    # random permutation of the idx of pos list
-            start_pos_list = []
-            for idx in p[:self.__agent_num]:        # get 'agent_num' idx out of the permutation
-                start_pos_list.append(fixed_pos_list[idx])      # append the corresponding starting position
+            start_pos_list = [tuple(fixed_pos_list[idx])        # get corresponding starting position
+                              for idx in p[:self.__agent_num]]  # get indexes out of the permutation
 
         # default: error
         else:
