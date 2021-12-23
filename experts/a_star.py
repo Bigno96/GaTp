@@ -142,7 +142,7 @@ def a_star(input_map, start, goal,
 # mind that start or end position, since hardcoded, might end up being in an obstacle position, therefore unreachable
 if __name__ == '__main__':
     __spec__ = None
-    map_creator = MapCreator(map_size=(10, 10),
+    map_creator = MapCreator(map_shape=(10, 10),
                              map_density=0.2)
     random_grid_map = map_creator.create_random_grid_map()
     print(random_grid_map)

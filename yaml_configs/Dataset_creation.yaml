@@ -4,7 +4,7 @@
 
 # Map specifications
 map_number: 1000       # how many unique maps
-map_size: [20, 20]     # (H, W)
+map_shape: [20, 20]     # (H, W)
 map_density: 0.2       # % of obstacles in the map
 
 
@@ -16,5 +16,5 @@ task_number: 50                   # how many tasks in each scenario
 start_position_mode: "random"
 # if 'fixed', give list len([(x,y)]) >= num_agents of starting pos to choose from
 fixed_position_list: [[1, 1], [1, 2], [1, 3], [1, 4]]
-# how to create tasks. 'free', 'no_start_repetition', 'no_task_repetition' or 'avoid_all'
-task_creation_mode: "no_start_repetition"
+# how to create tasks. 'free', 'avoid_non_task_rep', 'avoid_task_rep' or 'avoid_all'
+task_creation_mode: "avoid_non_task_rep"
