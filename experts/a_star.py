@@ -24,9 +24,9 @@ The following implementation is based on:
 import logging
 
 import numpy as np
-from experts.funcs import compute_manhattan_heuristic, is_goal, has_valid_expansion
 
 from create_dataset.map_creator import MapCreator
+from experts.funcs import compute_manhattan_heuristic, is_goal, has_valid_expansion
 
 # moves dictionary
 DELTA = [(-1, 0),  # go up
@@ -48,11 +48,11 @@ def a_star(input_map, start, goal,
     :param token: summary of other agents planned paths
                   dict -> {agent_id : path}
                   with path = [(x_0, y_0, t_0), (x_1, y_1, t_1), ...]
-                  x, y -> cartesian coords, t -> timestep, starting from t=0
+                  x, y -> cartesian coords, t -> timestep
             Default: None, defaults to classic A*
     :param heuristic: np.ndarray, type=int, heuristic.shape = input_map shape
-                      given heuristic matrix
-            Default: None, computes manhattan heuristic
+                      given heuristic matrix of goal
+           Default: None, computes manhattan heuristic
     :return: path_found: [(x_0, y_0, t_0), (x_1, y_1, t_1), ..., (x_g, y_g, t_g)]
              path_length: int
     :raise ValueError if no path are found
@@ -96,19 +96,19 @@ def a_star(input_map, start, goal,
         y = q[3]
         timestep = q[4]
 
-        coord = (x, y)
+        curr_c = (x, y)
         # if goal is reached
-        if is_goal(coord=coord, goal=goal):
+        if is_goal(coord=curr_c, goal=goal):
             full_path = []
             # loop back until start is reached
             while x != start[0] or y != start[1]:
-                previous_x = x - DELTA[delta_tracker[coord]][0]
-                previous_y = y - DELTA[delta_tracker[coord]][1]
+                previous_x = x - DELTA[delta_tracker[curr_c]][0]
+                previous_y = y - DELTA[delta_tracker[curr_c]][1]
                 full_path.append((x, y, timestep))  # (x_t, y_t, t)
                 # trace back
                 x = previous_x
                 y = previous_y
-                coord = (x, y)
+                curr_c = (x, y)
                 timestep -= 1
 
             full_path.append((start[0], start[1], 0))
@@ -125,7 +125,7 @@ def a_star(input_map, start, goal,
                 y_next = y + move[1]
                 next_c = (x_next, y_next)
                 # if the point is valid for the expansion
-                if has_valid_expansion(coord=next_c,
+                if has_valid_expansion(next_pos=next_c, curr_pos=curr_c,
                                        input_map=input_map, closed_list=closed_list,
                                        token=token, timestep=timestep):
                     # update values and append to the fringe

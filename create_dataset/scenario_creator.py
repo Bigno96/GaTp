@@ -33,11 +33,12 @@ def __extract_task(coord_list):
     return pickup_coord, delivery_coord
 
 
-def create_task(input_map, mode='free', start_pos=None, task_list=None):
+def create_task(input_map, mode='no_start_repetition',
+                start_pos=None, task_list=None):
     """
     Return a task for the given map and starting positions
     Whether tasks can coincide with starting locations or with other tasks is controlled by 'mode'
-    :param input_map: np.ndarray, size:H*W, matrix of 0 and 1.
+    :param input_map: np.ndarray, size:H*W, matrix of 0 and 1
     :param mode:
                 'free'
                     no restriction on new task position (obviously avoiding obstacles)
@@ -143,7 +144,8 @@ class ScenarioCreator:
             # flatten the map, get position of 0s
             flat_map = copy_map.flatten()
             zeroes_idx_list = [i for i, x in np.ndenumerate(flat_map)
-                               if x == 0]
+                               if x == 0
+                               ]
             # random permutation of the index list
             p = np.random.permutation(zeroes_idx_list)
             # set selected indexes to 2, reshape as matrix
@@ -159,7 +161,8 @@ class ScenarioCreator:
                 raise ValueError('Not enough starting positions for all the agents')
             p = np.random.permutation(len(fixed_pos_list))    # random permutation of the idx of pos list
             start_pos_list = [tuple(fixed_pos_list[idx])        # get corresponding starting position
-                              for idx in p[:self.__agent_num]]  # get indexes out of the permutation
+                              for idx in p[:self.__agent_num]   # get indexes out of the permutation
+                              ]
 
         # default: error
         else:

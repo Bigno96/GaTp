@@ -2,8 +2,9 @@
 Utility functions for experts algorithms
 """
 
-from scipy.spatial import distance
 import numpy as np
+from scipy.spatial import distance
+
 from a_star import a_star
 
 
@@ -17,9 +18,10 @@ def compute_manhattan_heuristic(input_map, goal):
     :return: heuristic, np.ndarray, heuristic.shape = input_map.shape
     """
     # abs(current_cell.x – goal.x) + abs(current_cell.y – goal.y)
-    heuristic = [distance.cityblock(np.array((row, col)), np.array(goal))
+    heuristic = [distance.cityblock((row, col), goal)
                  for row in range(input_map.shape[0])
-                 for col in range(input_map.shape[1])]
+                 for col in range(input_map.shape[1])
+                 ]
 
     return np.array(heuristic, dtype=int).reshape(input_map.shape)
 
@@ -35,7 +37,7 @@ def is_goal(coord, goal):
     return coord[0] == goal[0] and coord[1] == goal[1]
 
 
-def has_valid_expansion(coord, input_map, closed_list,
+def has_valid_expansion(next_pos, curr_pos, input_map, closed_list,
                         token=None, timestep=None):
     """
     Check if is possible for a* to expand the new cell
@@ -43,21 +45,22 @@ def has_valid_expansion(coord, input_map, closed_list,
     2) Check if the cell has already been expanded
     3) Check if the cell has an obstacle inside
     4) Check token for avoiding conflicts with other agents
-    :param coord: (x, y), int tuple of current position
+    :param next_pos: (x, y), int tuple of new position
+    :param curr_pos: (x, y), int tuple of curr position
     :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
     :param closed_list: implemented as matrix with shape = input_map.shape
     :param token: summary of other agents planned paths
                   dict -> {agent_id : path}
                   with path = [(x_0, y_0, t_0), (x_1, y_1, t_1), ...]
-                  x, y -> cartesian coords, t -> timestep, starting from t=0
-    :param timestep: int, current timestep, used positionally
+                  x, y -> cartesian coords, t -> timestep
+    :param timestep: int, timestep of new expansion, used positionally
                      e.g. timestep = 2 -> looking for tuple (x,y,t) at depth 2 in the path
                      YES: path[2]
                      NO: path[i] if path[i].t == 2
     :return: True if all 4 checks are passed, False else
     """
-    x = coord[0]
-    y = coord[1]
+    x = next_pos[0]
+    y = next_pos[1]
 
     # check 1), curr_x < shape_x & curr_x >= 0 & curr_y >= 0 & curr_y < shape_y
     if x >= input_map.shape[0] or x < 0 or y >= input_map.shape[1] or y < 0:
@@ -72,140 +75,128 @@ def has_valid_expansion(coord, input_map, closed_list,
         return False
 
     # classic A*
-    if not token:
+    if not token or not timestep:
         return True
 
     # check 4), check that at token[timestamp] there are no conflicting cells
     # when called by token passing, all paths in the token are from different agents
-    # if you have a path in the token, you don't need to compute a path and call a*
-    moves_curr_ts = [path_[timestep] for path_ in token.values()
-                     if len(path_) > timestep]     # [(x1_t, y1_t, t), (x2_t, y2_t, t), ..., ]
+    # timestep always > 0
+
+    # no swap constraint
+    bad_moves_list = [(x_s, y_s, timestep)
+                      for path_ in token.values()
+                      for x_s, y_s, _ in path_[timestep-1]     # avoid going into their current position next move
+                      if len(path_) > timestep
+                      and path_[timestep][:-1] == curr_pos      # if that agent is going into my current position
+                      ]
+
+    # avoid node collision
+    bad_moves_list.extend([path_[timestep]          # [(x1_t, y1_t, t), (x2_t, y2_t, t), ..., ]
+                           for path_ in token.values()
+                           if len(path_) > timestep
+                           ])
+    # add also coordinates of agent resting on a spot
+    bad_moves_list.extend([(x_s, y_s, timestep)
+                           for path_ in token.values
+                           for x_s, y_s, t_s in path_
+                           # timestep = 0 and only 1 step -> agent is resting
+                           if len(path_) == 1 and t_s == 0
+                           ])
+
     # if attempted move not conflicting, return True
-    return (x, y, timestep) not in moves_curr_ts
+    return (x, y, timestep) not in set(bad_moves_list)
 
 
-def preprocess_heuristics(task_list, input_map):
+def preprocess_heuristics(input_map, task_list, non_task_ep_list):
     """
     Since cost-minimal paths need to be found only to endpoints, the path costs from all locations to all endpoints
     are computed in a preprocessing phase
     Manhattan Heuristic is used to estimate path costs
+    :param input_map: np.ndarray, type=int, size:H*W, matrix of 0 and 1
     :param task_list: list of tasks -> [(task1), (task2), ...]
                       task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
-    :param input_map: np.ndarray, type=int, size:H*W, matrix of 0 and 1
+    :param non_task_ep_list: list of endpoints not belonging to a task -> [(ep1), (ep2), ...]
+                             endpoint: tuple (x,y) of int coordinates
     :return: heuristic_collection
-             dict -> {(task) : (pickup_h, delivery_h)}
-             with pickup_h, delivery_h -> np.ndarray, type=int, shape=input_map.shape,
-                heuristic matrices with goal = pickup_pos and delivery_pos, respectively
+             dict -> {endpoint : h_map}
+             endpoint: tuple (x,y) of int coordinates
+             h_map: np.ndarray, type=int, shape=input_map.shape, heuristic matrices with goal = endpoint
     """
-    heuristic_coll = {}
-    # loop over each task
-    for task in task_list:
-        pickup_pos = task[0]
-        delivery_pos = task[1]
-        # get heuristic w.r.t. pickup and delivery positions
-        pickup_h = compute_manhattan_heuristic(input_map=input_map, goal=pickup_pos)
-        delivery_h = compute_manhattan_heuristic(input_map=input_map, goal=delivery_pos)
-        # add it to the collection
-        heuristic_coll[task] = (pickup_h, delivery_h)
+    # task related endpoints
+    ep_list = [ep
+               for task in task_list
+               for ep in task]
+    # add non task related endpoints
+    ep_list.extend(non_task_ep_list)
 
-    return heuristic_coll
+    # compute h_map list
+    h_map_list = [compute_manhattan_heuristic(input_map=input_map, goal=ep)
+                  for ep in ep_list]
+
+    # return dictionary
+    return dict(zip(iter(ep_list), iter(h_map_list)))
 
 
-def __validate_path(token, path):
+def find_resting_pos(start, input_map, token, h_coll,
+                     task_list, non_task_ep_list):
     """
-    Agent i can stop at (x,y) at time t_i iff no other agent j != i moves to (x,y) with time t_j <= t_i
-    :param token: summary of other agents planned paths
-                  dict -> {agent_id : path}
-                  with path = [(x_0, y_0, t_0), (x_1, y_1, t_1), ...]
-                  x, y -> cartesian coords, t -> timestep, starting from t=0
-    :param path: [(x_0, y_0, t_0), (x_1, y_1, t_1), ..., (x_g, y_g, t_g)]
-                 path the agent is trying to follow
-    :return: True if valid, False if not
-    """
-    # [ (x,y,t), ... ], list of steps of all the agents in the token
-    step_list = [s for p in token.values() for s in p]
-
-    stop = path[-1]     # last step in the path
-    # if (x_s, y_s) in step_list, verify that it moves to that cell after the other agent
-    match = [stop[2]-step[2]
-             for step in step_list
-             if stop[:-1] == step[:-1]]
-    # match -> [ t1, t2, ...] where t_i = stop_t_i - other_path_t_i
-    # so if delta_t in match is <= 0, the agent will be blocking another
-    # return True only if all delta_t > 0
-    return np.all([delta_t > 0 for delta_t in match])
-
-
-def find_resting_pos(start, task_list, token, input_map):
-    """
-    Pick the nearest endpoint s.t. delivery and pickup locations of all tasks are different from the chosen endpoint,
+    Pick the nearest endpoint s.t. delivery locations of all tasks are different from the chosen endpoint,
     no path of other agents in the token ends in the chosen endpoint
     and does not collide with the paths of other agents stored in the token
     :param start: (x, y), tuple of int with start cartesian coordinates
-    :param task_list: list of tasks -> [(task1), (task2), ...]
-                      task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
+    :param input_map: np.ndarray, type=int, size:H*W, matrix of 0 and 1
     :param token: summary of other agents planned paths
                   dict -> {agent_id : path}
                   with path = [(x_0, y_0, t_0), (x_1, y_1, t_1), ...]
-                  x, y -> cartesian coords, t -> timestep, starting from t=0
-    :param input_map: np.ndarray, type=int, size:H*W, matrix of 0 and 1
+                  x, y -> cartesian coords, t -> timestep
+    :param h_coll: dict -> {endpoint : h_map}
+                   endpoint: tuple (x,y) of int coordinates
+                   h_map: np.ndarray, type=int, shape=input_map.shape, heuristic matrices with goal = endpoint
+    :param task_list: list of tasks -> [(task1), (task2), ...]
+                      task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
+    :param non_task_ep_list: list of endpoints not belonging to a task -> [(ep1), (ep2), ...]
+                             endpoint: tuple (x,y) of int coordinates
     :return: minimal cost path to the chosen endpoint
              [(x_0, y_0, t_0), (x_1, y_1, t_1), ..., (x_g, y_g, t_g)]
     """
-    # get distance of other cells w.r.t. starting position
-    heuristic = compute_manhattan_heuristic(input_map=input_map, goal=start)
+    # task related endpoints, excluding all delivery locations in task_list
+    # -> get only pickup locations
+    ep_list = [pickup
+               for pickup, _ in task_list]
+    # add non task related endpoints
+    ep_list.extend(non_task_ep_list)
 
-    # copy to avoid modifications
-    copy_map = input_map.copy()
-    # loop over all tasks and set = 1 pickup and delivery coords
-    for task in task_list:
-        copy_map[task[0]] = 1        # pickup location, task[0], (x_p, y_p)
-        copy_map[task[1]] = 1        # delivery location, task[1], (x_d, y_d)
-    # loop over all paths in token and set = 1 their endpoints
-    for path in token.values():
-        end_loc = path[-1][:-1]      # get endpoint of path, only (x,y), excluding timestep
-        copy_map[end_loc] = 1
+    # get list of all endpoints in the token (cutting off timesteps)
+    token_ep_list = [path[-1][:-1]
+                     for path in token.values()]
+    # remove an endpoint if it's an endpoint also for another agent's path in the token
+    ep_list = list(set(ep_list) - set(token_ep_list))
 
-    # discard not available cells, working with 1D array
-    flat_map = copy_map.flatten()
-    free_idx_list = np.nonzero(flat_map == 0)[0]   # [0] since it returns the list 'wrapped' by a tuple
+    # get heuristic for each endpoint from start position
+    h_ep_list = [h_coll[ep][start]
+                 for ep in ep_list]
+    # list of idx, corresponding to an ordering of ep_list
+    # if h_ordering_idx[i] = 0 -> the nearest endpoint is ep_list[i]
+    # if h_ordering_idx[j] = 1 -> the second-nearest endpoint is ep_list[j]
+    h_ordering_idx = np.argsort(h_ep_list)
 
-    # get indexes that would sort flattened heuristic
-    # if argmin(heuristic) = 3 -> order[0] = 3
-    # if second lowest value of heuristic is in position 5 -> order[1] = 5
-    # if argmax(heuristic) = n -> order[heuristic.size-1] = n
-    # e.g. -> heuristic = [1, 4, 0, 8]
-    #         order     = [2, 0, 1, 3]
-    order = np.argsort(heuristic.flatten())
+    # while there are still endpoints to try
+    while h_ordering_idx:
+        # pop argmin -> obtain 'i', index of the nearest endpoint
+        best_ep_idx = np.argmin(h_ordering_idx)
+        np.delete(h_ordering_idx, best_ep_idx)
+        # get best endpoint
+        best_ep = ep_list[best_ep_idx]
 
-    # remove lowest since it's the agent start position
-    order = np.delete(order, 0)
+        try:
+            # collision free path, if endpoint is reachable
+            path, _ = a_star(input_map=input_map, start=start, goal=best_ep,
+                             token=token, heuristic=h_ep_list[best_ep_idx])
+            return path
 
-    ret_path = []
-    # check cells in ascending order of heuristics (low first)
-    while order.size > 0 and not ret_path:
-        # 'pop' index of argmin
-        idx = order[0]
-        order = np.delete(order, 0)
-        # check if the cell is free
-        if idx in free_idx_list:
-            target = np.unravel_index(idx, input_map.shape)     # get 2D coordinates
-            try:
-                ret_path = a_star(input_map=input_map, start=start, goal=target, token=token)
+        except ValueError:
+            pass    # keep going and try another endpoint
 
-                '''
-                found path is already collision free
-                however, the code still allows for an agent to rest in the path of another agent, if the first reaches
-                its endpoint before the second moves in that square
-                we want to remove this, as can cause collisions
-                agent i can move to (x,y) at time t_i iff no other agent j != i moves to (x,y) with time t_j <= t_i
-                '''
-                # if valid, return the path
-                if __validate_path(token, ret_path):
-                    return ret_path
-
-            except ValueError:
-                ret_path = []
-
-    # no path found, stay in place
+    # no endpoint was reachable -> stay in place
+    # this happens due to MAPD instance not being well-formed
     return [(start[0], start[1], 0)]

@@ -17,19 +17,19 @@ from utils.config import get_config_from_yaml
 from utils.create_dirs import create_dirs
 
 
-def save_image(dataset_dir, input_map, map_id, start_pos, sc_id):
+def save_image(dataset_dir, input_map, map_id, start_pos_list, sc_id):
     """
     Save image of the map (black and white) with agent starting positions (red)
     :param dataset_dir: path to the specific dataset directory
     :param input_map: np.ndarray, size: H*W, matrix of '0' and '1'
     :param map_id: int, identifier of map
-    :param start_pos: list of tuples, (x,y) -> coordinates over the map
+    :param start_pos_list: list of tuples, (x,y) -> coordinates over the map
     :param sc_id: int, identifier of scenario
     """
     # copy to avoid modifications
     copy_map = input_map.copy()
     img_path = os.path.join(dataset_dir, f'map{map_id:03d}_case{sc_id:02d}.png')
-    for pos in start_pos:
+    for pos in start_pos_list:
         copy_map[pos] = 2
     # white = 0, background | black = 1, obstacles | red = 2, agents starting positions
     plt.imsave(img_path, copy_map,
@@ -44,6 +44,8 @@ def __random_grid_dataset():
             MAP_NUMBER different random grid maps for the same setting (size, density)
 
         Create Scenarios (see scenario_creator.py for more details):
+            To have well-formed MAPD instances, create_task should be set with mode = 'no_start_repetition'
+            This will guarantee a set of non-task endpoints >= num agents, being the agents' starting positions
             SCENARIO_NUMBER different scenarios for each map
             AGENT_NUMBER different starting positions for agents
             TASK_NUMBER series of tasks (pickup and delivery positions)
@@ -101,7 +103,7 @@ def __random_grid_dataset():
                 save_image(dataset_dir=dataset_dir,
                            input_map=random_grid_map,
                            map_id=map_id,
-                           start_pos=start_pos_list,
+                           start_pos_list=start_pos_list,
                            sc_id=sc_id)
 
                 sc_id += 1
