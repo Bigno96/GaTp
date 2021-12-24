@@ -108,12 +108,12 @@ class TpAgent:
                 pickup_path, pick_len = a_star(input_map=self.__map,
                                                start=self.pos, goal=best_task[0],
                                                token=token,
-                                               heuristic=self.__h_coll[best_task[0]])
+                                               h_map=self.__h_coll[best_task[0]])
                 # second, pickup_pos -> delivery_pos
                 delivery_path, _ = a_star(input_map=self.__map,
                                           start=best_task[0], goal=best_task[1],
                                           token=token,
-                                          heuristic=self.__h_coll[best_task[1]])
+                                          h_map=self.__h_coll[best_task[1]])
                 # adjust timesteps of second half of the path
                 delivery_path = [(x, y, pick_len+t)
                                  for x, y, t in delivery_path]

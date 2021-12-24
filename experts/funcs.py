@@ -2,10 +2,7 @@
 Utility functions for experts algorithms
 """
 
-import numpy as np
-from scipy.spatial import distance
-
-from a_star import a_star
+from experts.a_star import *
 
 
 def compute_manhattan_heuristic(input_map, goal):
@@ -18,7 +15,7 @@ def compute_manhattan_heuristic(input_map, goal):
     :return: heuristic, np.ndarray, heuristic.shape = input_map.shape
     """
     # abs(current_cell.x – goal.x) + abs(current_cell.y – goal.y)
-    heuristic = [distance.cityblock((row, col), goal)
+    heuristic = [(np.abs(row - goal[0]) + np.abs(col - goal[1]))
                  for row in range(input_map.shape[0])
                  for col in range(input_map.shape[1])
                  ]
@@ -26,85 +23,74 @@ def compute_manhattan_heuristic(input_map, goal):
     return np.array(heuristic, dtype=int).reshape(input_map.shape)
 
 
-def is_goal(coord, goal):
-    """
-    Return True if the current coordinates are the goal, False otherwise
-    :param coord: (x, y), int tuple of current position
-    :param goal: (x, y), int tuple of goal position
-    :return: boolean
-    """
-    # curr_x = goal_x & curr_y = goal_y
-    return coord[0] == goal[0] and coord[1] == goal[1]
-
-
-def has_valid_expansion(next_pos, curr_pos, input_map, closed_list,
-                        token=None, timestep=None):
+def is_valid_expansion(child_pos, input_map, closed_list,
+                       parent_pos=None, token=None, child_timestep=None):
     """
     Check if is possible for a* to expand the new cell
     1) Check if the cell is inside map boundaries
     2) Check if the cell has already been expanded
     3) Check if the cell has an obstacle inside
     4) Check token for avoiding conflicts with other agents
-    :param next_pos: (x, y), int tuple of new position
-    :param curr_pos: (x, y), int tuple of curr position
+    :param child_pos: (x, y), int tuple of new position
+    :param parent_pos: (x, y), int tuple of curr position
     :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
-    :param closed_list: implemented as matrix with shape = input_map.shape
+    :param closed_list: implemented as matrix with shape = input_map.shape, np.ndarray
     :param token: summary of other agents planned paths
                   dict -> {agent_id : path}
                   with path = [(x_0, y_0, t_0), (x_1, y_1, t_1), ...]
                   x, y -> cartesian coords, t -> timestep
-    :param timestep: int, timestep of new expansion, used positionally
+    :param child_timestep: int, timestep of new expansion, used positionally
                      e.g. timestep = 2 -> looking for tuple (x,y,t) at depth 2 in the path
                      YES: path[2]
                      NO: path[i] if path[i].t == 2
     :return: True if all 4 checks are passed, False else
     """
-    x = next_pos[0]
-    y = next_pos[1]
+    x, y = child_pos
 
-    # check 1), curr_x < shape_x & curr_x >= 0 & curr_y >= 0 & curr_y < shape_y
-    if x >= input_map.shape[0] or x < 0 or y >= input_map.shape[1] or y < 0:
+    # check 1), x < shape_x & x >= 0 & y >= 0 & y < shape_y
+    if x < 0 or y < 0 or x >= input_map.shape[0] or y >= input_map.shape[1]:
         return False
 
     # check 2), the current node has not been expanded
-    if closed_list[x][y] == 1:
+    if closed_list[child_pos] == 1:
         return False
 
     # check 3), the current cell is not an obstacle (not 1)
-    if input_map[x][y] == 1:
+    if input_map[child_pos] == 1:
         return False
 
-    # classic A*
-    if not token or not timestep:
+    # defaults to classic A*
+    if not token or not child_timestep or not parent_pos:
         return True
 
     # check 4), check that at token[timestamp] there are no conflicting cells
-    # when called by token passing, all paths in the token are from different agents
-    # timestep always > 0
+    # when called by token passing, all paths in the token are from a different agent
+    # child_timestep always > 0 by construction
 
     # no swap constraint
-    bad_moves_list = [(x_s, y_s, timestep)
-                      for path_ in token.values()
-                      for x_s, y_s, _ in path_[timestep-1]     # avoid going into their current position next move
-                      if len(path_) > timestep
-                      and path_[timestep][:-1] == curr_pos      # if that agent is going into my current position
+    bad_moves_list = [(x_s, y_s, child_timestep)
+                      for path in token.values()
+                      for x_s, y_s, t_s in path
+                      if len(path) > child_timestep
+                      and t_s == child_timestep  # avoid going into their current position next move
+                      and path[child_timestep][:-1] == parent_pos  # if that agent is going into my current position
                       ]
 
     # avoid node collision
-    bad_moves_list.extend([path_[timestep]          # [(x1_t, y1_t, t), (x2_t, y2_t, t), ..., ]
-                           for path_ in token.values()
-                           if len(path_) > timestep
+    bad_moves_list.extend([path[child_timestep]  # [(x1_t, y1_t, t), (x2_t, y2_t, t), ..., ]
+                           for path in token.values()
+                           if len(path) > child_timestep
                            ])
     # add also coordinates of agent resting on a spot
-    bad_moves_list.extend([(x_s, y_s, timestep)
-                           for path_ in token.values
-                           for x_s, y_s, t_s in path_
+    bad_moves_list.extend([(x_s, y_s, child_timestep)
+                           for path in token.values()
+                           for x_s, y_s, t_s in path
                            # timestep = 0 and only 1 step -> agent is resting
-                           if len(path_) == 1 and t_s == 0
+                           if len(path) == 1 and t_s == 0
                            ])
 
     # if attempted move not conflicting, return True
-    return (x, y, timestep) not in set(bad_moves_list)
+    return (x, y, child_timestep) not in set(bad_moves_list)
 
 
 def preprocess_heuristics(input_map, task_list, non_task_ep_list):
@@ -191,7 +177,7 @@ def find_resting_pos(start, input_map, token, h_coll,
         try:
             # collision free path, if endpoint is reachable
             path, _ = a_star(input_map=input_map, start=start, goal=best_ep,
-                             token=token, heuristic=h_ep_list[best_ep_idx])
+                             token=token, h_map=h_ep_list[best_ep_idx])
             return path
 
         except ValueError:

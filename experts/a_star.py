@@ -21,12 +21,9 @@ The following implementation is based on:
         arXiv preprint arXiv:1705.10868.
 """
 
-import logging
-
 import numpy as np
 
-from create_dataset.map_creator import MapCreator
-from experts.funcs import compute_manhattan_heuristic, is_goal, has_valid_expansion
+from experts.funcs import compute_manhattan_heuristic, is_valid_expansion
 
 # moves dictionary
 DELTA = [(-1, 0),  # go up
@@ -36,7 +33,7 @@ DELTA = [(-1, 0),  # go up
 
 
 def a_star(input_map, start, goal,
-           token=None, heuristic=None):
+           token=None, h_map=None):
     """
     A* Planner method
     Finds a plan from a starting node to a goal node if one exists
@@ -50,17 +47,16 @@ def a_star(input_map, start, goal,
                   with path = [(x_0, y_0, t_0), (x_1, y_1, t_1), ...]
                   x, y -> cartesian coords, t -> timestep
             Default: None, defaults to classic A*
-    :param heuristic: np.ndarray, type=int, heuristic.shape = input_map shape
-                      given heuristic matrix of goal
+    :param h_map: np.ndarray, type=int, heuristic.shape = input_map shape
+                  given heuristic matrix of goal
            Default: None, computes manhattan heuristic
     :return: path_found: [(x_0, y_0, t_0), (x_1, y_1, t_1), ..., (x_g, y_g, t_g)]
              path_length: int
     :raise ValueError if no path are found
     """
     # pre-compute heuristic if none
-    if not heuristic:
-        heuristic = compute_manhattan_heuristic(input_map=input_map,
-                                                goal=goal)
+    if not isinstance(h_map, np.ndarray):
+        h_map = compute_manhattan_heuristic(input_map=input_map, goal=goal)
 
     '''
     Supporting data structures
@@ -73,12 +69,11 @@ def a_star(input_map, start, goal,
     '''
     Initialization
     '''
-    x = start[0]
-    y = start[1]
+    x, y = start
 
     cost = 1  # cost of each step
     g = 0  # cost of the path to the current cell
-    f = g + heuristic[(x, y)]
+    f = g + h_map[(x, y)]
     t = 0  # timestep
 
     open_list = [(f, g, x, y, t)]  # fringe
@@ -98,7 +93,7 @@ def a_star(input_map, start, goal,
 
         curr_c = (x, y)
         # if goal is reached
-        if is_goal(coord=curr_c, goal=goal):
+        if curr_c == goal:
             full_path = []
             # loop back until start is reached
             while x != start[0] or y != start[1]:
@@ -125,37 +120,13 @@ def a_star(input_map, start, goal,
                 y_next = y + move[1]
                 next_c = (x_next, y_next)
                 # if the point is valid for the expansion
-                if has_valid_expansion(next_pos=next_c, curr_pos=curr_c,
-                                       input_map=input_map, closed_list=closed_list,
-                                       token=token, timestep=timestep):
+                if is_valid_expansion(child_pos=next_c, input_map=input_map, closed_list=closed_list,
+                                      parent_pos=curr_c, token=token, child_timestep=timestep):
                     # update values and append to the fringe
                     g_next = g + cost
-                    f = g_next + heuristic[next_c]
+                    f = g_next + h_map[next_c]
                     open_list.append((f, g_next, x_next, y_next, timestep))
                     closed_list[next_c] = 1                     # node has been visited
                     delta_tracker[next_c] = idx                 # keep track of the move
 
     raise ValueError('No path found')
-
-
-# test a_star
-# mind that start or end position, since hardcoded, might end up being in an obstacle position, therefore unreachable
-if __name__ == '__main__':
-    __spec__ = None
-    map_creator = MapCreator(map_shape=(10, 10),
-                             map_density=0.2)
-    random_grid_map = map_creator.create_random_grid_map()
-    print(random_grid_map)
-
-    tok = {0: [(2, 2, 0), (1, 2, 1), (1, 3, 2)],
-           1: [(3, 3, 0), (3, 4, 1), (4, 4, 2)]}
-
-    try:
-        path, length = a_star(input_map=random_grid_map,
-                              start=(1, 1),
-                              goal=(8, 8),
-                              token=tok)
-        print(path)
-
-    except ValueError as err:
-        logging.getLogger().warning(err)

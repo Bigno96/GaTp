@@ -74,14 +74,12 @@ def __random_grid_dataset():
 
     # generate map and scenario
     try:
-        map_id = 0
-        for _ in range(config.map_number):
+        for map_id in range(config.map_number):
             # get map
             random_grid_map = create_random_grid_map(map_shape=config.map_shape,
                                                      map_density=config.map_density)
 
-            sc_id = 0
-            for _ in range(config.scenario_number):
+            for sc_id in range(config.scenario_number):
                 # get starting positions
                 start_pos_list = create_starting_pos(input_map=random_grid_map,
                                                      agent_num=config.agent_number,
@@ -106,9 +104,7 @@ def __random_grid_dataset():
                            start_pos_list=start_pos_list,
                            sc_id=sc_id)
 
-                sc_id += 1
-            map_id += 1
-
+    # invalid configuration parameters passed
     except ValueError as err:
         logging.getLogger().warning(err)
         exit(-1)
