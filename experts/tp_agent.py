@@ -42,16 +42,21 @@ class TpAgent:
         return (f'TpAgent(name={self.name}, free={self.free}, pos={self.pos}\n'
                 f'\t\tpath={self.path})')
 
+    def __hash__(self):
+        return hash(self.name)
+
     def move_one_step(self):
         """
         Agent moves one step down its path
         By assumption, agents stay in place after finishing their tasks (= at the end of their paths)
         """
-        self.pos = self.path.popleft()[:-1]  # move
-        # last step was taken
-        if not self.path:
-            self.path = deque([(self.pos[0], self.pos[1], 0)])     # stay in place
+        # if last step
+        if len(self.path) == 1:
+            self.pos = self.path[-1][:-1]
+            self.path[-1] = (self.pos[0], self.pos[1], 0)
             self.free = True
+        else:
+            self.pos = self.path.popleft()[:-1]  # move
 
     def find_resting_pos(self, token, task_list, non_task_ep_list):
         """
@@ -195,5 +200,3 @@ class TpAgent:
             self.find_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list)
             token[self.name] = self.path
             self.free = True
-
-        return self.path.copy()

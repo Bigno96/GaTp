@@ -25,7 +25,7 @@ from experts.tp_agent import TpAgent
 
 
 def tp(input_map, start_pos_list, task_list,
-       parking_spot=None, imm_task_split=0.5, new_task_per_timestep=10):
+       parking_spot=(), imm_task_split=0.5, new_task_per_timestep=10):
     """
     Token Passing algorithm
     :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
@@ -79,17 +79,17 @@ def tp(input_map, start_pos_list, task_list,
         while free_agent_queue:
             agent = free_agent_queue.pop()
             # pass control to agent a_i
-            path = agent.receive_token(token=token,
-                                       task_list=active_task_list,
-                                       non_task_ep_list=non_task_ep_list)
+            agent.receive_token(token=token,
+                                task_list=active_task_list,
+                                non_task_ep_list=non_task_ep_list)
             # a_i has updated token, active_task_list and its 'free' status
-            # update schedule
-            agent_schedule[agent.name].extend(path)
 
         # all agents move along their paths in token for one timestep
         for agent in agent_pool:
             # agents update also here if they are free or not (when they end a path, they become free)
             agent.move_one_step()
+            # update schedule
+            agent_schedule[agent.name].append(agent.path[0])
 
         # add new tasks, if any, before next iteration
         active_task_list.extend([new_task_pool.popleft()
