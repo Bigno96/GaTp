@@ -21,6 +21,9 @@ The following implementation is based on:
         arXiv preprint arXiv:1705.10868.
 """
 
+import heapq
+from collections import deque
+
 import numpy as np
 
 from experts.funcs import compute_manhattan_heuristic, is_valid_expansion
@@ -44,13 +47,13 @@ def a_star(input_map, start, goal,
     :param goal: (x, y), tuple of int with goal cartesian coordinates
     :param token: summary of other agents planned paths
                   dict -> {agent_id : path}
-                  with path = [(x_0, y_0, t_0), (x_1, y_1, t_1), ...]
+                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
                   x, y -> cartesian coords, t -> timestep
             Default: None, defaults to classic A*
     :param h_map: np.ndarray, type=int, heuristic.shape = input_map shape
                   given heuristic matrix of goal
            Default: None, computes manhattan heuristic
-    :return: path_found: [(x_0, y_0, t_0), (x_1, y_1, t_1), ..., (x_g, y_g, t_g)]
+    :return: path_found: deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ..., (x_g, y_g, t_g)])
              path_length: int
     :raise ValueError if no path are found
     """
@@ -70,13 +73,13 @@ def a_star(input_map, start, goal,
     Initialization
     '''
     x, y = start
-
-    cost = 1  # cost of each step
     g = 0  # cost of the path to the current cell
     f = g + h_map[(x, y)]
     t = 0  # timestep
+    cost = 1  # cost of each step
 
     open_list = [(f, g, x, y, t)]  # fringe
+    heapq.heapify(open_list)    # priority queue in ascending order of f
     closed_list[(x, y)] = 1  # visit the starting cell
 
     '''
@@ -84,36 +87,30 @@ def a_star(input_map, start, goal,
     '''
     # while open list is not empty
     while open_list:
-        open_list.sort()  # ascending order of f
-        q = open_list.pop(0)  # pop first, min(f)
-        g = q[1]
-        x = q[2]
-        y = q[3]
-        timestep = q[4]
+        _, g, x, y, t = heapq.heappop(open_list)
 
         curr_c = (x, y)
         # if goal is reached
-        if curr_c == goal:
-            full_path = []
-            # loop back until start is reached
-            while x != start[0] or y != start[1]:
+        if (x, y) == goal:
+            path = deque()
+            # loop back until start is reached and build full path
+            while curr_c != start:
                 previous_x = x - DELTA[delta_tracker[curr_c]][0]
                 previous_y = y - DELTA[delta_tracker[curr_c]][1]
-                full_path.append((x, y, timestep))  # (x_t, y_t, t)
+                path.appendleft((x, y, t))  # (x_t, y_t, t)
                 # trace back
                 x = previous_x
                 y = previous_y
                 curr_c = (x, y)
-                timestep -= 1
+                t -= 1
+            # add start
+            path.appendleft((start[0], start[1], 0))
 
-            full_path.append((start[0], start[1], 0))
-            full_path.reverse()
-
-            return full_path, len(full_path)
+            return path, len(path)
 
         else:
             # keep track of the timestep when the node was popped
-            timestep += 1
+            t += 1
             # for each possible move
             for idx, move in enumerate(DELTA):
                 x_next = x + move[0]
@@ -121,11 +118,11 @@ def a_star(input_map, start, goal,
                 next_c = (x_next, y_next)
                 # if the point is valid for the expansion
                 if is_valid_expansion(child_pos=next_c, input_map=input_map, closed_list=closed_list,
-                                      parent_pos=curr_c, token=token, child_timestep=timestep):
+                                      parent_pos=curr_c, token=token, child_timestep=t):
                     # update values and append to the fringe
                     g_next = g + cost
                     f = g_next + h_map[next_c]
-                    open_list.append((f, g_next, x_next, y_next, timestep))
+                    heapq.heappush(open_list, (f, g_next, x_next, y_next, t))
                     closed_list[next_c] = 1                     # node has been visited
                     delta_tracker[next_c] = idx                 # keep track of the move
 

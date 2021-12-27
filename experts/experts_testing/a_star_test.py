@@ -1,11 +1,13 @@
 import pprint
+import random
 import unittest
+from collections import deque
 
 import numpy as np
-import random
+
 from create_dataset.map_creator import create_random_grid_map
-from experts.funcs import compute_manhattan_heuristic, is_valid_expansion
 from experts.a_star import a_star
+from experts.funcs import compute_manhattan_heuristic, is_valid_expansion
 
 
 # noinspection DuplicatedCode
@@ -192,17 +194,22 @@ class AStarTest(unittest.TestCase):
                      for t, (x, y) in enumerate(random.sample(population=free_cell_list, k=5))]}
         x, y = random.choice(seq=free_cell_list)
         token['stands_still'] = [(x, y, 0)]  # one agent stands still
+
+        token_step_list = [step
+                           for path in token.values()
+                           for step in path]
+        token_pos_list = [(x, y)
+                          for path in token.values()
+                          for x, y, t in path]
         # check token validity
-        for path in token.values():
-            for x, y, t in path:
-                self.assertEqual(grid_map[(x, y)], 0)
+        for x, y, t in token_step_list:
+            self.assertEqual(grid_map[(x, y)], 0)
 
         '''Classic A*, no token nor given, precomputed heuristic'''
         for _ in range(repetition):
             # start_pos, goal and heuristic
             start_pos = random.choice(free_cell_list)
             goal = random.choice(list(set(free_cell_list) - set(start_pos)))
-            h_map = compute_manhattan_heuristic(input_map=grid_map, goal=goal)
 
             try:
                 path, length = a_star(input_map=grid_map,
@@ -210,7 +217,7 @@ class AStarTest(unittest.TestCase):
                                       token=None, h_map=None)
 
                 self.assertIsInstance(length, int)
-                self.assertIsInstance(path, list)
+                self.assertIsInstance(path, deque)
                 for step in path:
                     self.assertIsInstance(step, tuple)
                 self.assertEqual(length, len(path))
@@ -231,7 +238,7 @@ class AStarTest(unittest.TestCase):
                                       token=None, h_map=h_map)
 
                 self.assertIsInstance(length, int)
-                self.assertIsInstance(path, list)
+                self.assertIsInstance(path, deque)
                 for step in path:
                     self.assertIsInstance(step, tuple)
                 self.assertEqual(length, len(path))
@@ -242,9 +249,8 @@ class AStarTest(unittest.TestCase):
         '''A* with token'''
         for _ in range(repetition):
             # start_pos, goal and heuristic
-            start_pos = random.choice(free_cell_list)
+            start_pos = random.choice(list(set(free_cell_list) - set(token_pos_list)))
             goal = random.choice(list(set(free_cell_list) - set(start_pos)))
-            h_map = compute_manhattan_heuristic(input_map=grid_map, goal=goal)
 
             try:
                 path, length = a_star(input_map=grid_map,
@@ -252,9 +258,10 @@ class AStarTest(unittest.TestCase):
                                       token=token, h_map=None)
 
                 self.assertIsInstance(length, int)
-                self.assertIsInstance(path, list)
+                self.assertIsInstance(path, deque)
                 for step in path:
                     self.assertIsInstance(step, tuple)
+                    self.assertNotIn(step, token_step_list)
                 self.assertEqual(length, len(path))
 
             except ValueError:
@@ -264,7 +271,7 @@ class AStarTest(unittest.TestCase):
         printed = False
         for _ in range(repetition):
             # start_pos, goal and heuristic
-            start_pos = random.choice(free_cell_list)
+            start_pos = random.choice(list(set(free_cell_list) - set(token_pos_list)))
             goal = random.choice(list(set(free_cell_list) - set(start_pos)))
             h_map = compute_manhattan_heuristic(input_map=grid_map, goal=goal)
 
@@ -274,9 +281,10 @@ class AStarTest(unittest.TestCase):
                                       token=token, h_map=h_map)
 
                 self.assertIsInstance(length, int)
-                self.assertIsInstance(path, list)
+                self.assertIsInstance(path, deque)
                 for step in path:
                     self.assertIsInstance(step, tuple)
+                    self.assertNotIn(step, token_step_list)
                 self.assertEqual(length, len(path))
 
                 if not printed:

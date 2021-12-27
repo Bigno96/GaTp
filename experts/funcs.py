@@ -2,7 +2,7 @@
 Utility functions for experts algorithms
 """
 
-from experts.a_star import *
+import numpy as np
 
 
 def compute_manhattan_heuristic(input_map, goal):
@@ -37,7 +37,7 @@ def is_valid_expansion(child_pos, input_map, closed_list,
     :param closed_list: implemented as matrix with shape = input_map.shape, np.ndarray
     :param token: summary of other agents planned paths
                   dict -> {agent_id : path}
-                  with path = [(x_0, y_0, t_0), (x_1, y_1, t_1), ...]
+                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
                   x, y -> cartesian coords, t -> timestep
     :param child_timestep: int, timestep of new expansion, used positionally
                      e.g. timestep = 2 -> looking for tuple (x,y,t) at depth 2 in the path
@@ -90,7 +90,7 @@ def is_valid_expansion(child_pos, input_map, closed_list,
                            ])
 
     # if attempted move not conflicting, return True
-    return (x, y, child_timestep) not in set(bad_moves_list)
+    return (x, y, child_timestep) not in bad_moves_list
 
 
 def preprocess_heuristics(input_map, task_list, non_task_ep_list):
@@ -121,68 +121,3 @@ def preprocess_heuristics(input_map, task_list, non_task_ep_list):
 
     # return dictionary
     return dict(zip(iter(ep_list), iter(h_map_list)))
-
-
-def find_resting_pos(start, input_map, token, h_coll,
-                     task_list, non_task_ep_list):
-    """
-    Pick the nearest endpoint s.t. delivery locations of all tasks are different from the chosen endpoint,
-    no path of other agents in the token ends in the chosen endpoint
-    and does not collide with the paths of other agents stored in the token
-    :param start: (x, y), tuple of int with start cartesian coordinates
-    :param input_map: np.ndarray, type=int, size:H*W, matrix of 0 and 1
-    :param token: summary of other agents planned paths
-                  dict -> {agent_id : path}
-                  with path = [(x_0, y_0, t_0), (x_1, y_1, t_1), ...]
-                  x, y -> cartesian coords, t -> timestep
-    :param h_coll: dict -> {endpoint : h_map}
-                   endpoint: tuple (x,y) of int coordinates
-                   h_map: np.ndarray, type=int, shape=input_map.shape, heuristic matrices with goal = endpoint
-    :param task_list: list of tasks -> [(task1), (task2), ...]
-                      task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
-    :param non_task_ep_list: list of endpoints not belonging to a task -> [(ep1), (ep2), ...]
-                             endpoint: tuple (x,y) of int coordinates
-    :return: minimal cost path to the chosen endpoint
-             [(x_0, y_0, t_0), (x_1, y_1, t_1), ..., (x_g, y_g, t_g)]
-    """
-    # task related endpoints, excluding all delivery locations in task_list
-    # -> get only pickup locations
-    ep_list = [pickup
-               for pickup, _ in task_list]
-    # add non task related endpoints
-    ep_list.extend(non_task_ep_list)
-
-    # get list of all endpoints in the token (cutting off timesteps)
-    token_ep_list = [path[-1][:-1]
-                     for path in token.values()]
-    # remove an endpoint if it's an endpoint also for another agent's path in the token
-    ep_list = list(set(ep_list) - set(token_ep_list))
-
-    # get heuristic for each endpoint from start position
-    h_ep_list = [h_coll[ep][start]
-                 for ep in ep_list]
-    # list of idx, corresponding to an ordering of ep_list
-    # if h_ordering_idx[i] = 0 -> the nearest endpoint is ep_list[i]
-    # if h_ordering_idx[j] = 1 -> the second-nearest endpoint is ep_list[j]
-    h_ordering_idx = np.argsort(h_ep_list)
-
-    # while there are still endpoints to try
-    while h_ordering_idx:
-        # pop argmin -> obtain 'i', index of the nearest endpoint
-        best_ep_idx = np.argmin(h_ordering_idx)
-        np.delete(h_ordering_idx, best_ep_idx)
-        # get best endpoint
-        best_ep = ep_list[best_ep_idx]
-
-        try:
-            # collision free path, if endpoint is reachable
-            path, _ = a_star(input_map=input_map, start=start, goal=best_ep,
-                             token=token, h_map=h_ep_list[best_ep_idx])
-            return path
-
-        except ValueError:
-            pass    # keep going and try another endpoint
-
-    # no endpoint was reachable -> stay in place
-    # this happens due to MAPD instance not being well-formed
-    return [(start[0], start[1], 0)]
