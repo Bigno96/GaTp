@@ -48,7 +48,7 @@ def is_valid_expansion(child_pos, input_map, closed_list,
     x, y = child_pos
 
     # check 1), x < shape_x & x >= 0 & y >= 0 & y < shape_y
-    if x < 0 or y < 0 or x >= input_map.shape[0] or y >= input_map.shape[1]:
+    if x < 0 or x >= input_map.shape[0] or y < 0 or y >= input_map.shape[1]:
         return False
 
     # check 2), the current node has not been expanded

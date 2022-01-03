@@ -28,18 +28,18 @@ class TpAgent:
                        h_map: np.ndarray, type=int, shape=input_map.shape, heuristic matrices with goal = endpoint
         """
         self.name = name
-        self.__map = input_map
+        self.map = input_map
         self.pos = start_pos    # tuple (x,y)
-        self.__h_coll = h_coll
+        self.h_coll = h_coll
         # path the agent is following, [(x_0, y_0, t_0), (x_1, y_1, t_1), ..., (x_g, y_g, t_g)]
         self.path = deque([(start_pos[0], start_pos[1], 0)])
-        self.free = True
+        self.is_free = True
 
     def __eq__(self, other):
         return self.name == other.name
 
     def __str__(self):
-        return (f'TpAgent(name={self.name}, free={self.free}, pos={self.pos}\n'
+        return (f'TpAgent(name={self.name}, free={self.is_free}, pos={self.pos}\n'
                 f'\t\tpath={self.path})')
 
     def __hash__(self):
@@ -54,7 +54,7 @@ class TpAgent:
         if len(self.path) == 1:
             self.pos = self.path[-1][:-1]
             self.path[-1] = (self.pos[0], self.pos[1], 0)
-            self.free = True
+            self.is_free = True
         else:
             self.pos = self.path.popleft()[:-1]  # move
 
@@ -91,7 +91,7 @@ class TpAgent:
         ep_list = list(set(ep_list) - set(token_ep_list))
 
         # get heuristic value for each endpoint from start position
-        h_ep_list = [self.__h_coll[ep][self.pos]
+        h_ep_list = [self.h_coll[ep][self.pos]
                      for ep in ep_list]
         # list of idx, corresponding to an ordering of ep_list
         # h_ordering_idx[0] == i -> the nearest endpoint is ep_list[i]
@@ -108,8 +108,8 @@ class TpAgent:
 
             try:
                 # collision free path, if endpoint is reachable
-                self.path, _ = a_star(input_map=self.__map, start=self.pos, goal=best_ep,
-                                      token=token, h_map=self.__h_coll[best_ep])
+                self.path, _ = a_star(input_map=self.map, start=self.pos, goal=best_ep,
+                                      token=token, h_map=self.h_coll[best_ep])
                 return
 
             except ValueError:
@@ -152,22 +152,22 @@ class TpAgent:
             # list -> [h-value1, h-value2, ...]
             # h-value from current agent position to pickup_pos of the task
             # argmin -> index of avail_task_list where task has min(h-value)
-            best_task = avail_task_list[np.argmin([self.__h_coll[pickup][self.pos]
+            best_task = avail_task_list[np.argmin([self.h_coll[pickup][self.pos]
                                                    for pickup, _ in avail_task_list
                                                    ])]
 
             try:
                 # first, from curr_pos to pickup_pos
                 pickup_pos, delivery_pos = best_task
-                pickup_path, pick_len = a_star(input_map=self.__map,
+                pickup_path, pick_len = a_star(input_map=self.map,
                                                start=self.pos, goal=pickup_pos,
                                                token=token,
-                                               h_map=self.__h_coll[pickup_pos])
+                                               h_map=self.h_coll[pickup_pos])
                 # second, from pickup_pos to delivery_pos
-                delivery_path, _ = a_star(input_map=self.__map,
+                delivery_path, _ = a_star(input_map=self.map,
                                           start=pickup_pos, goal=delivery_pos,
                                           token=token,
-                                          h_map=self.__h_coll[delivery_pos])
+                                          h_map=self.h_coll[delivery_pos])
                 # adjust timesteps of second half of the path
                 delivery_path = deque([(x, y, pick_len+t-1)
                                        for x, y, t in list(delivery_path)[1:]
@@ -179,24 +179,24 @@ class TpAgent:
 
                 # update token
                 token[self.name] = self.path
-                self.free = False
+                self.is_free = False
 
             # since MAPD can be not well-formed, it can happen to not find a path
             except ValueError:
                 self.path = deque([(self.pos[0], self.pos[1], 0)])      # stay in place and try another timestep
                 token[self.name] = self.path
-                self.free = True
+                self.is_free = True
 
         # no task in task_list has delivery_pos == self.pos
-        elif all([delivery != self.pos for delivery, _ in task_list]):
+        elif all([delivery != self.pos for _, delivery in task_list]):
             # stay in place
-            self.path = [(self.pos[0], self.pos[1], 0)]
+            self.path = deque([(self.pos[0], self.pos[1], 0)])
             token[self.name] = self.path
-            self.free = True
+            self.is_free = True
 
-        # no available task, agent is a delivery spot
+        # no available task, agent is in a delivery spot
         else:
             # move to another reachable endpoint
             self.find_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list)
             token[self.name] = self.path
-            self.free = True
+            self.is_free = True

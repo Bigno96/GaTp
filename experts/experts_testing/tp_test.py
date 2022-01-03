@@ -1,57 +1,94 @@
-import unittest
-
-from pprint import pprint
+import statistics
 import timeit
+import unittest
+from pprint import pprint
+from multiprocessing import Process
 
 from create_dataset.map_creator import create_random_grid_map
 from create_dataset.scenario_creator import create_starting_pos, create_task
 from experts.token_passing import tp
 
 
-# noinspection DuplicatedCode
+# noinspection DuplicatedCode,PyUnboundLocalVariable
 class TpTest(unittest.TestCase):
     def test_tp(self):
+        repetition = 1000
+        time_list = []
+        bad_mapd_inst_count = 0
         shape = (20, 20)
         density = 0.2
-        agent_num = 5
-        task_num = 20
+        agent_num = 10
+        task_num = 50
         imm_task_split = 0.5
         new_task_per_timestep = 1
 
-        # map creation
-        grid_map = create_random_grid_map(map_shape=shape, map_density=density)
+        good_map = None
+        good_task_list = None
+        good_start_pos_list = None
+        obtained_good = False
 
-        # non task endpoints
-        start_pos_list = create_starting_pos(input_map=grid_map, agent_num=agent_num,
-                                             mode='random')
-        non_task_ep_list = start_pos_list.copy()
+        for i in range(repetition):
+            # map creation
+            grid_map = create_random_grid_map(map_shape=shape, map_density=density)
 
-        # task list
-        task_list = []
-        for _ in range(task_num):
-            task_list.append(create_task(input_map=grid_map, mode='avoid_non_task_rep',
-                                         non_task_ep_list=non_task_ep_list))
+            # non task endpoints
+            start_pos_list = create_starting_pos(input_map=grid_map, agent_num=agent_num,
+                                                 mode='random')
+            non_task_ep_list = start_pos_list.copy()
 
-        start_time = timeit.default_timer()
-        agent_schedule = tp(input_map=grid_map, task_list=task_list,
-                            start_pos_list=start_pos_list, parking_spot=set(),
-                            imm_task_split=imm_task_split,
-                            new_task_per_timestep=new_task_per_timestep)
-        time_diff = timeit.default_timer() - start_time
+            # task list
+            task_list = []
+            for _ in range(task_num):
+                task_list.append(create_task(input_map=grid_map, mode='avoid_non_task_rep',
+                                             non_task_ep_list=non_task_ep_list))
 
-        print(f'Agents starting positions: {start_pos_list}')
-        print('Task List:')
-        pprint(task_list)
-        print('Resulting Schedule:')
+            # TP args: input_map, start_pos_list, task_list,
+            #          parking_spot=(), imm_task_split=0.5, new_task_per_timestep=1
+            p = Process(target=tp, name="TP", args=(grid_map, start_pos_list, task_list,
+                                                    set(),
+                                                    imm_task_split,
+                                                    new_task_per_timestep))
+            start_time = timeit.default_timer()
+            p.start()
 
-        length = len(agent_schedule[0])
-        for schedule in agent_schedule.items():
-            print(schedule)
-            self.assertEqual(length, len(schedule[1]))
+            # wait for n seconds
+            p.join(10)
+
+            # If process is active
+            if p.is_alive():
+                # Terminate
+                p.terminate()
+                p.join()    # clean up
+                bad_mapd_inst_count += 1
+            else:
+                time_diff = timeit.default_timer() - start_time
+                time_list.append(time_diff)
+                if not obtained_good:
+                    good_map = grid_map.copy()
+                    good_task_list = task_list.copy()
+                    good_start_pos_list = start_pos_list.copy()
+                    obtained_good = True
+
+            print(f'Solved scenario {i+1}/{repetition}')
+
+        agent_schedule = tp(input_map=good_map,
+                            start_pos_list=good_start_pos_list, task_list=good_task_list,
+                            parking_spot=set(),
+                            imm_task_split=imm_task_split, new_task_per_timestep=new_task_per_timestep)
 
         self.assertIsInstance(agent_schedule, dict)
+        length = len(agent_schedule[0])
+        for schedule in agent_schedule.items():
+            self.assertEqual(length, len(schedule[1]))
 
-        print(f'TP execution time: {time_diff}')
+        print(f'Agents starting positions: {good_start_pos_list}')
+        print('Task List:')
+        pprint(good_task_list)
+        print('Resulting Schedule:')
+        for schedule in agent_schedule.items():
+            print(schedule)
+        print(f'TP execution time: {statistics.mean(time_list)}')
+        print(f'Bad instances of MAPD: {bad_mapd_inst_count} out of {repetition}')
 
 
 if __name__ == '__main__':

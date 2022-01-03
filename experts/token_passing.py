@@ -25,7 +25,7 @@ from experts.tp_agent import TpAgent
 
 
 def tp(input_map, start_pos_list, task_list,
-       parking_spot=(), imm_task_split=0.5, new_task_per_timestep=10):
+       parking_spot=(), imm_task_split=0.5, new_task_per_timestep=1):
     """
     Token Passing algorithm
     :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
@@ -73,7 +73,7 @@ def tp(input_map, start_pos_list, task_list,
         # list of free agents that will request the token
         free_agent_queue = deque([agent
                                   for agent in agent_pool
-                                  if agent.free])
+                                  if agent.is_free])
 
         # while agent a_i exists that requests token
         while free_agent_queue:

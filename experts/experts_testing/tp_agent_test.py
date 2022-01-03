@@ -1,6 +1,7 @@
 import random
 import unittest
 from collections import deque
+from pprint import pprint
 
 import numpy as np
 
@@ -8,7 +9,6 @@ from create_dataset.map_creator import create_random_grid_map
 from create_dataset.scenario_creator import create_task, create_starting_pos
 from experts.funcs import preprocess_heuristics, compute_manhattan_heuristic
 from experts.tp_agent import TpAgent
-from pprint import pprint
 
 
 # noinspection DuplicatedCode
@@ -171,7 +171,7 @@ class TpAgentTest(unittest.TestCase):
             task_list = []
             for _ in range(task_num):
                 task_list.append(create_task(input_map=grid_map, mode='avoid_non_task_rep',
-                                             non_task_ep_list=start_pos_list))
+                                             non_task_ep_list=non_task_ep_list))
             task_delivery_list = [delivery for
                                   _, delivery in task_list]
             task_pickup_list = [pickup for
@@ -248,6 +248,7 @@ class TpAgentTest(unittest.TestCase):
             agent.receive_token(token=token, task_list=[], non_task_ep_list=non_task_ep_list)
 
             self.assertEqual(start_pos, agent.path[0][:-1])     # stand still
+            self.assertTrue(agent.is_free)
 
             # 2) conflicting position, reposition into an available endpoint
             del token[agent.name]
@@ -271,8 +272,10 @@ class TpAgentTest(unittest.TestCase):
 
             if len(agent.path) > 1:
                 self.assertIn(agent.path[-1][:-1], avail_pos)  # moves to an available endpoint
+                self.assertTrue(agent.is_free)
             else:
                 self.assertEqual(agent.path[-1][:-1], start_pos)    # can't find a path to move, stand still
+                self.assertTrue(agent.is_free)
 
 
 if __name__ == '__main__':

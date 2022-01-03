@@ -3,6 +3,7 @@
 
 
 # Map specifications
+map_type: 'random_grid'   # supported values: random_grid
 map_number: 1000       # how many unique maps
 map_shape: [20, 20]     # (H, W)
 map_density: 0.2       # % of obstacles in the map
@@ -12,9 +13,18 @@ map_density: 0.2       # % of obstacles in the map
 scenario_number: 50                # how many unique scenarios for each map
 agent_number: 10                   # how many agents in each scenario
 task_number: 50                   # how many tasks in each scenario
-# how to create starting positions for agents. 'random' or 'fixed'
+# how to create starting positions for agents -> 'random' or 'fixed'
 start_position_mode: "random"
 # if 'fixed', give list len([(x,y)]) >= num_agents of starting pos to choose from
 fixed_position_list: [[1, 1], [1, 2], [1, 3], [1, 4]]
-# how to create tasks. 'free', 'avoid_non_task_rep', 'avoid_task_rep' or 'avoid_all'
+# how to create tasks -> 'free', 'avoid_non_task_rep', 'avoid_task_rep' or 'avoid_all'
 task_creation_mode: "avoid_non_task_rep"
+# how much of the total task in the scenario are immediately available at the start
+imm_task_split: 0.5
+# how much task to add at each timestep, until all 'task_number' agents are inserted
+new_task_per_timestep: 1
+
+# Split specifications
+train_split: 0.7
+valid_split: 0.15
+test_split: 1 - train_split - valid_split
