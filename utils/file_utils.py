@@ -39,7 +39,7 @@ def save_image(file_path, input_map, start_pos_list):
         f_map[pos] = 0.5
     # white -> background | black -> obstacles | red -> agents starting positions
     colorize(invert(Image.fromarray(obj=np.uint8(f_map * 255))),
-             black='black', white='white', mid='red').save(img_path)
+             black='black', white='white', mid='red').resize((256, 256), resample=Image.BOX).save(img_path)
 
 
 def create_folder_switch(dataset_dir, config):

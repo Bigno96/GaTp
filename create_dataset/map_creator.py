@@ -6,6 +6,8 @@ Map types supported:
 """
 
 import random
+import functools
+from collections import deque
 
 import numpy as np
 
@@ -42,20 +44,24 @@ def create_adj_list(input_map, free_cell_list):
     return graph
 
 
-def dfs(visited, graph, node):
+def dfs(visited, stack, graph, start_node):
     """
     Implement depth first search on an adjacency list
     :param visited: set, already visited nodes
+    :param stack: deque, keeping track of the node to expand
     :param graph: dict, graph represented with adjacency list implemented through python dict
                   {(x,y) : [(x1, y1), (x2, y2), ...]}
-    :param node: node to start from
+    :param start_node: node to start from
     :return:
     """
-    # new node
-    if node not in visited:
-        visited.add(node)   # visit it
-        for neighbour in graph[node]:       # visit all its neighbours
-            dfs(visited, graph, neighbour)
+    stack.append(start_node)
+
+    while stack:
+        node = stack.pop()
+        if node not in visited:
+            visited.add(node)       # visit it
+            for neighbour in graph[node]:
+                stack.append(neighbour)
 
 
 def is_connected(input_map, size, obstacle_count):
@@ -69,6 +75,7 @@ def is_connected(input_map, size, obstacle_count):
     free_cell_count = size - obstacle_count
 
     visited = set()
+    stack = deque()
     # pick starting point
     where_res = np.nonzero(input_map == 0)
     free_cell_list = list(zip(where_res[0], where_res[1]))
@@ -76,7 +83,7 @@ def is_connected(input_map, size, obstacle_count):
     # create adjacency list of the map
     graph = create_adj_list(input_map=input_map, free_cell_list=free_cell_list)
     # depth first search adding nodes to visited set
-    dfs(visited=visited, graph=graph, node=starting_node)
+    dfs(visited=visited, stack=stack, graph=graph, start_node=starting_node)
 
     # count how many nodes were visited
     visit_count = len(visited)
