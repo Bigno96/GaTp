@@ -9,45 +9,10 @@ After creating a data pool, an expert will be run on it to generate the complete
 import logging
 import os
 
-from PIL import Image
-from PIL.ImageOps import invert, colorize
-
 from create_dataset.map_creator import *
 from create_dataset.scenario_creator import *
-from utils.create_dirs import create_dirs
-
-
-def __get_folder(map_id, switcher_dict):
-    """
-    Simulate a switch-case to decide which folder to use
-    :param map_id: id of the map on which scenarios are being created
-    :param switcher_dict: dict -> {range : folder}
-    :return: folder
-    """
-    for key, value in switcher_dict.items():
-        if map_id in key:
-            return value
-
-    raise ValueError('Map ID out of switcher range')
-
-
-def save_image(dataset_dir, input_map, map_id, start_pos_list, sc_id):
-    """
-    Save image of the map (black and white) with agent starting positions (red)
-    :param dataset_dir: path to the specific dataset directory
-    :param input_map: np.ndarray, size: H*W, matrix of '0' and '1'
-    :param map_id: int, identifier of map
-    :param start_pos_list: list of tuples, (x,y) -> coordinates over the map
-    :param sc_id: int, identifier of scenario
-    """
-    img_path = os.path.join(dataset_dir, f'map{map_id:03d}_case{sc_id:02d}.png')
-    # input map with float values
-    f_map = np.array(input_map, dtype=float)
-    for pos in start_pos_list:
-        f_map[pos] = 0.5
-    # white -> background | black -> obstacles | red -> agents starting positions
-    colorize(invert(Image.fromarray(obj=np.uint8(f_map*255))),
-             black='black', white='white', mid='red').save(img_path)
+from utils.file_utils import create_folder_switch, get_folder_from_switch
+from utils.file_utils import save_image, dump_data
 
 
 def __random_grid_data_pool(config, dataset_dir):
@@ -69,23 +34,7 @@ def __random_grid_data_pool(config, dataset_dir):
     :param config: Namespace of dataset configurations
     :param dataset_dir: path to the dataset directory
     """
-    train_dir = os.path.join(dataset_dir, 'train')
-    valid_dir = os.path.join(dataset_dir, 'valid')
-    test_dir = os.path.join(dataset_dir, 'test')
-
-    create_dirs([train_dir, valid_dir, test_dir])  # if not there, create
-
-    # set how to divide scenarios between train, validation and test
-    train_split = int(config.train_split * config.map_number)
-    valid_split = int(config.valid_split * config.map_number)
-
-    # dictionary to emulate a switch case with ranges
-    folder_switcher = {
-        range(0, train_split): train_dir,
-        range(train_split, train_split+valid_split): valid_dir,
-        range(train_split+valid_split, config.map_number): test_dir
-    }
-
+    folder_switcher = create_folder_switch(dataset_dir=dataset_dir, config=config)
     # generate map and scenario
     try:
         for map_id in range(config.map_number):
@@ -112,16 +61,19 @@ def __random_grid_data_pool(config, dataset_dir):
                                                  task_list=task_list))  # list of tasks, passed recursively
 
                 # get directory where to save scenario and map data
-                save_dir = __get_folder(map_id=map_id, switcher_dict=folder_switcher)
+                save_dir = get_folder_from_switch(map_id=map_id, switcher_dict=folder_switcher)
+                file_path = os.path.join(save_dir, f'map{map_id:03d}_case{sc_id:02d}')
 
                 # save the image of map + starting position
-                save_image(dataset_dir=save_dir,
+                save_image(file_path=file_path,
                            input_map=random_grid_map,
-                           map_id=map_id,
-                           start_pos_list=start_pos_list,
-                           sc_id=sc_id)
+                           start_pos_list=start_pos_list)
 
-                # TODO: dump into a matlab file map and scenario data
+                # dump data into a file
+                data = {'map': random_grid_map,
+                        'non_task_ep_list': non_task_ep_list,
+                        'task_list': task_list}
+                dump_data(file_path=file_path, data=data)
 
     # invalid configuration parameters passed
     except ValueError as err:

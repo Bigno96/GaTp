@@ -20,7 +20,7 @@ The following implementation is based on:
 from collections import deque
 from copy import deepcopy
 
-from experts.funcs import preprocess_heuristics
+from utils.expert_utils import preprocess_heuristics
 from experts.tp_agent import TpAgent
 
 

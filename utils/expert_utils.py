@@ -4,6 +4,12 @@ Utility functions for experts algorithms
 
 import numpy as np
 
+# moves dictionary
+DELTA = [(-1, 0),  # go up
+         (0, -1),  # go left
+         (1, 0),  # go down
+         (0, 1)]  # go right
+
 
 def compute_manhattan_heuristic(input_map, goal):
     """

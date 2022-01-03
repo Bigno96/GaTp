@@ -7,7 +7,7 @@ import numpy as np
 
 from create_dataset.map_creator import create_random_grid_map
 from experts.a_star import a_star
-from experts.funcs import compute_manhattan_heuristic, is_valid_expansion
+from utils.expert_utils import compute_manhattan_heuristic, is_valid_expansion
 
 
 # noinspection DuplicatedCode

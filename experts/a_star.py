@@ -26,13 +26,7 @@ from collections import deque
 
 import numpy as np
 
-from experts.funcs import compute_manhattan_heuristic, is_valid_expansion
-
-# moves dictionary
-DELTA = [(-1, 0),  # go up
-         (0, -1),  # go left
-         (1, 0),  # go down
-         (0, 1)]  # go right
+from utils.expert_utils import compute_manhattan_heuristic, is_valid_expansion, DELTA
 
 
 def a_star(input_map, start, goal,

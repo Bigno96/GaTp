@@ -7,7 +7,7 @@ import numpy as np
 
 from create_dataset.map_creator import create_random_grid_map
 from create_dataset.scenario_creator import create_task, create_starting_pos
-from experts.funcs import preprocess_heuristics, compute_manhattan_heuristic
+from utils.expert_utils import preprocess_heuristics, compute_manhattan_heuristic
 from experts.tp_agent import TpAgent
 
 

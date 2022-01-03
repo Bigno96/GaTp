@@ -15,7 +15,7 @@ from time import mktime
 from easydict import EasyDict
 from yaml import safe_load
 
-from utils.create_dirs import create_dirs
+from utils.file_utils import create_dirs
 
 CONFIG_FOLDER_PATH = 'D:\\Uni\\TESI\\GaTp\\yaml_configs'
 

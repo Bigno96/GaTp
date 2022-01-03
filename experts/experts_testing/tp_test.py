@@ -1,8 +1,8 @@
 import statistics
 import timeit
 import unittest
-from pprint import pprint
 from multiprocessing import Process
+from pprint import pprint
 
 from create_dataset.map_creator import create_random_grid_map
 from create_dataset.scenario_creator import create_starting_pos, create_task
