@@ -73,7 +73,7 @@ class TpTest(unittest.TestCase):
 
         agent_schedule = tp(input_map=good_map,
                             start_pos_list=good_start_pos_list, task_list=good_task_list,
-                            parking_spot=set(),
+                            parking_spot_list=set(),
                             imm_task_split=imm_task_split, new_task_per_timestep=new_task_per_timestep)
 
         self.assertIsInstance(agent_schedule, dict)

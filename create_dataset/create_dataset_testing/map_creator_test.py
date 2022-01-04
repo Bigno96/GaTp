@@ -1,4 +1,6 @@
 import random
+import statistics
+import timeit
 import unittest
 from pprint import pprint
 
@@ -11,11 +13,12 @@ from experts.a_star import a_star
 class MapCreatorTest(unittest.TestCase):
 
     def test_is_connected(self):
-        shape = (20, 20)
+        shape = (50, 50)
         size = shape[0] * shape[1]
         density = 0.2
         obstacle_count = int(size * density)
         repetition = 1000
+        time_list = []
 
         for _ in range(repetition):
             flat_map = np.zeros(size, dtype=np.int8)  # array of zero, dim: h*w
@@ -31,7 +34,12 @@ class MapCreatorTest(unittest.TestCase):
             free_cell_list = list(zip(where_res[0], where_res[1]))
             start, goal = random.sample(population=free_cell_list, k=2)
 
+            start_time = timeit.default_timer()
+
             is_conn = is_connected(input_map=grid_map, size=size, obstacle_count=obstacle_count)
+
+            time_diff = timeit.default_timer() - start_time
+            time_list.append(time_diff)
 
             try:
                 a_star(input_map=grid_map, start=start, goal=goal)
@@ -41,6 +49,8 @@ class MapCreatorTest(unittest.TestCase):
                     self.fail("a_star didn't find path in connected map")
                 else:
                     pass
+
+        print(f'is_connected execution time: {statistics.mean(time_list)}')
 
     def test_random_grid_map(self):
         shape = (20, 20)

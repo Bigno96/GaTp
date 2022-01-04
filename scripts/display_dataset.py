@@ -1,7 +1,8 @@
-from PIL import Image
-import pickle
 import os
+import pickle
 from pprint import pprint
+
+from PIL import Image
 
 
 def display():
@@ -12,21 +13,28 @@ def display():
     for dir_name in os.listdir(dataset_path):
         print(f'Showing {dir_name} folder')
         dir_path = os.path.join(dataset_path, dir_name)
+
         file_set = {f for (r, d_l, f_l) in os.walk(dir_path)
                      for f in f_l}
         img_set = {f for f in file_set
                     if f.endswith('.png')}
-        data_set = file_set - img_set
+        exp_set = {f for f in file_set
+                   if 'sol' in f}
+        env_set = file_set - img_set - exp_set
 
-        for (img, data) in zip(img_set, data_set):
+        for (img, env, exp) in zip(img_set, env_set, exp_set):
             img_path = os.path.join(dir_path, img)
-            data_path = os.path.join(dir_path, data)
+            env_path = os.path.join(dir_path, env)
+            exp_path = os.path.join(dir_path, exp)
+
             im = Image.open(img_path)
             im.show(title=img)
-            with open(data_path, 'rb') as d:
-                pprint(pickle.load(d))
+            with open(env_path, 'rb') as _d1:
+                pprint(pickle.load(_d1))
+            with open(exp_path, 'rb') as _d2:
+                pprint(pickle.load(_d2))
 
-            input("Press Enter to continue...\n")
+            input("\nPress Enter to continue...\n")
 
 
 if __name__ == '__main__':

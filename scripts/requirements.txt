@@ -1,0 +1,4 @@
+easydict~=1.9
+pyyaml~=6.0
+numpy~=1.21.2
+pillow~=8.4.0

@@ -6,7 +6,6 @@ Map types supported:
 """
 
 import random
-import functools
 from collections import deque
 
 import numpy as np
@@ -16,78 +15,6 @@ DELTA = [(-1, 0),  # go up
          (0, -1),  # go left
          (1, 0),  # go down
          (0, 1)]  # go right
-
-
-def create_adj_list(input_map, free_cell_list):
-    """
-    Create adjacency list for graph representation of input_map
-    :param input_map: np.ndarray, shape=(H, W) -> '1' in obstacles places, '0' elsewhere
-    :param free_cell_list: list of free cell coordinates
-           [(x,y), ...]
-    :return: dict, graph represented with adjacency list implemented through python dict
-             {(x,y) : [(x1, y1), (x2, y2), ...]}
-    """
-    graph = {}
-    x_m, y_m = input_map.shape
-
-    # loop all free cells
-    for cell in free_cell_list:
-        # get neighbours inbound
-        neighbours = [(cell[0] + move[0], cell[1] + move[1])
-                      for move in DELTA]
-        neighbours = [(x, y)
-                      for x, y in neighbours
-                      if x_m > x >= 0 and y_m > y >= 0 == input_map[(x, y)]]
-        # add dict entry, copy to avoid bad referencing
-        graph[cell] = neighbours.copy()
-
-    return graph
-
-
-def dfs(visited, stack, graph, start_node):
-    """
-    Implement depth first search on an adjacency list
-    :param visited: set, already visited nodes
-    :param stack: deque, keeping track of the node to expand
-    :param graph: dict, graph represented with adjacency list implemented through python dict
-                  {(x,y) : [(x1, y1), (x2, y2), ...]}
-    :param start_node: node to start from
-    :return:
-    """
-    stack.append(start_node)
-
-    while stack:
-        node = stack.pop()
-        if node not in visited:
-            visited.add(node)       # visit it
-            for neighbour in graph[node]:
-                stack.append(neighbour)
-
-
-def is_connected(input_map, size, obstacle_count):
-    """
-    Check if all the free cells are connected
-    :param input_map: np.ndarray, shape=(H, W) -> '1' in obstacles places, '0' elsewhere
-    :param size: total number of cells in the map
-    :param obstacle_count: int, number of obstacles in the map
-    :return: True if all free cells are connected, False else
-    """
-    free_cell_count = size - obstacle_count
-
-    visited = set()
-    stack = deque()
-    # pick starting point
-    where_res = np.nonzero(input_map == 0)
-    free_cell_list = list(zip(where_res[0], where_res[1]))
-    starting_node = random.choice(free_cell_list)
-    # create adjacency list of the map
-    graph = create_adj_list(input_map=input_map, free_cell_list=free_cell_list)
-    # depth first search adding nodes to visited set
-    dfs(visited=visited, stack=stack, graph=graph, start_node=starting_node)
-
-    # count how many nodes were visited
-    visit_count = len(visited)
-    return visit_count == free_cell_count
 
 
 def create_random_grid_map(map_shape, map_density, connected=True):
@@ -120,3 +47,73 @@ def create_random_grid_map(map_shape, map_density, connected=True):
             flat_map[p[:obstacle_count]] = 0
         else:
             return grid_map
+
+
+def is_connected(input_map, size, obstacle_count):
+    """
+    Check if all the free cells are connected
+    :param input_map: np.ndarray, shape=(H, W) -> '1' in obstacles places, '0' elsewhere
+    :param size: total number of cells in the map
+    :param obstacle_count: int, number of obstacles in the map
+    :return: True if all free cells are connected, False else
+    """
+    free_cell_count = size - obstacle_count
+
+    visited = set()
+    # pick starting point
+    where_res = np.nonzero(input_map == 0)
+    free_cell_list = list(zip(where_res[0], where_res[1]))
+    starting_node = random.choice(free_cell_list)
+    # create adjacency list of the map
+    graph = create_adj_list(input_map=input_map, free_cell_list=free_cell_list)
+    # depth first search adding nodes to visited set
+    dfs(visited=visited, graph=graph, start_node=starting_node)
+
+    # count how many nodes were visited
+    visit_count = len(visited)
+    return visit_count == free_cell_count
+
+
+def create_adj_list(input_map, free_cell_list):
+    """
+    Create adjacency list for graph representation of input_map
+    :param input_map: np.ndarray, shape=(H, W) -> '1' in obstacles places, '0' elsewhere
+    :param free_cell_list: list of free cell coordinates
+           [(x,y), ...]
+    :return: dict, graph represented with adjacency list implemented through python dict
+             {(x,y) : [(x1, y1), (x2, y2), ...]}
+    """
+    graph = {}
+    x_m, y_m = input_map.shape
+
+    # loop all free cells
+    for cell in free_cell_list:
+        # get neighbours inbound
+        neighbours = [(cell[0] + move[0], cell[1] + move[1])
+                      for move in DELTA]
+        neighbours = [(x, y)
+                      for x, y in neighbours
+                      if x_m > x >= 0 and y_m > y >= 0 == input_map[(x, y)]]
+        # add dict entry, copy to avoid bad referencing
+        graph[cell] = neighbours.copy()
+
+    return graph
+
+
+def dfs(visited, graph, start_node):
+    """
+    Implement depth first search on an adjacency list
+    :param visited: set, already visited nodes
+    :param graph: dict, graph represented with adjacency list implemented through python dict
+                  {(x,y) : [(x1, y1), (x2, y2), ...]}
+    :param start_node: node to start from
+    :return:
+    """
+    stack = deque()
+    stack.append(start_node)
+
+    while stack:
+        node = stack.pop()
+        if node not in visited:
+            visited.add(node)       # visit it
+            stack.extend(graph[node])   # add all neighbours

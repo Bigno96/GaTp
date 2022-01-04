@@ -1,5 +1,9 @@
 # datasets root folder
-"data_root": "D:\\Uni\\TESI\\GaTp\\datasets"
+data_root: "D:\\Uni\\TESI\\GaTp\\datasets"
+# do not generate again environment if ones with same parameters are found
+keep_env_data: True
+# do not generate again expert solutions for the same envs if ones with same parameters are found
+keep_expert_solutions: True
 
 
 # Map specifications
@@ -14,17 +18,24 @@ scenario_number: 5                # how many unique scenarios for each map
 agent_number: 10                   # how many agents in each scenario
 task_number: 50                   # how many tasks in each scenario
 # how to create starting positions for agents -> 'random' or 'fixed'
-start_position_mode: "random"
+start_position_mode: 'random'
 # if 'fixed', give list len([(x,y)]) >= num_agents of starting pos to choose from
 fixed_position_list: [[1, 1], [1, 2], [1, 3], [1, 4]]
 # how to create tasks -> 'free', 'avoid_non_task_rep', 'avoid_task_rep' or 'avoid_all'
-task_creation_mode: "avoid_non_task_rep"
+task_creation_mode: 'avoid_non_task_rep'
 # how much of the total task in the scenario are immediately available at the start
 imm_task_split: 0.5
 # how much task to add at each timestep, until all 'task_number' agents are inserted
 new_task_per_timestep: 1
 
+
 # Dataset split specifications
 train_split: 0.7
 valid_split: 0.15
 test_split: 1 - train_split - valid_split
+
+
+# Expert specifications
+timeout: 50   # seconds
+# supported expert types: 'tp' (token passing)
+expert_type: 'tp'

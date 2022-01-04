@@ -95,3 +95,15 @@ def dump_data(file_path, data):
     with open(file_path, 'wb') as f:
         pickle.dump(obj=data, file=f,
                     protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def get_all_files(directory):
+    """
+    Collect and return the list of all files in a directory and its subdirectories
+    :param directory: path to the dataset directory
+    :return: list of file_path
+    """
+    # return all file paths in the directory and its subdirectories
+    return [os.path.join(dir_path, filename)
+            for (dir_path, subdirs, files) in os.walk(directory)  # os.walk returns root, sub-dir list and file list
+            for filename in files]  # get all filenames

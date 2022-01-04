@@ -20,19 +20,19 @@ The following implementation is based on:
 from collections import deque
 from copy import deepcopy
 
-from utils.expert_utils import preprocess_heuristics
 from experts.tp_agent import TpAgent
+from utils.expert_utils import preprocess_heuristics
 
 
 def tp(input_map, start_pos_list, task_list,
-       parking_spot=(), imm_task_split=0.5, new_task_per_timestep=1):
+       parking_spot_list=(), imm_task_split=0.5, new_task_per_timestep=1):
     """
     Token Passing algorithm
     :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
     :param start_pos_list: list of tuples, (x,y) -> coordinates over the map
     :param task_list: list of tasks -> [(task1), (task2), ...]
                       task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
-    :param parking_spot: list of tuples, (x,y) -> coordinates over the map
+    :param parking_spot_list: list of tuples, (x,y) -> coordinates over the map
            Optional, non-task endpoints for the agent to rest on to avoid deadlocks
     :param imm_task_split: float, 1 > x > 0, % of task_list to add to active_task
     :param new_task_per_timestep: int, > 0, how many 'new' task from task_list to add to active_task at each timestep
@@ -40,9 +40,8 @@ def tp(input_map, start_pos_list, task_list,
              agent_schedule -> {agent_id : schedule}
                                 with schedule = deque([(x_0, y_0, 0), (x_1, y_1, t_1), ...])
     """
-    # perform union removing eventual repetitions
     # starting positions are used as non-task endpoints
-    non_task_ep_list = list(set(start_pos_list) | set(parking_spot))
+    non_task_ep_list = start_pos_list + parking_spot_list
 
     # precompute heuristics maps towards all endpoints
     h_coll = preprocess_heuristics(input_map=input_map,
