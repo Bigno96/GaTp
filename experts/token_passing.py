@@ -24,8 +24,8 @@ from experts.tp_agent import TpAgent
 from utils.expert_utils import preprocess_heuristics
 
 
-def tp(input_map, start_pos_list, task_list,
-       parking_spot_list=(), imm_task_split=0.5, new_task_per_timestep=1):
+def tp(input_map, start_pos_list, task_list, parking_spot_list,
+       imm_task_split=0.5, new_task_per_insertion=1, step_between_insertion=1):
     """
     Token Passing algorithm
     :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
@@ -33,9 +33,10 @@ def tp(input_map, start_pos_list, task_list,
     :param task_list: list of tasks -> [(task1), (task2), ...]
                       task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
     :param parking_spot_list: list of tuples, (x,y) -> coordinates over the map
-           Optional, non-task endpoints for the agent to rest on to avoid deadlocks
+           Non-task endpoints for the agent to rest on to avoid deadlocks, can be empty
     :param imm_task_split: float, 1 > x > 0, % of task_list to add to active_task
-    :param new_task_per_timestep: int, > 0, how many 'new' task from task_list to add to active_task at each timestep
+    :param new_task_per_insertion: int, > 0, how many 'new' task from task_list to add to active_task at each insertion
+    :param step_between_insertion: int, > 0, how many timestep between each insertion
     :return: agent_schedule
              agent_schedule -> {agent_id : schedule}
                                 with schedule = deque([(x_0, y_0, 0), (x_1, y_1, t_1), ...])
@@ -63,11 +64,19 @@ def tp(input_map, start_pos_list, task_list,
     active_task_list = task_list[:split_idx]
     new_task_pool = deque(task_list[split_idx:])
 
+    # set up checks for how many tasks have been injected
+    activated_task_count = len(active_task_list)
+    total_task_count = len(task_list)
+
     # set up agent_schedule
     agent_schedule = deepcopy(token)
 
-    # while tasks are available
-    while active_task_list:
+    # track time to add new tasks
+    timestep = 1    # start from 1 since new tasks for timestep 0 are already active
+
+    # while tasks are available or at least one agent is still busy
+    while active_task_list or activated_task_count < total_task_count \
+            or any(not ag.is_free for ag in agent_pool):
 
         # list of free agents that will request the token
         free_agent_queue = deque([agent
@@ -91,8 +100,12 @@ def tp(input_map, start_pos_list, task_list,
             agent_schedule[agent.name].append(agent.path[0])
 
         # add new tasks, if any, before next iteration
-        active_task_list.extend([new_task_pool.popleft()
-                                 for _ in range(min(len(new_task_pool), new_task_per_timestep))
-                                 ])
+        if (timestep % step_between_insertion) == 0:    # every n step add new tasks
+            new_task_list = [new_task_pool.popleft()
+                             for _ in range(min(len(new_task_pool), new_task_per_insertion))
+                             ]
+            active_task_list.extend(new_task_list)
+            activated_task_count += len(new_task_list)
+        timestep += 1
 
     return agent_schedule

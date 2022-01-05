@@ -101,7 +101,8 @@ class __TpWorker(__ExpertWorker):
                                 task_list=environment.task_list,
                                 parking_spot_list=environment.parking_spot_list,
                                 imm_task_split=self.config.imm_task_split,
-                                new_task_per_timestep=self.config.new_task_per_timestep)
+                                new_task_per_insertion=self.config.new_task_per_timestep,
+                                step_between_insertion=self.config.step_between_insertion)
 
             # convert agent schedule into matrix notation
             matrix_schedule = transform_agent_schedule(agent_schedule=agent_schedule)

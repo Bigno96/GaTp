@@ -21,10 +21,12 @@ class TpTest(unittest.TestCase):
         task_num = 50
         imm_task_split = 0.5
         new_task_per_timestep = 1
+        step_between_insertion = 1
 
         good_map = None
         good_task_list = None
         good_start_pos_list = None
+        good_parking_spot_list = None
         obtained_good = False
 
         for i in range(repetition):
@@ -34,7 +36,8 @@ class TpTest(unittest.TestCase):
             # non task endpoints
             start_pos_list = create_starting_pos(input_map=grid_map, agent_num=agent_num,
                                                  mode='random')
-            non_task_ep_list = start_pos_list.copy()
+            parking_spot_list = []
+            non_task_ep_list = start_pos_list + parking_spot_list
 
             # task list
             task_list = []
@@ -42,17 +45,17 @@ class TpTest(unittest.TestCase):
                 task_list.append(create_task(input_map=grid_map, mode='avoid_non_task_rep',
                                              non_task_ep_list=non_task_ep_list))
 
-            # TP args: input_map, start_pos_list, task_list,
-            #          parking_spot=(), imm_task_split=0.5, new_task_per_timestep=1
-            p = Process(target=tp, name="TP", args=(grid_map, start_pos_list, task_list,
-                                                    set(),
+            # TP args: input_map, start_pos_list, task_list, parking_spot,
+            #          imm_task_split=0.5, new_task_per_timestep=1, step_between_insertion=1
+            p = Process(target=tp, name="TP", args=(grid_map, start_pos_list, task_list, parking_spot_list,
                                                     imm_task_split,
-                                                    new_task_per_timestep))
+                                                    new_task_per_timestep,
+                                                    step_between_insertion))
             start_time = timeit.default_timer()
             p.start()
 
             # wait for n seconds
-            p.join(10)
+            p.join(50)
 
             # If process is active
             if p.is_alive():
@@ -66,6 +69,7 @@ class TpTest(unittest.TestCase):
                 if not obtained_good:
                     good_map = grid_map.copy()
                     good_task_list = task_list.copy()
+                    good_parking_spot_list = parking_spot_list.copy()
                     good_start_pos_list = start_pos_list.copy()
                     obtained_good = True
 
@@ -73,13 +77,14 @@ class TpTest(unittest.TestCase):
 
         agent_schedule = tp(input_map=good_map,
                             start_pos_list=good_start_pos_list, task_list=good_task_list,
-                            parking_spot_list=set(),
-                            imm_task_split=imm_task_split, new_task_per_timestep=new_task_per_timestep)
+                            parking_spot_list=good_parking_spot_list,
+                            imm_task_split=imm_task_split, new_task_per_insertion=new_task_per_timestep,
+                            step_between_insertion=step_between_insertion)
 
         self.assertIsInstance(agent_schedule, dict)
         length = len(agent_schedule[0])
-        for schedule in agent_schedule.items():
-            self.assertEqual(length, len(schedule[1]))
+        for schedule in agent_schedule.values():
+            self.assertEqual(length, len(schedule))
 
         print(f'Agents starting positions: {good_start_pos_list}')
         print('Task List:')

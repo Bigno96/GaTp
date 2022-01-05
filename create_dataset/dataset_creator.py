@@ -44,7 +44,8 @@ def create_dataset():
                                'random_grid',
                                f'{config.map_shape[0]}x{config.map_shape[1]}map',
                                f'{config.map_density}density',
-                               f'{config.agent_number}agents_{config.task_number}tasks',
+                               f'{config.agent_number}agents_{config.task_number}tasks,'
+                               f'{config.imm_task_split}split_+{config.new_task_per_timestep}_every{config.step_between_insertion}',
                                f'{config.start_position_mode}_start+{config.task_creation_mode}_task')
 
     try:
