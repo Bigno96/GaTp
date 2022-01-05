@@ -44,15 +44,27 @@ def create_dataset():
                                'random_grid',
                                f'{config.map_shape[0]}x{config.map_shape[1]}map',
                                f'{config.map_density}density',
-                               f'{config.agent_number}agents_{config.task_number}tasks,'
-                               f'{config.imm_task_split}split_+{config.new_task_per_timestep}_every{config.step_between_insertion}',
+                               f'{config.agent_number}agents_{config.task_number}tasks_'
+                               f'{config.imm_task_split}split_'
+                               f'+{config.new_task_per_timestep}_every{config.step_between_insertion}',
                                f'{config.start_position_mode}_start+{config.task_creation_mode}_task')
 
     try:
         # create maps with scenarios
         create_environment(config=config, dataset_dir=dataset_dir)
         # run expert over those environments
-        run_expert(config=config, dataset_dir=dataset_dir)
+        bad_instances_list = run_expert(config=config, dataset_dir=dataset_dir)
+
+        bad_instances_count = 0
+        # until no bad MAPD instances are left, repeat their generation
+        while bad_instances_list:
+            bad_instances_count += len(bad_instances_list)
+            create_environment(config=config, dataset_dir=dataset_dir,
+                               recovery_mode=True, file_path_list=bad_instances_list)
+            bad_instances_list = run_expert(config=config, dataset_dir=dataset_dir,
+                                            recovery_mode=True, file_path_list=bad_instances_list)
+
+        print(f'\n\nRegenerated {bad_instances_count} bad MAPD instances')
 
     # invalid configuration parameters passed
     except ValueError as err:

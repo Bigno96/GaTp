@@ -38,6 +38,6 @@ test_split: 1 - train_split - valid_split
 
 
 # Expert specifications
-timeout: 50   # seconds
+timeout: 10   # seconds
 # supported expert types: 'tp' (token passing)
 expert_type: 'tp'

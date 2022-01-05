@@ -21,6 +21,37 @@ from random import sample
 import numpy as np
 
 
+def create_scenario(config, input_map):
+    """
+    Create a scenario
+    :param config: Namespace of dataset configurations
+    :param input_map: np.ndarray, shape:H*W, matrix of 0 and 1
+    :return: start_pos_list -> list of agent starting positions, [(x,y), ...]
+             parking_spot_list -> list of agent parking spots, [(x,y), ...]
+             task_list -> [(task1), (task2), ...]
+                          task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
+    """
+    # get starting positions
+    start_pos_list = create_starting_pos(input_map=input_map,
+                                         agent_num=config.agent_number,
+                                         mode=config.start_position_mode,
+                                         fixed_pos_list=config.fixed_position_list)
+
+    # non task endpoints list
+    parking_spot_list = []  # should not contain any agent starting position
+    non_task_ep_list = start_pos_list + parking_spot_list
+
+    # get task list
+    task_list = []
+    for _ in range(config.task_number):
+        task_list.append(create_task(input_map=input_map,
+                                     mode=config.task_creation_mode,
+                                     non_task_ep_list=non_task_ep_list,
+                                     task_list=task_list))  # list of tasks, passed recursively
+
+    return start_pos_list, parking_spot_list, task_list
+
+
 def create_starting_pos(input_map, agent_num, mode='random', fixed_pos_list=None):
     """
     Get starting position, one for each agent, and collect them

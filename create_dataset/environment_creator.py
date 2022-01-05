@@ -16,34 +16,38 @@ import os
 from multiprocessing import Pool
 
 from create_dataset.map_creator import *
-from create_dataset.scenario_creator import *
+from create_dataset.scenario_creator import create_scenario
 from utils.file_utils import create_dirs
 from utils.file_utils import create_folder_switch, get_folder_from_switch
 from utils.file_utils import save_image, dump_data
 
 
-def create_environment(config, dataset_dir):
+def create_environment(config, dataset_dir, file_path_list=None, recovery_mode=False):
     """
     Check config.map_type and decide which creation function to call
     :param config: Namespace of dataset configurations
     :param dataset_dir: path to the dataset directory
+    :param file_path_list: list of file path containing environment data to regenerate
+                           Pass this ONLY with recovery_mode = True
+    :param recovery_mode: boolean, True if create_env is used to re-compute bad MAPD instances
     """
 
     # check out for environment presence
     # if keep_environment = True, return, since nothing to do
-    if os.path.isdir(dataset_dir) and config.keep_env_data:
+    if not recovery_mode and os.path.isdir(dataset_dir) and config.keep_env_data:
         return
 
     # create directories, if not there
     create_dirs([dataset_dir])
 
     if config.map_type == 'random_grid':
-        __random_grid_environment(config=config, dataset_dir=dataset_dir)
+        __random_grid_environment(config=config, dataset_dir=dataset_dir,
+                                  file_path_list=file_path_list, recovery_mode=recovery_mode)
     else:
         raise ValueError('Invalid map type selected')
 
 
-def __random_grid_environment(config, dataset_dir):
+def __random_grid_environment(config, dataset_dir, file_path_list=None, recovery_mode=False):
     """
     Pipeline:
         Create Maps (see map_creator.py for more details):
@@ -65,16 +69,36 @@ def __random_grid_environment(config, dataset_dir):
 
     :param config: Namespace of dataset configurations
     :param dataset_dir: path to the dataset directory
+    :param file_path_list: list of file path containing environment data to regenerate
+                           Pass this ONLY with recovery_mode = True
+    :param recovery_mode: boolean, True if create_env is used to re-compute bad MAPD instances
     """
-    # dict to simulate switch case for test/train/valid folders
-    folder_switcher = create_folder_switch(dataset_dir=dataset_dir, config=config)
+    if not recovery_mode:
+        # dict to simulate switch case for test/train/valid folders
+        folder_switcher = create_folder_switch(dataset_dir=dataset_dir, config=config)
 
-    # setup multiprocessing
-    worker = __RandomGridWorker(config=config, folder_switcher=folder_switcher)
+        # setup multiprocessing
+        worker = __RandomGridWorker(config=config, folder_switcher=folder_switcher)
 
-    # run pool of processes over map_id sequence
-    with Pool() as pool:
-        pool.map(func=worker, iterable=range(config.map_number))
+        # run pool of processes over map_id sequence
+        with Pool() as pool:
+            pool.map(func=worker, iterable=range(config.map_number))
+        return
+
+    # recovery mode
+    for file_path in file_path_list:
+        # get map
+        random_grid_map = create_random_grid_map(map_shape=config.map_shape,
+                                                 map_density=config.map_density)
+
+        # get scenario
+        start_pos_list, parking_spot_list, task_list = create_scenario(config=config,
+                                                                       input_map=random_grid_map)
+
+        # save map image and dump env file
+        save_and_dump(file_path=file_path, input_map=random_grid_map,
+                      start_pos_list=start_pos_list, parking_spot_list=parking_spot_list,
+                      task_list=task_list)
 
 
 class __RandomGridWorker:
@@ -99,37 +123,32 @@ class __RandomGridWorker:
                                                  map_density=self.config.map_density)
 
         for sc_id in range(self.config.scenario_number):
-            # get starting positions
-            start_pos_list = create_starting_pos(input_map=random_grid_map,
-                                                 agent_num=self.config.agent_number,
-                                                 mode=self.config.start_position_mode,
-                                                 fixed_pos_list=self.config.fixed_position_list)
-
-            # non task endpoints list
-            parking_spot_list = []      # should not contain any agent starting position
-            non_task_ep_list = start_pos_list + parking_spot_list
-
-            # get task list
-            task_list = []
-            for _ in range(self.config.task_number):
-                task_list.append(create_task(input_map=random_grid_map,
-                                             mode=self.config.task_creation_mode,
-                                             non_task_ep_list=non_task_ep_list,
-                                             task_list=task_list))  # list of tasks, passed recursively
+            # get scenario
+            start_pos_list, parking_spot_list, task_list = create_scenario(config=self.config,
+                                                                           input_map=random_grid_map)
 
             # get directory where to save scenario and map data
             save_dir = get_folder_from_switch(map_id=map_id, switcher_dict=self.folder_switcher)
             file_path = os.path.join(save_dir, f'map{map_id:03d}_case{sc_id:02d}')
 
-            # save the image of map + starting position
-            save_image(file_path=file_path,
-                       input_map=random_grid_map,
-                       start_pos_list=start_pos_list)
+            # save map image and dump env file
+            save_and_dump(file_path=file_path, input_map=random_grid_map,
+                          start_pos_list=start_pos_list, parking_spot_list=parking_spot_list,
+                          task_list=task_list)
 
-            # dump data into a file
-            env = {'name': file_path,
-                   'map': random_grid_map,
-                   'start_pos_list': start_pos_list,
-                   'parking_spot_list': parking_spot_list,
-                   'task_list': task_list}
-            dump_data(file_path=file_path, data=env)
+            print(f'Creating Scenario map{map_id:03d}_case{sc_id:02d}')
+
+
+def save_and_dump(file_path, input_map, start_pos_list, parking_spot_list, task_list):
+    # save the image of map + starting position
+    save_image(file_path=file_path,
+               input_map=input_map,
+               start_pos_list=start_pos_list)
+
+    # dump data into a file
+    env = {'name': file_path,
+           'map': input_map,
+           'start_pos_list': start_pos_list,
+           'parking_spot_list': parking_spot_list,
+           'task_list': task_list}
+    dump_data(file_path=file_path, data=env)

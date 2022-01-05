@@ -10,8 +10,9 @@ A matrix-form notation is used to represent produced agent schedule:
 """
 
 import pickle
+from os.path import normpath, basename
 from abc import abstractmethod
-from multiprocessing import Pool
+from multiprocessing import Pool, Manager
 
 from easydict import EasyDict
 from gevent import Timeout
@@ -21,33 +22,40 @@ from utils.expert_utils import transform_agent_schedule
 from utils.file_utils import get_all_files, dump_data
 
 
-def run_expert(config, dataset_dir):
+def run_expert(config, dataset_dir, file_path_list=None, recovery_mode=False):
     """
     Run selected expert to generate solutions for all pre-generated environments
     Expert type supported: 'tp'
     :param config: Namespace of dataset configurations
     :param dataset_dir: path to the dataset directory
+    :param file_path_list: list of file path containing environment data to run expert over
+                           Pass this ONLY with recovery_mode = True
+    :param recovery_mode: boolean, True if run_expert is used to re-compute bad MAPD instances
+    :return bad_instances_list, list with the name (map_id + scenario_id) of bad MAPD instance files
     """
-    # get path of all file in the dataset dir
-    file_path_list = get_all_files(directory=dataset_dir)
+    # get path of all file in the dataset dir, if not in recovery mode
+    if not recovery_mode:
+        file_path_list = get_all_files(directory=dataset_dir)
 
-    # check out for expert presence
-    # if keep_expert = True, return, since nothing to do
-    if (any(config.expert_type in file_path for file_path in file_path_list)
-            and config.keep_expert_solutions):
-        return
+        # check out for expert presence
+        # if keep_expert = True, return, since nothing to do
+        if (any(config.expert_type in file_path for file_path in file_path_list)
+                and config.keep_expert_solutions):
+            return []
 
-    # choose expert type to run
-    if config.expert_type == 'tp':
-        worker = __TpWorker(config=config)
-    else:
-        raise ValueError('Invalid expert selected')
+        # filter out .png and 'experts' files
+        file_path_list = [file_path
+                          for file_path in file_path_list
+                          if not file_path.endswith('.png')  # filters out images
+                          and 'sol' not in file_path]  # filters out expert solutions already there
 
-    # filter out .png and 'experts' files
-    file_path_list = [file_path
-                      for file_path in file_path_list
-                      if not file_path.endswith('.png')  # filters out images
-                      and 'sol' not in file_path]  # filters out expert solutions already there
+        # no environment file found
+        if not file_path_list:
+            raise ValueError('No environment files found')
+
+    # no file paths given while recovery mode
+    if not file_path_list:
+        raise ValueError('Experts launched in recovery mode with no file paths')
 
     # extract with pickle all environments
     env_list = []
@@ -55,10 +63,21 @@ def run_expert(config, dataset_dir):
         with open(file_path, 'rb') as f:
             env_list.append(EasyDict(pickle.load(f)))
 
+    # get shared list
+    manager = Manager()
+    bad_instances_list = manager.list()
+    # choose expert type to run
+    if config.expert_type == 'tp':
+        worker = __TpWorker(config=config, bad_instances_list=bad_instances_list)
+    else:
+        raise ValueError('Invalid expert selected')
+
     # run pool of processes over various environment
     with Pool() as pool:
         # noinspection PyTypeChecker
-        pool.map(func=worker, iterable=env_list)        # num of processes == num of cpu processors
+        pool.map(func=worker, iterable=env_list)    # num of processes == num of cpu processors
+
+    return list(bad_instances_list)
 
 
 class __ExpertWorker:
@@ -66,11 +85,13 @@ class __ExpertWorker:
     Base expert class to run on a process
     """
 
-    def __init__(self, config):
+    def __init__(self, config, bad_instances_list):
         """
         :param config: Namespace of dataset configurations
+        :param bad_instances_list: manager list, where to write bad environment filenames
         """
         self.config = config
+        self.bad_instances_list = bad_instances_list
 
     @abstractmethod
     def __call__(self, environment):
@@ -94,6 +115,7 @@ class __TpWorker(__ExpertWorker):
         # set up a timer
         timer = Timeout(seconds=self.config.timeout, exception=TimeoutError)
         timer.start()
+
         try:
             # run token passing
             agent_schedule = tp(input_map=environment.map,
@@ -115,10 +137,12 @@ class __TpWorker(__ExpertWorker):
             # dump data into pickle file
             dump_data(file_path=file_name, data=expert_data)
 
+            name = basename(normpath(environment.name))
+            print(f'Running Expert on Scenario {name}')
+
         # bad MAPD instance that can not be solved is caught here
         except TimeoutError:
-            print('do something')
-            # TODO: handle not well formed instances
+            self.bad_instances_list.append(environment.name)
 
         # close timer
         finally:
