@@ -162,21 +162,21 @@ class TpAgent:
                 pickup_path, pick_len = a_star(input_map=self.map,
                                                start=self.pos, goal=pickup_pos,
                                                token=token,
-                                               h_map=self.h_coll[pickup_pos])
+                                               h_map=self.h_coll[pickup_pos],
+                                               starting_t=0)
                 # second, from pickup_pos to delivery_pos
                 delivery_path, _ = a_star(input_map=self.map,
                                           start=pickup_pos, goal=delivery_pos,
                                           token=token,
-                                          h_map=self.h_coll[delivery_pos])
-                # adjust timesteps of second half of the path
-                delivery_path = deque([(x, y, pick_len+t-1)
-                                       for x, y, t in list(delivery_path)[1:]
-                                       ])
-                # update path
+                                          h_map=self.h_coll[delivery_pos],
+                                          starting_t=pick_len-1)
+                # remove leftmost element since pickup path already ends there
+                delivery_path.popleft()
+                # merge paths and update
                 self.path = pickup_path + delivery_path
+
                 # remove task
                 task_list.remove(best_task)
-
                 # update token
                 token[self.name] = self.path
                 self.is_free = False

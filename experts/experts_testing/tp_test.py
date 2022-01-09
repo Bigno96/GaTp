@@ -13,7 +13,7 @@ from experts.token_passing import tp
 # noinspection DuplicatedCode,PyUnboundLocalVariable
 class TpTest(unittest.TestCase):
     def test_tp(self):
-        repetition = 1
+        repetition = 1000
         time_list = []
         bad_mapd_inst_count = 0
         shape = (20, 20)
@@ -89,12 +89,15 @@ class TpTest(unittest.TestCase):
         for schedule in agent_schedule.values():
             self.assertEqual(length, len(schedule))
 
+        pprint(good_map)
+
         print(f'Agents starting positions: {good_start_pos_list}')
         print('Task List:')
         pprint(good_task_list)
         print('Resulting Schedule:')
         for schedule in agent_schedule.items():
             print(schedule)
+        print(f'Makespan: {len(agent_schedule[0])}')
         print(f'TP execution time: {statistics.mean(time_list)}')
         print(f'Collision detected: {collision_count}')
         print(f'Timesteps of collisions: {collision_time_idx}')

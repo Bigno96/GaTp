@@ -18,7 +18,6 @@ The following implementation is based on:
         arXiv preprint arXiv:1705.10868.
 """
 from collections import deque
-from copy import deepcopy
 
 from experts.tp_agent import TpAgent
 from utils.expert_utils import preprocess_heuristics
@@ -69,7 +68,9 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     total_task_count = len(task_list)
 
     # set up agent_schedule
-    agent_schedule = deepcopy(token)
+    agent_schedule = {}
+    for name in agent_name_pool:
+        agent_schedule[name] = []
 
     # track time to add new tasks
     timestep = 1    # start from 1 since new tasks for timestep 0 are already active
@@ -94,10 +95,10 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
 
         # all agents move along their paths in token for one timestep
         for agent in agent_pool:
-            # agents update also here if they are free or not (when they end a path, they become free)
-            agent.move_one_step()
             # update schedule
             agent_schedule[agent.name].append(agent.path[0])
+            # agents update also here if they are free or not (when they end a path, they become free)
+            agent.move_one_step()
 
         # add new tasks, if any, before next iteration
         if (timestep % step_between_insertion) == 0:    # every n step add new tasks

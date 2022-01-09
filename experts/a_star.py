@@ -30,7 +30,7 @@ from utils.expert_utils import compute_manhattan_heuristic, is_valid_expansion, 
 
 
 def a_star(input_map, start, goal,
-           token=None, h_map=None):
+           token=None, h_map=None, starting_t=0):
     """
     A* Planner method
     Finds a plan from a starting node to a goal node if one exists
@@ -47,6 +47,7 @@ def a_star(input_map, start, goal,
     :param h_map: np.ndarray, type=int, heuristic.shape = input_map shape
                   given heuristic matrix of goal
            Default: None, computes manhattan heuristic
+    :param starting_t: int, token timestep at which the path it's starting
     :return: path_found: deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ..., (x_g, y_g, t_g)])
              path_length: int
     :raise ValueError if no path are found
@@ -69,7 +70,7 @@ def a_star(input_map, start, goal,
     x, y = start
     g = 0  # cost of the path to the current cell
     f = g + h_map[(x, y)]
-    t = 0  # timestep
+    t = starting_t  # timestep
     cost = 1  # cost of each step
 
     open_list = [(f, g, x, y, t)]  # fringe
@@ -98,7 +99,7 @@ def a_star(input_map, start, goal,
                 curr_c = (x, y)
                 t -= 1
             # add start
-            path.appendleft((start[0], start[1], 0))
+            path.appendleft((start[0], start[1], t))
 
             return path, len(path)
 
@@ -114,10 +115,10 @@ def a_star(input_map, start, goal,
                 if is_valid_expansion(child_pos=next_c, input_map=input_map, closed_list=closed_list,
                                       parent_pos=curr_c, token=token, child_timestep=t):
                     # update values and append to the fringe
+                    closed_list[next_c] = 1  # node has been visited
+                    delta_tracker[next_c] = idx  # keep track of the move
                     g_next = g + cost
                     f = g_next + h_map[next_c]
                     heapq.heappush(open_list, (f, g_next, x_next, y_next, t))
-                    closed_list[next_c] = 1                     # node has been visited
-                    delta_tracker[next_c] = idx                 # keep track of the move
 
     raise ValueError('No path found')

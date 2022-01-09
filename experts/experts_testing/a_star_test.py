@@ -34,7 +34,7 @@ class AStarTest(unittest.TestCase):
 
     # noinspection DuplicatedCode
     def test_is_valid_expansion(self):
-        repetition = 10000
+        repetition = 1000
         # map creation
         shape = (20, 20)
         density = 0.2
@@ -126,7 +126,7 @@ class AStarTest(unittest.TestCase):
                                   for path in token.values()
                                   for step in path
                                   if step[-1] == child_timestep])
-            child_pos, parent_pos = swap
+            parent_pos, child_pos = swap
 
             self.assertFalse(is_valid_expansion(child_pos=child_pos, input_map=grid_map, closed_list=closed_list,
                                                 parent_pos=parent_pos, token=token, child_timestep=child_timestep))
@@ -160,7 +160,7 @@ class AStarTest(unittest.TestCase):
                               for path in token.values()
                               for x, y, t in path]
             child_pos = random.choice(list(set(free_cell_list) - set(token_pos_list)))
-            parent_pos = random.choice(list(set(free_cell_list)-set(token_pos_list)))
+            parent_pos = random.choice(list(set(free_cell_list) - set(token_pos_list)))
 
             self.assertTrue(is_valid_expansion(child_pos=child_pos, input_map=grid_map, closed_list=closed_list,
                                                parent_pos=parent_pos, token=token, child_timestep=child_timestep))
@@ -169,7 +169,7 @@ class AStarTest(unittest.TestCase):
             token_pos_list = [(x, y)
                               for path in token.values()
                               for x, y, t in path
-                              if t == child_timestep or t == 0]
+                              if t == child_timestep or t == 0 or t == 5]
             child_pos = random.choice(list(set(free_cell_list) - set(token_pos_list)))
             parent_pos = random.choice(list(set(free_cell_list) - set(token_pos_list)))
 
@@ -264,6 +264,7 @@ class AStarTest(unittest.TestCase):
                 for step in path:
                     self.assertIsInstance(step, tuple)
                     self.assertNotIn(step, token_step_list)
+                    self.assertNotEqual(step[:-1], token['stands_still'][-1][:-1])
                 self.assertEqual(length, len(path))
 
             except ValueError:
@@ -291,6 +292,7 @@ class AStarTest(unittest.TestCase):
                 for step in path:
                     self.assertIsInstance(step, tuple)
                     self.assertNotIn(step, token_step_list)
+                    self.assertNotEqual(step[:-1], token['stands_still'][-1][:-1])
                 self.assertEqual(length, len(path))
 
                 if not printed:

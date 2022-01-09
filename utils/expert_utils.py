@@ -82,29 +82,30 @@ def is_valid_expansion(child_pos, input_map, closed_list,
     # child_timestep always > 0 by construction
 
     # no swap constraint
-    bad_moves_list = [(x_s, y_s, child_timestep)
+    bad_moves_list = [(x_s, y_s)
                       for path in token.values()
                       for x_s, y_s, t_s in path
                       if len(path) > child_timestep
-                      and t_s == child_timestep  # avoid going into their current position next move
+                      and t_s == (child_timestep-1)  # avoid going into their current position next move
                       and path[child_timestep][:-1] == parent_pos  # if that agent is going into my current position
                       ]
 
     # avoid node collision
-    bad_moves_list.extend([path[child_timestep]  # [(x1_t, y1_t, t), (x2_t, y2_t, t), ..., ]
+    bad_moves_list.extend([(path[child_timestep][0], path[child_timestep][1])
+                           # [(x1_t, y1_t, t), (x2_t, y2_t, t), ..., ]
                            for path in token.values()
                            if len(path) > child_timestep
                            ])
 
     # add also coordinates of agent resting on a spot
-    bad_moves_list.extend([(path[-1][0], path[-1][1], child_timestep)
+    bad_moves_list.extend([(path[-1][0], path[-1][1])
                            for path in token.values()
                            # agent is potentially resting there
                            if len(path) <= child_timestep 
                            ])
 
     # if attempted move not conflicting, return True
-    return (x, y, child_timestep) not in bad_moves_list
+    return child_pos not in bad_moves_list
 
 
 def preprocess_heuristics(input_map, task_list, non_task_ep_list):
