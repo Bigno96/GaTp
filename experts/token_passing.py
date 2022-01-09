@@ -72,8 +72,8 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     for name in agent_name_pool:
         agent_schedule[name] = []
 
-    # track time to add new tasks
-    timestep = 1    # start from 1 since new tasks for timestep 0 are already active
+    # track time
+    timestep = 0
 
     # while tasks are available or at least one agent is still busy
     while active_task_list or activated_task_count < total_task_count \
@@ -90,7 +90,8 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
             # pass control to agent a_i
             agent.receive_token(token=token,
                                 task_list=active_task_list,
-                                non_task_ep_list=non_task_ep_list)
+                                non_task_ep_list=non_task_ep_list,
+                                sys_timestep=timestep)
             # a_i has updated token, active_task_list and its 'free' status
 
         # all agents move along their paths in token for one timestep

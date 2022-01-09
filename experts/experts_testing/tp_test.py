@@ -13,7 +13,7 @@ from experts.token_passing import tp
 # noinspection DuplicatedCode,PyUnboundLocalVariable
 class TpTest(unittest.TestCase):
     def test_tp(self):
-        repetition = 1000
+        repetition = 1
         time_list = []
         bad_mapd_inst_count = 0
         shape = (20, 20)
@@ -82,7 +82,7 @@ class TpTest(unittest.TestCase):
                             imm_task_split=imm_task_split, new_task_per_insertion=new_task_per_timestep,
                             step_between_insertion=step_between_insertion)
 
-        collision_time_idx, collision_count = count_collision(agent_schedule=agent_schedule)
+        coll_count = count_collision(agent_schedule=agent_schedule)
 
         self.assertIsInstance(agent_schedule, dict)
         length = len(agent_schedule[0])
@@ -99,8 +99,7 @@ class TpTest(unittest.TestCase):
             print(schedule)
         print(f'Makespan: {len(agent_schedule[0])}')
         print(f'TP execution time: {statistics.mean(time_list)}')
-        print(f'Collision detected: {collision_count}')
-        print(f'Timesteps of collisions: {collision_time_idx}')
+        print(f'Collision detected: {coll_count}')
         print(f'Bad instances of MAPD: {bad_mapd_inst_count} out of {repetition}')
 
 

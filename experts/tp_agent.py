@@ -53,12 +53,12 @@ class TpAgent:
         # if last step
         if len(self.path) == 1:
             self.pos = self.path[-1][:-1]
-            self.path[-1] = (self.pos[0], self.pos[1], 0)
+            self.path[-1] = (self.pos[0], self.pos[1], self.path[-1][-1]+1)
             self.is_free = True
         else:
             self.pos = self.path.popleft()[:-1]  # move
 
-    def find_resting_pos(self, token, task_list, non_task_ep_list):
+    def find_resting_pos(self, token, task_list, non_task_ep_list, sys_timestep):
         """
         Pick the nearest endpoint s.t. delivery locations of all tasks are different from the chosen endpoint,
         no path of other agents in the token ends in the chosen endpoint
@@ -72,6 +72,7 @@ class TpAgent:
                           task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
         :param non_task_ep_list: list of endpoints not belonging to a task -> [(ep1), (ep2), ...]
                                  endpoint: tuple (x,y) of int coordinates
+        :param sys_timestep: global timestep of the execution
         """
         # task related endpoints, excluding all delivery locations in task_list
         # -> get only pickup locations
@@ -109,7 +110,7 @@ class TpAgent:
             try:
                 # collision free path, if endpoint is reachable
                 self.path, _ = a_star(input_map=self.map, start=self.pos, goal=best_ep,
-                                      token=token, h_map=self.h_coll[best_ep])
+                                      token=token, h_map=self.h_coll[best_ep], starting_t=sys_timestep)
                 return
 
             except ValueError:
@@ -117,9 +118,9 @@ class TpAgent:
 
         # no endpoint was reachable -> stay in place
         # this happens due to MAPD instance not being well-formed
-        self.path = deque([(self.pos[0], self.pos[1], 0)])
+        self.path = deque([(self.pos[0], self.pos[1], sys_timestep)])
 
-    def receive_token(self, token, task_list, non_task_ep_list):
+    def receive_token(self, token, task_list, non_task_ep_list, sys_timestep):
         """
         Agent receives token and assigns himself to a new task
         Add its new path to the token, remove assigned task from task_list
@@ -131,6 +132,7 @@ class TpAgent:
                           task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
         :param non_task_ep_list: list of endpoints not belonging to a task -> [(ep1), (ep2), ...]
                                  endpoint: tuple (x,y) of int coordinates
+        :param sys_timestep: global timestep of the execution
         :return: selected path: deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
         """
 
@@ -163,13 +165,13 @@ class TpAgent:
                                                start=self.pos, goal=pickup_pos,
                                                token=token,
                                                h_map=self.h_coll[pickup_pos],
-                                               starting_t=0)
+                                               starting_t=sys_timestep)
                 # second, from pickup_pos to delivery_pos
                 delivery_path, _ = a_star(input_map=self.map,
                                           start=pickup_pos, goal=delivery_pos,
                                           token=token,
                                           h_map=self.h_coll[delivery_pos],
-                                          starting_t=pick_len-1)
+                                          starting_t=sys_timestep+pick_len-1)
                 # remove leftmost element since pickup path already ends there
                 delivery_path.popleft()
                 # merge paths and update
@@ -183,20 +185,21 @@ class TpAgent:
 
             # since MAPD can be not well-formed, it can happen to not find a path
             except ValueError:
-                self.path = deque([(self.pos[0], self.pos[1], 0)])      # stay in place and try another timestep
-                token[self.name] = self.path
+                self.path = deque([(self.pos[0], self.pos[1], sys_timestep)])
+                token[self.name] = self.path    # try another timestep
                 self.is_free = True
 
         # no task in task_list has delivery_pos == self.pos
         elif all([delivery != self.pos for _, delivery in task_list]):
             # stay in place
-            self.path = deque([(self.pos[0], self.pos[1], 0)])
+            self.path = deque([(self.pos[0], self.pos[1], sys_timestep)])
             token[self.name] = self.path
             self.is_free = True
 
         # no available task, agent is in a delivery spot
         else:
             # move to another reachable endpoint
-            self.find_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list)
+            self.find_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list,
+                                  sys_timestep=sys_timestep)
             token[self.name] = self.path
             self.is_free = True

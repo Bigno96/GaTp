@@ -53,10 +53,7 @@ def is_valid_expansion(child_pos, input_map, closed_list,
                   dict -> {agent_id : path}
                   with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
                   x, y -> cartesian coords, t -> timestep
-    :param child_timestep: int, timestep of new expansion, used positionally
-                     e.g. timestep = 2 -> looking for tuple (x,y,t) at depth 2 in the path
-                     YES: path[2]
-                     NO: path[i] if path[i].t == 2
+    :param child_timestep: int, global timestep of new expansion
     :return: True if all 4 checks are passed, False else
     """
     x, y = child_pos
@@ -85,23 +82,24 @@ def is_valid_expansion(child_pos, input_map, closed_list,
     bad_moves_list = [(x_s, y_s)
                       for path in token.values()
                       for x_s, y_s, t_s in path
-                      if len(path) > child_timestep
-                      and t_s == (child_timestep-1)  # avoid going into their current position next move
-                      and path[child_timestep][:-1] == parent_pos  # if that agent is going into my current position
+                      if t_s == (child_timestep-1)  # avoid going into their current position next move
+                      # if that agent is going into my current position
+                      and parent_pos in {(x_p, y_p)
+                                         for x_p, y_p, t_p in path
+                                         if t_p == child_timestep}
                       ]
 
     # avoid node collision
-    bad_moves_list.extend([(path[child_timestep][0], path[child_timestep][1])
+    bad_moves_list.extend([(x_s, y_s)
                            # [(x1_t, y1_t, t), (x2_t, y2_t, t), ..., ]
                            for path in token.values()
-                           if len(path) > child_timestep
+                           for x_s, y_s, t_s in path
+                           if t_s == child_timestep
                            ])
 
-    # add also coordinates of agent resting on a spot
+    # add also coordinates of agent potentially resting on a spot
     bad_moves_list.extend([(path[-1][0], path[-1][1])
                            for path in token.values()
-                           # agent is potentially resting there
-                           if len(path) <= child_timestep 
                            ])
 
     # if attempted move not conflicting, return True

@@ -138,7 +138,8 @@ class TpAgentTest(unittest.TestCase):
                 start_pos = random.choice(list(set(free_cell_list) - set(non_task_ep_list) - set(token_start_pos_list)))
 
                 agent.pos = start_pos
-                agent.find_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list)
+                agent.find_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list,
+                                       sys_timestep=0)
 
                 # check validity of self.path -> endpoint not in tasks delivery location (pickup allowed),
                 #                                nor in token endpoints
@@ -224,7 +225,8 @@ class TpAgentTest(unittest.TestCase):
                 print('\nTask list before agent exec:')
                 pprint(task_list)
 
-            agent.receive_token(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list)
+            agent.receive_token(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list,
+                                sys_timestep=0)
 
             if not printed:
                 print('\nToken after agent exec:')
@@ -245,7 +247,7 @@ class TpAgentTest(unittest.TestCase):
                                            - set(token_ep_list)      # not in token paths endpoints
                                            - set(token_start_pos_list)))    # not in another agent current pos
             agent.pos = start_pos
-            agent.receive_token(token=token, task_list=[], non_task_ep_list=non_task_ep_list)
+            agent.receive_token(token=token, task_list=[], non_task_ep_list=non_task_ep_list, sys_timestep=0)
 
             self.assertEqual(start_pos, agent.path[0][:-1])     # stand still
             self.assertTrue(agent.is_free)
@@ -263,7 +265,7 @@ class TpAgentTest(unittest.TestCase):
             # another agent going into start pos ('occupy' that task)
             token['stands_still'].append((start_pos[0], start_pos[1], 1))
             agent.receive_token(token=token, task_list=[(start_pos, start_pos)],   # set one task in the start agent pos
-                                non_task_ep_list=non_task_ep_list)
+                                non_task_ep_list=non_task_ep_list, sys_timestep=0)
 
             # build available positions list to check execution
             token_ep_list.append(token['stands_still'][-1][:-1])
