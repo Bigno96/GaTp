@@ -3,6 +3,7 @@ import timeit
 import unittest
 from multiprocessing import Process
 from pprint import pprint
+from utils.metrics import count_collision
 
 from create_dataset.map_creator import create_random_grid_map
 from create_dataset.scenario_creator import create_starting_pos, create_task
@@ -12,7 +13,7 @@ from experts.token_passing import tp
 # noinspection DuplicatedCode,PyUnboundLocalVariable
 class TpTest(unittest.TestCase):
     def test_tp(self):
-        repetition = 1000
+        repetition = 1
         time_list = []
         bad_mapd_inst_count = 0
         shape = (20, 20)
@@ -31,7 +32,7 @@ class TpTest(unittest.TestCase):
 
         for i in range(repetition):
             # map creation
-            grid_map = create_random_grid_map(map_shape=shape, map_density=density)
+            grid_map = create_random_grid_map(map_shape=shape, map_density=density, connected=True)
 
             # non task endpoints
             start_pos_list = create_starting_pos(input_map=grid_map, agent_num=agent_num,
@@ -81,6 +82,8 @@ class TpTest(unittest.TestCase):
                             imm_task_split=imm_task_split, new_task_per_insertion=new_task_per_timestep,
                             step_between_insertion=step_between_insertion)
 
+        collision_time_idx, collision_count = count_collision(agent_schedule=agent_schedule)
+
         self.assertIsInstance(agent_schedule, dict)
         length = len(agent_schedule[0])
         for schedule in agent_schedule.values():
@@ -93,6 +96,8 @@ class TpTest(unittest.TestCase):
         for schedule in agent_schedule.items():
             print(schedule)
         print(f'TP execution time: {statistics.mean(time_list)}')
+        print(f'Collision detected: {collision_count}')
+        print(f'Timesteps of collisions: {collision_time_idx}')
         print(f'Bad instances of MAPD: {bad_mapd_inst_count} out of {repetition}')
 
 

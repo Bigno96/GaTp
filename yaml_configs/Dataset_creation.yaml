@@ -11,6 +11,8 @@ map_type: 'random_grid'   # supported values: random_grid
 map_number: 10       # how many unique maps
 map_shape: [20, 20]     # (H, W)
 map_density: 0.2       # % of obstacles in the map
+# whether to generate only fully connected maps or not
+force_conn: True
 
 
 # Scenario specifications

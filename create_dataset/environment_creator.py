@@ -89,7 +89,8 @@ def __random_grid_environment(config, dataset_dir, file_path_list=None, recovery
     for file_path in file_path_list:
         # get map
         random_grid_map = create_random_grid_map(map_shape=config.map_shape,
-                                                 map_density=config.map_density)
+                                                 map_density=config.map_density,
+                                                 connected=config.force_conn)
 
         # get scenario
         start_pos_list, parking_spot_list, task_list = create_scenario(config=config,
@@ -120,7 +121,8 @@ class __RandomGridWorker:
         """
         # get map
         random_grid_map = create_random_grid_map(map_shape=self.config.map_shape,
-                                                 map_density=self.config.map_density)
+                                                 map_density=self.config.map_density,
+                                                 connected=self.config.force_conn)
 
         for sc_id in range(self.config.scenario_number):
             # get scenario

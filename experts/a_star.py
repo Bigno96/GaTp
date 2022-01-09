@@ -85,7 +85,7 @@ def a_star(input_map, start, goal,
 
         curr_c = (x, y)
         # if goal is reached
-        if (x, y) == goal:
+        if curr_c == goal:
             path = deque()
             # loop back until start is reached and build full path
             while curr_c != start:

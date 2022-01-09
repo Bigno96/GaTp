@@ -13,7 +13,8 @@ class ScenarioCreatorTest(unittest.TestCase):
         shape = (20, 20)
         size = shape[0] * shape[1]
         map_density = 0.2
-        grid_map = create_random_grid_map(map_shape=shape, map_density=map_density)
+        grid_map = create_random_grid_map(map_shape=shape, map_density=map_density,
+                                          connected=True)
         agent_number = 10
         repetition = 10000
         # get free cell positions
@@ -87,7 +88,8 @@ class ScenarioCreatorTest(unittest.TestCase):
     def test_create_task(self):
         shape = (20, 20)
         map_density = 0.2
-        grid_map = create_random_grid_map(map_shape=shape, map_density=map_density)
+        grid_map = create_random_grid_map(map_shape=shape, map_density=map_density,
+                                          connected=True)
         agent_number = 10
         repetition = 10000
         start_pos_list = create_starting_pos(input_map=grid_map, agent_num=agent_number,

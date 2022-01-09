@@ -61,7 +61,8 @@ class MapCreatorTest(unittest.TestCase):
         '''normal density'''
         density = 0.2
         for _ in range(repetition):
-            grid_map = create_random_grid_map(map_shape=shape, map_density=density)
+            grid_map = create_random_grid_map(map_shape=shape, map_density=density,
+                                              connected=True)
 
             self.assertEqual(size*density, np.count_nonzero(grid_map))
             self.assertIsInstance(grid_map, np.ndarray)
@@ -70,7 +71,8 @@ class MapCreatorTest(unittest.TestCase):
 
         '''no obstacles'''
         density = 0
-        grid_map = create_random_grid_map(map_shape=shape, map_density=density)
+        grid_map = create_random_grid_map(map_shape=shape, map_density=density,
+                                          connected=True)
 
         self.assertEqual(0, np.count_nonzero(grid_map))
 

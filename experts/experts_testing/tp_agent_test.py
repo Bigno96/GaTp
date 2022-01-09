@@ -20,7 +20,7 @@ class TpAgentTest(unittest.TestCase):
         density = 0.2
         agent_num = 5
         task_num = 10
-        grid_map = create_random_grid_map(map_shape=shape, map_density=density)
+        grid_map = create_random_grid_map(map_shape=shape, map_density=density, connected=True)
 
         # non task endpoints
         start_pos_list = create_starting_pos(input_map=grid_map, agent_num=agent_num,
@@ -78,7 +78,7 @@ class TpAgentTest(unittest.TestCase):
             density = 0.2
             agent_num = 5
             task_num = 10
-            grid_map = create_random_grid_map(map_shape=shape, map_density=density)
+            grid_map = create_random_grid_map(map_shape=shape, map_density=density, connected=True)
 
             # non task endpoints
             start_pos_list = create_starting_pos(input_map=grid_map, agent_num=agent_num,
@@ -160,7 +160,7 @@ class TpAgentTest(unittest.TestCase):
             density = 0.2
             agent_num = 5
             task_num = 10
-            grid_map = create_random_grid_map(map_shape=shape, map_density=density)
+            grid_map = create_random_grid_map(map_shape=shape, map_density=density, connected=True)
 
             # non task endpoints
             start_pos_list = create_starting_pos(input_map=grid_map, agent_num=agent_num,

@@ -5,8 +5,6 @@ Utility functions for experts algorithms
 import numpy as np
 from operator import sub
 
-from pprint import pprint
-
 # delta dictionary
 DELTA = [(-1, 0),  # go up
          (0, -1),  # go left
@@ -97,12 +95,12 @@ def is_valid_expansion(child_pos, input_map, closed_list,
                            for path in token.values()
                            if len(path) > child_timestep
                            ])
+
     # add also coordinates of agent resting on a spot
-    bad_moves_list.extend([(x_s, y_s, child_timestep)
+    bad_moves_list.extend([(path[-1][0], path[-1][1], child_timestep)
                            for path in token.values()
-                           for x_s, y_s, t_s in path
-                           # timestep = 0 and only 1 step -> agent is resting
-                           if len(path) == 1 and t_s == 0
+                           # agent is potentially resting there
+                           if len(path) <= child_timestep 
                            ])
 
     # if attempted move not conflicting, return True

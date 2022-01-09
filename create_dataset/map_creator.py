@@ -17,7 +17,7 @@ DELTA = [(-1, 0),  # go up
          (0, 1)]  # go right
 
 
-def create_random_grid_map(map_shape, map_density, connected=True):
+def create_random_grid_map(map_shape, map_density, connected):
     """
     Create connected, random grid type map with randomly placed obstacles
     :param map_shape: [H, W], int, size of the map

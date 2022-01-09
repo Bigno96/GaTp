@@ -1,6 +1,8 @@
 import pprint
 import random
 import unittest
+import timeit
+import statistics
 from collections import deque
 
 import numpy as np
@@ -20,7 +22,7 @@ class AStarTest(unittest.TestCase):
         repetition = 1000
 
         for _ in range(repetition):
-            grid_map = create_random_grid_map(map_shape=shape, map_density=density)
+            grid_map = create_random_grid_map(map_shape=shape, map_density=density, connected=True)
             goal = tuple(np.unravel_index(indices=random.choice(range(size)), shape=shape))
             rand_point = np.unravel_index(indices=random.choice(range(size)), shape=shape)
             h_map = compute_manhattan_heuristic(input_map=grid_map, goal=goal)
@@ -36,7 +38,7 @@ class AStarTest(unittest.TestCase):
         # map creation
         shape = (20, 20)
         density = 0.2
-        grid_map = create_random_grid_map(map_shape=shape, map_density=density)
+        grid_map = create_random_grid_map(map_shape=shape, map_density=density, connected=True)
 
         # get free cell positions
         where_res = np.nonzero(grid_map == 0)
@@ -179,7 +181,7 @@ class AStarTest(unittest.TestCase):
         # map creation
         shape = (20, 20)
         density = 0.2
-        grid_map = create_random_grid_map(map_shape=shape, map_density=density)
+        grid_map = create_random_grid_map(map_shape=shape, map_density=density, connected=True)
 
         # get free cell positions
         where_res = np.nonzero(grid_map == 0)
@@ -269,6 +271,7 @@ class AStarTest(unittest.TestCase):
 
         '''A* with token and given h_map'''
         printed = False
+        time_list = []
         for _ in range(repetition):
             # start_pos, goal and heuristic
             start_pos = random.choice(list(set(free_cell_list) - set(token_pos_list)))
@@ -276,9 +279,12 @@ class AStarTest(unittest.TestCase):
             h_map = compute_manhattan_heuristic(input_map=grid_map, goal=goal)
 
             try:
+                start_time = timeit.default_timer()
                 path, length = a_star(input_map=grid_map,
                                       start=start_pos, goal=goal,
                                       token=token, h_map=h_map)
+                diff_time = timeit.default_timer() - start_time
+                time_list.append(diff_time)
 
                 self.assertIsInstance(length, int)
                 self.assertIsInstance(path, deque)
@@ -299,6 +305,8 @@ class AStarTest(unittest.TestCase):
 
             except ValueError:
                 pass
+
+        print(f'\nAverage full A* execution time: {statistics.mean(time_list)}')
 
 
 if __name__ == '__main__':
