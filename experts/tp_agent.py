@@ -10,7 +10,7 @@ from collections import deque
 import numpy as np
 
 from experts.a_star import a_star
-from utils.expert_utils import DELTA
+from utils.expert_utils import DELTA, free_cell_around
 
 
 class TpAgent:
@@ -92,21 +92,13 @@ class TpAgent:
         # remove an endpoint if it's an endpoint also for another agent's path in the token
         ep_list = list(set(ep_list) - set(token_ep_list))
 
-        # get heuristic value for each endpoint from start position
-        h_ep_list = [self.h_coll[ep][self.pos]
-                     for ep in ep_list]
-        # list of idx, corresponding to an ordering of ep_list
-        # h_ordering_idx[0] == i -> the nearest endpoint is ep_list[i]
-        # h_ordering_idx[1] == j -> the second-nearest endpoint is ep_list[j]
-        h_ordering_idx = np.argsort(h_ep_list)
+        # sort based off heuristic value, ascending order (lowest first)
+        sorted_ep_list = deque(sorted(ep_list, key=lambda ep: self.h_coll[ep][self.pos]))
 
         # while there are still endpoints to try
-        while h_ordering_idx.size > 0:
-            # pop first element -> obtain 'i', index of the nearest endpoint
-            best_ep_idx = h_ordering_idx[0]
-            h_ordering_idx = np.delete(h_ordering_idx, 0)
+        while sorted_ep_list:
             # get best endpoint
-            best_ep = ep_list[best_ep_idx]
+            best_ep = sorted_ep_list.popleft()
 
             try:
                 # collision free path, if endpoint is reachable
@@ -144,8 +136,7 @@ class TpAgent:
 
         # remove himself from the token
         # most functions assume that current agent path is not in the token (since it's to be decided)
-        if self.name in token.keys():
-            del token[self.name]
+        del token[self.name]
 
         # get subset of tasks s.t. their pickup or delivery spots don't coincide with endpoints of token paths
         avail_task_list = [task for task in task_list
@@ -208,7 +199,7 @@ class TpAgent:
             self.find_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list,
                                   sys_timestep=sys_timestep)
 
-    def collision_shielding(self, token, sys_timestep):
+    def collision_shielding(self, token, sys_timestep, agent_pool):
         """
         Avoid collisions by moving an agent if another one is coming into its resting spot
         :param token: summary of other agents planned paths
@@ -216,14 +207,14 @@ class TpAgent:
                       with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
                       x, y -> cartesian coords, t -> timestep
         :param sys_timestep: global timestep of the execution
+        :param agent_pool: set of agents
         """
         # if the agent is parked in a resting spot
         if len(self.path) == 1:
 
             # remove himself from the token, if present
             # most functions assume that current agent path is not in the token (since it's to be decided)
-            if self.name in token.keys():
-                del token[self.name]
+            del token[self.name]
 
             # if some other agent is coming into agent end path position on the next timestep
             end_pos = self.path[-1][:-1]
@@ -235,15 +226,48 @@ class TpAgent:
                 # try to move the agent towards a non-conflicting cell around him
                 d1_cell_list = [(end_pos[0]+move[0], end_pos[1]+move[1])    # distance 1
                                 for move in DELTA]
-                # love over d1 cells
+                # reverse order, higher number of free cells first
+                # count free cell at sys_timestep+1 when the agent will be in target
+                d1_cell_list = sorted(d1_cell_list, reverse=True,
+                                      key=lambda c: free_cell_around(target=c, input_map=self.map,
+                                                                     token=token,
+                                                                     target_timestep=sys_timestep+1))
+
+                # loop over d1 cells
                 for cell in d1_cell_list:
                     try:
                         self.path, _ = a_star(input_map=self.map, start=end_pos, goal=cell,
                                               token=token, h_map=None,     # cell is not always an endpoint
                                               starting_t=sys_timestep)
+
+                        # if agent is going to 'disturb' another agent, call collision shielding on him
+                        # agent can be disturbed only if standing still
+                        # otherwise -> node collision prevention will avoid the conflict
+                        disturbed_agent_names = [ag
+                                                 for ag, path in token.items()
+                                                 for x, y, t in path
+                                                 if t == sys_timestep    # next timestep
+                                                 and (x, y) == self.path[-1][:-1]  # potential collision incoming
+                                                 ]
+
+                        # add here path to token for others
                         token[self.name] = self.path
-                        self.is_free = False        # make him busy so he doesn't reassign immediately
+                        self.is_free = False  # make him busy so he doesn't reassign immediately
+
+                        for ag in disturbed_agent_names:
+                            # get the agent
+                            agent = [a
+                                     for a in agent_pool
+                                     if a.name == ag][0]
+                            # run coll shield
+                            agent.collision_shielding(token=token, sys_timestep=sys_timestep,
+                                                      agent_pool=agent_pool)
+                        # all agent called, return
+                        return
 
                     # no path, try another cell
                     except ValueError:
                         pass
+
+            # re add agent path to token if nothing done
+            token[self.name] = self.path

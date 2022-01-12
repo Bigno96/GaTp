@@ -13,7 +13,7 @@ from utils.metrics import count_collision
 # noinspection DuplicatedCode,PyUnboundLocalVariable
 class TpTest(unittest.TestCase):
     def test_tp(self):
-        repetition = 100
+        repetition = 1000
         time_list = []
         collision_count_list = []
         makespan_list = []
@@ -111,7 +111,7 @@ class TpTest(unittest.TestCase):
             print(schedule)
         print(f'Average makespan: {statistics.mean(makespan_list)}')
         print(f'Average TP execution time: {statistics.mean(time_list)}')
-        print(f'Average collision detected: {collision_count_list}')
+        print(f'Number od instances with collisions: {sum(i > 0 for i in collision_count_list)}')
         print(f'Bad instances of MAPD: {bad_mapd_inst_count} out of {repetition}')
 
         # coll_count, collision_time_list = count_collision(agent_schedule=agent_schedule)

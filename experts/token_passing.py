@@ -96,7 +96,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
 
         # check for eventual collisions and adapt
         for agent in agent_pool:
-            agent.collision_shielding(token=token, sys_timestep=timestep)
+            agent.collision_shielding(token=token, sys_timestep=timestep, agent_pool=agent_pool)
 
         # all agents move along their paths in token for one timestep
         for agent in agent_pool:

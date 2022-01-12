@@ -137,6 +137,35 @@ def preprocess_heuristics(input_map, task_list, non_task_ep_list):
     return dict(zip(iter(ep_list), iter(h_map_list)))
 
 
+def free_cell_around(target, input_map, token, target_timestep):
+    """
+    Get how many cells are free around target at specified timestep
+    :param target: int tuple (x,y)
+    :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
+    :param token: summary of other agents planned paths
+                      dict -> {agent_id : path}
+                      with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
+                      x, y -> cartesian coords, t -> timestep
+    :param target_timestep: global timestep of the execution
+    :return: int, value of free cells around
+    """
+    # get agent adjacent cells
+    target_neighbours = [(target[0]+move[0], target[1]+move[1])
+                         for move in DELTA]
+    # get token positions at target_timestep
+    # agent who called this must not be in the token
+    token_pos_list = {(x, y)
+                      for path in token.values()
+                      for x, y, t in path
+                      if t == target_timestep}
+    # count and return free cells
+    return sum([1
+                for pos in target_neighbours
+                if (0 <= pos[0] < input_map.shape[0] and 0 <= pos[1] < input_map.shape[1])
+                and input_map[pos] == 0
+                and pos not in token_pos_list])
+
+
 def transform_agent_schedule(agent_schedule):
     """
     A matrix-form notation is used to represent produced agent schedule
