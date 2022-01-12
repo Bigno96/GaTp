@@ -26,7 +26,8 @@ from collections import deque
 
 import numpy as np
 
-from utils.expert_utils import compute_manhattan_heuristic, is_valid_expansion, DELTA
+from utils.expert_utils import compute_manhattan_heuristic, DELTA
+from utils.expert_utils import is_valid_expansion, check_token_conflicts
 
 
 def a_star(input_map, start, goal,
@@ -68,6 +69,11 @@ def a_star(input_map, start, goal,
     Initialization
     '''
     x, y = start
+
+    # check that start is not going to cause conflict next timestep
+    if not check_token_conflicts(token=token, new_pos=start, curr_pos=start, new_timestep=starting_t):
+        raise ValueError('No path found')
+
     g = 0  # cost of the path to the current cell
     f = g + h_map[(x, y)]
     t = starting_t  # timestep
@@ -104,7 +110,7 @@ def a_star(input_map, start, goal,
             return path, len(path)
 
         else:
-            # keep track of the timestep when the node was popped
+            # keep track of the timestep
             t += 1
             # for each possible move
             for idx, move in enumerate(DELTA):
@@ -112,8 +118,8 @@ def a_star(input_map, start, goal,
                 y_next = y + move[1]
                 next_c = (x_next, y_next)
                 # if the point is valid for the expansion
-                if is_valid_expansion(child_pos=next_c, input_map=input_map, closed_list=closed_list,
-                                      parent_pos=curr_c, token=token, child_timestep=t):
+                if is_valid_expansion(child_pos=next_c, input_map=input_map, closed_list=closed_list)\
+                        and check_token_conflicts(token=token, new_pos=next_c, curr_pos=curr_c, new_timestep=t):
                     # update values and append to the fringe
                     closed_list[next_c] = 1  # node has been visited
                     delta_tracker[next_c] = idx  # keep track of the move

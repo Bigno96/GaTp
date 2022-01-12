@@ -94,6 +94,10 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
                                 sys_timestep=timestep)
             # a_i has updated token, active_task_list and its 'free' status
 
+        # check for eventual collisions and adapt
+        for agent in agent_pool:
+            agent.collision_shielding(token=token, sys_timestep=timestep)
+
         # all agents move along their paths in token for one timestep
         for agent in agent_pool:
             # update schedule

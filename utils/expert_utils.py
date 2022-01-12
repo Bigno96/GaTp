@@ -2,8 +2,9 @@
 Utility functions for experts algorithms
 """
 
-import numpy as np
 from operator import sub
+
+import numpy as np
 
 # delta dictionary
 DELTA = [(-1, 0),  # go up
@@ -37,24 +38,16 @@ def compute_manhattan_heuristic(input_map, goal):
     return np.array(heuristic, dtype=int).reshape(input_map.shape)
 
 
-def is_valid_expansion(child_pos, input_map, closed_list,
-                       parent_pos=None, token=None, child_timestep=None):
+def is_valid_expansion(child_pos, input_map, closed_list):
     """
-    Check if is possible for a* to expand the new cell
+    Check if is possible for A* to expand the new cell
     1) Check if the cell is inside map boundaries
     2) Check if the cell has already been expanded
     3) Check if the cell has an obstacle inside
-    4) Check token for avoiding conflicts with other agents
     :param child_pos: (x, y), int tuple of new position
-    :param parent_pos: (x, y), int tuple of curr position
     :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
     :param closed_list: implemented as matrix with shape = input_map.shape, np.ndarray
-    :param token: summary of other agents planned paths
-                  dict -> {agent_id : path}
-                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
-                  x, y -> cartesian coords, t -> timestep
-    :param child_timestep: int, global timestep of new expansion
-    :return: True if all 4 checks are passed, False else
+    :return: True if all 3 checks are passed, False else
     """
     x, y = child_pos
 
@@ -70,23 +63,36 @@ def is_valid_expansion(child_pos, input_map, closed_list,
     if input_map[child_pos] == 1:
         return False
 
-    # defaults to classic A*
-    if not token or not child_timestep or not parent_pos:
+    return True
+
+
+def check_token_conflicts(token, new_pos, curr_pos, new_timestep):
+    """
+    Check that at new_pos there are no conflicts in token
+    :param token: summary of other agents planned paths
+                  dict -> {agent_id : path}
+                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
+                  x, y -> cartesian coords, t -> timestep
+    :param curr_pos: (x, y), int tuple of curr position
+    :param new_pos: (x, y), int tuple of new position
+    :param new_timestep: int, global timestep of new expansion, always > 0
+    :return: True if no conflicts are found, False else
+    """
+    # if something is not specified, defaults to True
+    if not token or not new_pos or not curr_pos or new_timestep is None:
         return True
 
-    # check 4), check that at token[timestamp] there are no conflicting cells
-    # when called by token passing, all paths in the token are from a different agent
-    # child_timestep always > 0 by construction
+    # when called, all paths in the token are from a different agent
 
     # no swap constraint
     bad_moves_list = [(x_s, y_s)
                       for path in token.values()
                       for x_s, y_s, t_s in path
-                      if t_s == (child_timestep-1)  # avoid going into their current position next move
+                      if t_s == (new_timestep-1)  # avoid going into their current position next move
                       # if that agent is going into my current position
-                      and parent_pos in {(x_p, y_p)
+                      and curr_pos in {(x_p, y_p)
                                          for x_p, y_p, t_p in path
-                                         if t_p == child_timestep}
+                                         if t_p == new_timestep}
                       ]
 
     # avoid node collision
@@ -94,16 +100,11 @@ def is_valid_expansion(child_pos, input_map, closed_list,
                            # [(x1_t, y1_t, t), (x2_t, y2_t, t), ..., ]
                            for path in token.values()
                            for x_s, y_s, t_s in path
-                           if t_s == child_timestep
-                           ])
-
-    # add also coordinates of agent potentially resting on a spot
-    bad_moves_list.extend([(path[-1][0], path[-1][1])
-                           for path in token.values()
+                           if t_s == new_timestep
                            ])
 
     # if attempted move not conflicting, return True
-    return child_pos not in bad_moves_list
+    return new_pos not in bad_moves_list
 
 
 def preprocess_heuristics(input_map, task_list, non_task_ep_list):

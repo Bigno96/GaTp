@@ -10,9 +10,9 @@ A matrix-form notation is used to represent produced agent schedule:
 """
 
 import pickle
-from os.path import normpath, basename
 from abc import abstractmethod
 from multiprocessing import Pool, Manager
+from os.path import normpath, basename
 
 from easydict import EasyDict
 from gevent import Timeout

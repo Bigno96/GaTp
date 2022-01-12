@@ -10,6 +10,7 @@ from collections import deque
 import numpy as np
 
 from experts.a_star import a_star
+from utils.expert_utils import DELTA
 
 
 class TpAgent:
@@ -111,6 +112,9 @@ class TpAgent:
                 # collision free path, if endpoint is reachable
                 self.path, _ = a_star(input_map=self.map, start=self.pos, goal=best_ep,
                                       token=token, h_map=self.h_coll[best_ep], starting_t=sys_timestep)
+                token[self.name] = self.path
+                self.is_free = True
+
                 return
 
             except ValueError:
@@ -119,6 +123,8 @@ class TpAgent:
         # no endpoint was reachable -> stay in place
         # this happens due to MAPD instance not being well-formed
         self.path = deque([(self.pos[0], self.pos[1], sys_timestep)])
+        token[self.name] = self.path
+        self.is_free = True
 
     def receive_token(self, token, task_list, non_task_ep_list, sys_timestep):
         """
@@ -136,7 +142,7 @@ class TpAgent:
         :return: selected path: deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
         """
 
-        # remove himself from the token, if present
+        # remove himself from the token
         # most functions assume that current agent path is not in the token (since it's to be decided)
         if self.name in token.keys():
             del token[self.name]
@@ -177,7 +183,7 @@ class TpAgent:
                 # merge paths and update
                 self.path = pickup_path + delivery_path
 
-                # remove task
+                # assign task
                 task_list.remove(best_task)
                 # update token
                 token[self.name] = self.path
@@ -201,5 +207,43 @@ class TpAgent:
             # move to another reachable endpoint
             self.find_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list,
                                   sys_timestep=sys_timestep)
-            token[self.name] = self.path
-            self.is_free = True
+
+    def collision_shielding(self, token, sys_timestep):
+        """
+        Avoid collisions by moving an agent if another one is coming into its resting spot
+        :param token: summary of other agents planned paths
+                      dict -> {agent_id : path}
+                      with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
+                      x, y -> cartesian coords, t -> timestep
+        :param sys_timestep: global timestep of the execution
+        """
+        # if the agent is parked in a resting spot
+        if len(self.path) == 1:
+
+            # remove himself from the token, if present
+            # most functions assume that current agent path is not in the token (since it's to be decided)
+            if self.name in token.keys():
+                del token[self.name]
+
+            # if some other agent is coming into agent end path position on the next timestep
+            end_pos = self.path[-1][:-1]
+            if end_pos in {(x, y)
+                           for path in token.values()
+                           for x, y, t in path
+                           if t == sys_timestep+1}:
+
+                # try to move the agent towards a non-conflicting cell around him
+                d1_cell_list = [(end_pos[0]+move[0], end_pos[1]+move[1])    # distance 1
+                                for move in DELTA]
+                # love over d1 cells
+                for cell in d1_cell_list:
+                    try:
+                        self.path, _ = a_star(input_map=self.map, start=end_pos, goal=cell,
+                                              token=token, h_map=None,     # cell is not always an endpoint
+                                              starting_t=sys_timestep)
+                        token[self.name] = self.path
+                        self.is_free = False        # make him busy so he doesn't reassign immediately
+
+                    # no path, try another cell
+                    except ValueError:
+                        pass

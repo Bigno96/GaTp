@@ -117,9 +117,9 @@ def create_task(input_map, mode='avoid_non_task_rep',
     if mode == 'avoid_task_rep' or mode == 'avoid_all':
         if not task_list:
             raise ValueError('Task list is required with the current mode')
-        free_cell_pool = free_cell_pool - set([loc
-                                               for task in task_list
-                                               for loc in task])
+        free_cell_pool = free_cell_pool - {loc
+                                           for task in task_list
+                                           for loc in task}
 
     # if wrong 'mode' input, defaults to 'avoid_non_task_rep'
     # no tasks on non-task endpoint positions

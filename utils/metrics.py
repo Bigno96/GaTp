@@ -12,6 +12,7 @@ def count_collision(agent_schedule):
     :param agent_schedule: {agent_id : schedule}
                             with schedule = deque([(x_0, y_0, 0), (x_1, y_1, t_1), ...])
     :return: int, number of collision detected
+             list of timesteps when collision happens
     """
     coll_count = 0
 
@@ -19,6 +20,7 @@ def count_collision(agent_schedule):
     # time_view = [ (s1_0, s2_0, s3_0), (s1_1, s2_1, s3_1), ... ]
     # list of tuples of tuples
     time_view = list(zip(*agent_schedule.values()))
+    collision_time_list = set()
 
     # loop over each system timestep
     # first, check node conflicts
@@ -28,6 +30,7 @@ def count_collision(agent_schedule):
         coll_list = [val-1 for val in counter.values()]
         if sum(coll_list) > 0:
             coll_count += sum(coll_list)
+            collision_time_list.update([time_slice[-1][-1]])
 
     # second, check swap conflicts
     for ag, path in agent_schedule.items():
@@ -44,5 +47,6 @@ def count_collision(agent_schedule):
                 # since it's the inverse of the order in other_agent_step -> checking swap
                 if ((path[t-1][0], path[t-1][1]), (x, y)) in other_agent_step:
                     coll_count += 1
+                    collision_time_list.update([t])
 
-    return coll_count
+    return coll_count, collision_time_list

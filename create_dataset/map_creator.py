@@ -37,8 +37,8 @@ def create_random_grid_map(map_shape, map_density, connected):
         # reshape as matrix
         grid_map = flat_map.reshape(map_shape)
 
-        # if it doesn't need to be connected
-        if not connected:
+        # if it doesn't need to be connected, or it's all obstacles
+        if not connected or cell_count == obstacle_count:
             return grid_map
 
         # check if it's connected
@@ -58,6 +58,14 @@ def is_connected(input_map, size, obstacle_count):
     :return: True if all free cells are connected, False else
     """
     free_cell_count = size - obstacle_count
+
+    # no free cell -> not connected
+    if not free_cell_count:
+        return False
+
+    # all free cells -> is connected
+    if free_cell_count == size:
+        return True
 
     visited = set()
     # pick starting point
