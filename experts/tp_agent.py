@@ -10,7 +10,7 @@ from collections import deque
 import numpy as np
 
 from experts.a_star import a_star
-from utils.expert_utils import DELTA, free_cell_around
+from utils.expert_utils import DELTA, free_cell_heuristic
 
 
 class TpAgent:
@@ -131,7 +131,7 @@ class TpAgent:
         :param non_task_ep_list: list of endpoints not belonging to a task -> [(ep1), (ep2), ...]
                                  endpoint: tuple (x,y) of int coordinates
         :param sys_timestep: global timestep of the execution
-        :return: selected path: deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
+        :return: assigned task, None if no task assigned
         """
 
         # remove himself from the token
@@ -180,11 +180,15 @@ class TpAgent:
                 token[self.name] = self.path
                 self.is_free = False
 
+                return best_task
+
             # since MAPD can be not well-formed, it can happen to not find a path
             except ValueError:
                 self.path = deque([(self.pos[0], self.pos[1], sys_timestep)])
                 token[self.name] = self.path    # try another timestep
                 self.is_free = True
+
+                return None
 
         # no task in task_list has delivery_pos == self.pos
         elif all([delivery != self.pos for _, delivery in task_list]):
@@ -198,6 +202,8 @@ class TpAgent:
             # move to another reachable endpoint
             self.find_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list,
                                   sys_timestep=sys_timestep)
+
+        return None
 
     def collision_shielding(self, token, sys_timestep, agent_pool):
         """
@@ -229,9 +235,9 @@ class TpAgent:
                 # reverse order, higher number of free cells first
                 # count free cell at sys_timestep+1 when the agent will be in target
                 d1_cell_list = sorted(d1_cell_list, reverse=True,
-                                      key=lambda c: free_cell_around(target=c, input_map=self.map,
-                                                                     token=token,
-                                                                     target_timestep=sys_timestep+1))
+                                      key=lambda c: free_cell_heuristic(target=c, input_map=self.map,
+                                                                        token=token,
+                                                                        target_timestep=sys_timestep+1))
 
                 # loop over d1 cells
                 for cell in d1_cell_list:

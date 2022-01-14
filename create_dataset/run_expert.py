@@ -20,6 +20,7 @@ from gevent import Timeout
 from experts.token_passing import tp
 from utils.expert_utils import transform_agent_schedule
 from utils.file_utils import get_all_files, dump_data
+from utils.metrics import count_collision
 
 
 def run_expert(config, dataset_dir, file_path_list=None, recovery_mode=False):
@@ -118,27 +119,39 @@ class __TpWorker(__ExpertWorker):
 
         try:
             # run token passing
-            agent_schedule = tp(input_map=environment.map,
-                                start_pos_list=environment.start_pos_list,
-                                task_list=environment.task_list,
-                                parking_spot_list=environment.parking_spot_list,
-                                imm_task_split=self.config.imm_task_split,
-                                new_task_per_insertion=self.config.new_task_per_timestep,
-                                step_between_insertion=self.config.step_between_insertion)
+            agent_schedule, \
+                service_time, \
+                timestep_runtime = tp(input_map=environment.map,
+                                      start_pos_list=environment.start_pos_list,
+                                      task_list=environment.task_list,
+                                      parking_spot_list=environment.parking_spot_list,
+                                      imm_task_split=self.config.imm_task_split,
+                                      new_task_per_insertion=self.config.new_task_per_timestep,
+                                      step_between_insertion=self.config.step_between_insertion)
 
-            # convert agent schedule into matrix notation
-            matrix_schedule = transform_agent_schedule(agent_schedule=agent_schedule)
+            collision_count = count_collision(agent_schedule=agent_schedule)
 
-            # organize data to dump
-            file_name = f'{environment.name}_tp_sol'
-            expert_data = {'name': file_name,
-                           'makespan': matrix_schedule.shape[2],
-                           'schedule': matrix_schedule}
-            # dump data into pickle file
-            dump_data(file_path=file_name, data=expert_data)
+            # no collisions
+            if not collision_count:
+                # convert agent schedule into matrix notation
+                matrix_schedule = transform_agent_schedule(agent_schedule=agent_schedule)
 
-            name = basename(normpath(environment.name))
-            print(f'Running Expert on Scenario {name}')
+                # organize data to dump
+                file_name = f'{environment.name}_tp_sol'
+                expert_data = {'name': file_name,
+                               'makespan': matrix_schedule.shape[2],
+                               'service_time': service_time,
+                               'runtime_per_timestep': timestep_runtime,
+                               'schedule': matrix_schedule}
+                # dump data into pickle file
+                dump_data(file_path=file_name, data=expert_data)
+
+                name = basename(normpath(environment.name))
+                print(f'Running Expert on Scenario {name}')
+
+            # collisions found
+            else:
+                self.bad_instances_list.append(environment.name)
 
         # bad MAPD instance that can not be solved is caught here
         except TimeoutError:

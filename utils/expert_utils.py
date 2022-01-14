@@ -137,7 +137,7 @@ def preprocess_heuristics(input_map, task_list, non_task_ep_list):
     return dict(zip(iter(ep_list), iter(h_map_list)))
 
 
-def free_cell_around(target, input_map, token, target_timestep):
+def free_cell_heuristic(target, input_map, token, target_timestep):
     """
     Get how many cells are free around target at specified timestep
     :param target: int tuple (x,y)

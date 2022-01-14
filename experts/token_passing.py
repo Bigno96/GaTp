@@ -18,6 +18,8 @@ The following implementation is based on:
         arXiv preprint arXiv:1705.10868.
 """
 from collections import deque
+import timeit
+import statistics
 
 from experts.tp_agent import TpAgent
 from utils.expert_utils import preprocess_heuristics
@@ -39,6 +41,8 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     :return: agent_schedule
              agent_schedule -> {agent_id : schedule}
                                 with schedule = deque([(x_0, y_0, 0), (x_1, y_1, t_1), ...])
+             service_time, float, average number of timesteps for completing a task
+             timestep_runtime, float, average execution time of a timestep, in s
     """
     # starting positions are used as non-task endpoints
     non_task_ep_list = start_pos_list + parking_spot_list
@@ -72,12 +76,16 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     for name in agent_name_pool:
         agent_schedule[name] = []
 
-    # track time
+    # track time and metrics
     timestep = 0
+    metrics = {'service_time': [],
+               'timestep_runtime': []}
 
     # while tasks are available or at least one agent is still busy
     while active_task_list or activated_task_count < total_task_count \
             or any(not ag.is_free for ag in agent_pool):
+
+        start_time = timeit.default_timer()     # timing for metrics
 
         # list of free agents that will request the token
         free_agent_queue = deque([agent
@@ -88,11 +96,14 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
         while free_agent_queue:
             agent = free_agent_queue.pop()
             # pass control to agent a_i
-            agent.receive_token(token=token,
-                                task_list=active_task_list,
-                                non_task_ep_list=non_task_ep_list,
-                                sys_timestep=timestep)
-            # a_i has updated token, active_task_list and its 'free' status
+            # a_i updates token, active_task_list and its 'free' status
+            sel_task = agent.receive_token(token=token,
+                                           task_list=active_task_list,
+                                           non_task_ep_list=non_task_ep_list,
+                                           sys_timestep=timestep)
+            # if a task was assigned
+            if sel_task:
+                metrics['service_time'].append(len(agent.path))     # add path length to complete the task
 
         # check for eventual collisions and adapt
         for agent in agent_pool:
@@ -114,4 +125,9 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
             activated_task_count += len(new_task_list)
         timestep += 1
 
-    return agent_schedule
+        elapsed_time = timeit.default_timer() - start_time
+        metrics['timestep_runtime'].append(elapsed_time)
+
+    return agent_schedule, \
+           statistics.mean(metrics['service_time']), \
+           statistics.mean(metrics['timestep_runtime'])

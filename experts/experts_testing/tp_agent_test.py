@@ -37,6 +37,8 @@ class TpAgentTest(unittest.TestCase):
             self.assertIsInstance(v, np.ndarray)
             self.assertTrue((v == compute_manhattan_heuristic(grid_map, k)).all())
 
+    # TODO: add check for free_cell_heuristic
+
     def test_move_one_step(self):
         path_len = 10
         shape = (20, 20)
@@ -295,6 +297,7 @@ class TpAgentTest(unittest.TestCase):
             start_pos_ag1, start_pos_ag2 = random.sample(population=free_cell_list, k=2)
             agent1 = TpAgent(name='ag1', input_map=grid_map, start_pos=start_pos_ag1, h_coll=None)  # h coll doesnt matter
             agent2 = TpAgent(name='ag2', input_map=grid_map, start_pos=start_pos_ag2, h_coll=None)  # h coll doesnt matter
+            agent_pool = {agent1, agent2}
 
             starting_t = random.choice(range(starting_t_range))
             # ag1 standing still
@@ -306,8 +309,8 @@ class TpAgentTest(unittest.TestCase):
             token[agent2.name] = agent2.path
 
             # apply to both collision shielding
-            agent1.collision_shielding(token=token, sys_timestep=starting_t)
-            agent2.collision_shielding(token=token, sys_timestep=starting_t)
+            agent1.collision_shielding(token=token, sys_timestep=starting_t, agent_pool=agent_pool)
+            agent2.collision_shielding(token=token, sys_timestep=starting_t, agent_pool=agent_pool)
 
             # ag2 doesn't utilize coll shield
             self.assertEqual(agent2.path, deque([(start_pos_ag2[0], start_pos_ag2[1], starting_t),
@@ -332,6 +335,9 @@ class TpAgentTest(unittest.TestCase):
 
                 self.assertFalse(cell_around)       # no cell around
                 self.assertTrue(agent1.is_free)
+
+        # TODO add checks for triggering other agents collision shielding
+        #      add checks for going to the most free cell
 
 
 def get_start_pos_non_tep_task_list(input_map, agent_num, task_num):
