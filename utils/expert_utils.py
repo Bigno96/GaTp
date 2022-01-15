@@ -30,11 +30,10 @@ def compute_manhattan_heuristic(input_map, goal):
     :return: heuristic, np.ndarray, heuristic.shape = input_map.shape
     """
     # abs(current_cell.x – goal.x) + abs(current_cell.y – goal.y)
-    heuristic = [(np.abs(row - goal[0]) + np.abs(col - goal[1]))
+    heuristic = [(abs(row - goal[0]) + abs(col - goal[1]))
                  for row in range(input_map.shape[0])
                  for col in range(input_map.shape[1])
                  ]
-
     return np.array(heuristic, dtype=int).reshape(input_map.shape)
 
 
@@ -83,25 +82,20 @@ def check_token_conflicts(token, new_pos, curr_pos, new_timestep):
         return True
 
     # when called, all paths in the token are from a different agent
-
-    # no swap constraint
+    # construct list of bad moves
     bad_moves_list = [(x_s, y_s)
                       for path in token.values()
                       for x_s, y_s, t_s in path
-                      if t_s == (new_timestep-1)  # avoid going into their current position next move
-                      # if that agent is going into my current position
-                      and curr_pos in {(x_p, y_p)
-                                         for x_p, y_p, t_p in path
-                                         if t_p == new_timestep}
+                      # no swap constraint
+                      if (t_s == (new_timestep-1)  # avoid going into their current position next move
+                          # if that agent is going into my current position
+                          and curr_pos in [(x_p, y_p)
+                                           for x_p, y_p, t_p in path
+                                           if t_p == new_timestep]
+                          )
+                      # avoid node collision
+                      or t_s == new_timestep
                       ]
-
-    # avoid node collision
-    bad_moves_list.extend([(x_s, y_s)
-                           # [(x1_t, y1_t, t), (x2_t, y2_t, t), ..., ]
-                           for path in token.values()
-                           for x_s, y_s, t_s in path
-                           if t_s == new_timestep
-                           ])
 
     # if attempted move not conflicting, return True
     return new_pos not in bad_moves_list
@@ -154,10 +148,10 @@ def free_cell_heuristic(target, input_map, token, target_timestep):
                          for move in DELTA]
     # get token positions at target_timestep
     # agent who called this must not be in the token
-    token_pos_list = {(x, y)
+    token_pos_list = [(x, y)
                       for path in token.values()
                       for x, y, t in path
-                      if t == target_timestep}
+                      if t == target_timestep]
     # count and return free cells
     return sum([1
                 for pos in target_neighbours

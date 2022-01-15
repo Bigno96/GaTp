@@ -1,4 +1,3 @@
-import random
 import statistics
 import timeit
 import unittest
@@ -8,6 +7,7 @@ import numpy as np
 
 from create_dataset.map_creator import create_random_grid_map, is_connected
 from experts.a_star import a_star
+from testing.test_utils import create_grid_test_map, find_start_goal
 
 
 class MapCreatorTest(unittest.TestCase):
@@ -107,28 +107,6 @@ class MapCreatorTest(unittest.TestCase):
         grid_map = create_random_grid_map(map_shape=shape, map_density=density, connected=False)
 
         self.assertEqual(size, np.count_nonzero(grid_map))
-
-
-def create_grid_test_map(shape, density):
-    size = shape[0] * shape[1]
-    obstacle_count = int(size * density)
-
-    flat_map = np.zeros(size, dtype=np.int8)  # array of zero, dim: h*w
-    # get a random permutation of numbers between 0 (included) and 'cell_count' (excluded)
-    p = np.random.permutation(size)
-    # set to 1 the elements give by the first 'obstacle_count' indexes of the permutation
-    flat_map[p[:obstacle_count]] = 1
-    # reshape as matrix
-    grid_map = flat_map.reshape(shape)
-
-    return grid_map
-
-
-def find_start_goal(input_map):
-    where_res = np.nonzero(input_map == 0)
-    free_cell_list = list(zip(where_res[0], where_res[1]))
-
-    return random.sample(population=free_cell_list, k=2)
 
 
 if __name__ == '__main__':

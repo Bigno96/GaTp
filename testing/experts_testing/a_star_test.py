@@ -11,7 +11,7 @@ from scipy.spatial.distance import cityblock
 from create_dataset.map_creator import create_random_grid_map
 from experts.a_star import a_star
 from utils.expert_utils import compute_manhattan_heuristic, is_valid_expansion, check_token_conflicts
-
+from testing.test_utils import get_grid_map_free_cell_token
 
 # noinspection PySingleQuotedDocstring
 class AStarTest(unittest.TestCase):
@@ -291,30 +291,6 @@ class AStarTest(unittest.TestCase):
                 pass
 
         print(f'\nAverage full A* execution time: {statistics.mean(time_list)}')
-
-
-def get_grid_map_free_cell_token(shape, density, agent_num, token_path_length):
-    # map creation
-    grid_map = create_random_grid_map(map_shape=shape, map_density=density, connected=True)
-
-    # get free cell positions
-    where_res = np.nonzero(grid_map == 0)
-    free_cell_list = list(zip(where_res[0], where_res[1]))
-
-    # cell pool, avoid repetition
-    pool = random.sample(population=free_cell_list, k=int(token_path_length*3)+1)
-
-    # token
-    token = {}
-    for i in range(agent_num-1):
-        token[i] = [(x, y, t)
-                    for t, (x, y) in enumerate(pool[int(i*token_path_length):
-                                                    int((i+1)*token_path_length)])
-                    ]
-    x, y = pool[-1]
-    token['stands_still'] = [(x, y, 0)]  # one agent stands still
-
-    return grid_map, free_cell_list, token
 
 
 if __name__ == '__main__':

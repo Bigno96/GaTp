@@ -114,7 +114,6 @@ class TpAgent:
 
         # no endpoint was reachable -> stay in place
         # this happens due to MAPD instance not being well-formed
-        self.path = deque([(self.pos[0], self.pos[1], sys_timestep)])
         token[self.name] = self.path
         self.is_free = True
 
@@ -184,7 +183,6 @@ class TpAgent:
 
             # since MAPD can be not well-formed, it can happen to not find a path
             except ValueError:
-                self.path = deque([(self.pos[0], self.pos[1], sys_timestep)])
                 token[self.name] = self.path    # try another timestep
                 self.is_free = True
 
@@ -193,7 +191,6 @@ class TpAgent:
         # no task in task_list has delivery_pos == self.pos
         elif all([delivery != self.pos for _, delivery in task_list]):
             # stay in place
-            self.path = deque([(self.pos[0], self.pos[1], sys_timestep)])
             token[self.name] = self.path
             self.is_free = True
 
@@ -258,7 +255,7 @@ class TpAgent:
 
                         # add here path to token for others
                         token[self.name] = self.path
-                        self.is_free = False  # make him busy so he doesn't reassign immediately
+                        self.is_free = True
 
                         for ag in disturbed_agent_names:
                             # get the agent

@@ -1,17 +1,17 @@
 import random
 import unittest
 from collections import deque
-from copy import deepcopy
+
 from pprint import pprint
 
 import numpy as np
 
 from create_dataset.map_creator import create_random_grid_map
-from create_dataset.scenario_creator import create_task, create_starting_pos
-from experts.experts_testing.a_star_test import get_grid_map_free_cell_token
 from experts.tp_agent import TpAgent
-from utils.expert_utils import preprocess_heuristics, compute_manhattan_heuristic
+from utils.expert_utils import preprocess_heuristics, compute_manhattan_heuristic, free_cell_heuristic
 from utils.metrics import count_collision
+from testing.test_utils import get_grid_map_free_cell_token, get_start_pos_non_tep_task_list
+from testing.test_utils import get_tok_posl_startl_epl, build_ag_schedule
 
 
 # noinspection DuplicatedCode
@@ -37,7 +37,39 @@ class TpAgentTest(unittest.TestCase):
             self.assertIsInstance(v, np.ndarray)
             self.assertTrue((v == compute_manhattan_heuristic(grid_map, k)).all())
 
-    # TODO: add check for free_cell_heuristic
+    def test_free_cell_h(self):
+        shape = (20, 20)    # don't shrink under (4, 4)
+
+        '''no token'''
+        # empty map at start
+        empty_map = np.zeros(shape=shape, dtype=int)
+        pos = (int(shape[0]/2), int(shape[1]/2))
+
+        self.assertEqual(4, free_cell_heuristic(target=pos, input_map=empty_map,
+                                                token={}, target_timestep=0))       # don't matter here
+
+        # progressively fill its neighbours
+        new_pos = (pos[0]+1, pos[1])
+        empty_map[new_pos] = 1
+        self.assertEqual(3, free_cell_heuristic(target=pos, input_map=empty_map,
+                                                token={}, target_timestep=0))  # don't matter here
+
+        new_pos = (pos[0]-1, pos[1])
+        empty_map[new_pos] = 1
+        self.assertEqual(2, free_cell_heuristic(target=pos, input_map=empty_map,
+                                                token={}, target_timestep=0))  # don't matter here
+
+        new_pos = (pos[0], pos[1]+1)
+        empty_map[new_pos] = 1
+        self.assertEqual(1, free_cell_heuristic(target=pos, input_map=empty_map,
+                                                token={}, target_timestep=0))  # don't matter here
+
+        new_pos = (pos[0], pos[1]-1)
+        empty_map[new_pos] = 1
+        self.assertEqual(0, free_cell_heuristic(target=pos, input_map=empty_map,
+                                                token={}, target_timestep=0))  # don't matter here
+
+        # TODO: check borders, add token
 
     def test_move_one_step(self):
         path_len = 10
@@ -338,57 +370,6 @@ class TpAgentTest(unittest.TestCase):
 
         # TODO add checks for triggering other agents collision shielding
         #      add checks for going to the most free cell
-
-
-def get_start_pos_non_tep_task_list(input_map, agent_num, task_num):
-    # non task endpoints
-    start_pos_list = create_starting_pos(input_map=input_map, agent_num=agent_num,
-                                         mode='random')
-    parking_spot = []
-    non_task_ep_list = start_pos_list + parking_spot
-
-    # task list
-    task_list = []
-    for _ in range(task_num):
-        task_list.append(create_task(input_map=input_map, mode='avoid_non_task_rep',
-                                     non_task_ep_list=non_task_ep_list))
-
-    return start_pos_list, non_task_ep_list, task_list
-
-
-def get_tok_posl_startl_epl(token):
-    token_pos_list = [(x, y)
-                      for path in token.values()
-                      for x, y, t in path]
-    token_start_pos_list = [path[0][:-1]
-                            for path in token.values()]
-    token_ep_list = [path[-1][:-1]
-                     for path in token.values()]
-
-    return token_pos_list, token_start_pos_list, token_ep_list
-
-
-def build_ag_schedule(token, agent_name):
-    agent_schedule = deepcopy(token)
-    # make all the paths in the token the same length
-    max_len = max([len(path)
-                   for ag, path in token.items()
-                   if ag != agent_name
-                   ])
-    agent_len = len(token[agent_name])
-
-    max_len = min(max_len, agent_len)
-    for ag, path in token.items():
-        diff = max_len - len(path)
-        # path was shorter
-        if diff >= 0:
-            for i in range(diff):
-                agent_schedule[ag].append((path[-1][0], path[-1][1], path[-1][2]+i+1))
-        else:
-            # path might be a deque
-            agent_schedule[ag] = list(path)[:agent_len].copy()
-
-    return agent_schedule
 
 
 if __name__ == '__main__':

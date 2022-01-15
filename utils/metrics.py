@@ -2,8 +2,6 @@
 FIle for computing metrics and evaluating quality of solutions
 """
 
-from collections import Counter
-
 
 def count_collision(agent_schedule):
     """
@@ -20,17 +18,12 @@ def count_collision(agent_schedule):
     # time_view = [ (s1_0, s2_0, s3_0), (s1_1, s2_1, s3_1), ... ]
     # list of tuples of tuples
     time_view = list(zip(*agent_schedule.values()))
-    collision_time_list = set()
 
-    # loop over each system timestep
-    # first, check node conflicts
-    for time_slice in time_view:
-        counter = Counter(time_slice)
-        # take only steps that appear more than once (meaning  collision)
-        coll_list = [val-1 for val in counter.values()]
-        if sum(coll_list) > 0:
-            coll_count += sum(coll_list)
-            collision_time_list.update([time_slice[-1][-1]])
+    # get number of repeated steps at each timestep -> node conflict
+    coll_list = list(map(lambda v: len(v) - len(set(v)),
+                         time_view))
+    coll_count += sum(coll_list)
+    collision_time_list = [idx for idx, val in enumerate(coll_list) if val != 0]
 
     # second, check swap conflicts
     for ag, path in agent_schedule.items():
@@ -47,6 +40,6 @@ def count_collision(agent_schedule):
                 # since it's the inverse of the order in other_agent_step -> checking swap
                 if ((path[t-1][0], path[t-1][1]), (x, y)) in other_agent_step:
                     coll_count += 1
-                    collision_time_list.update([t])
+                    collision_time_list.append(t)
 
     return coll_count, collision_time_list

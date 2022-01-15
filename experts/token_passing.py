@@ -42,7 +42,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
              agent_schedule -> {agent_id : schedule}
                                 with schedule = deque([(x_0, y_0, 0), (x_1, y_1, t_1), ...])
              service_time, float, average number of timesteps for completing a task
-             timestep_runtime, float, average execution time of a timestep, in s
+             timestep_runtime, float, average execution time of a timestep, in ms
     """
     # starting positions are used as non-task endpoints
     non_task_ep_list = start_pos_list + parking_spot_list
@@ -83,7 +83,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
 
     # while tasks are available or at least one agent is still busy
     while active_task_list or activated_task_count < total_task_count \
-            or any(not ag.is_free for ag in agent_pool):
+            or not all(ag.is_free for ag in agent_pool):
 
         start_time = timeit.default_timer()     # timing for metrics
 
@@ -103,7 +103,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
                                            sys_timestep=timestep)
             # if a task was assigned
             if sel_task:
-                metrics['service_time'].append(len(agent.path))     # add path length to complete the task
+                metrics['service_time'].append(len(agent.path)-1)     # add path length to complete the task
 
         # check for eventual collisions and adapt
         for agent in agent_pool:
@@ -130,4 +130,92 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
 
     return agent_schedule, \
            statistics.mean(metrics['service_time']), \
-           statistics.mean(metrics['timestep_runtime'])
+           statistics.mean(metrics['timestep_runtime'])*1000
+
+
+'''import numpy as np
+i_map = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0],
+       [1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+       [0, 1, 0, 1, 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1],
+       [0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 1, 0, 0, 1],
+       [0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0],
+       [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0],
+       [0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1],
+       [0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0],
+       [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1],
+       [0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0],
+       [0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1],
+       [0, 0, 0, 0, 1, 0, 0, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 1, 0, 0],
+       [0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 1, 0],
+       [1, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0],
+       [0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 1, 0, 0],
+       [0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 1]])
+
+Agents_starting_positions = [(14, 4), (7, 17), (0, 9), (2, 4), (8, 14), (14, 0), (1, 4), (7, 10), (1, 19), (13, 12), (13, 3), (9, 13), (17, 8), (17, 10), (17, 17), (2, 12), (14, 3), (17, 16), (2, 5), (13, 11)]
+Task_List = [((18, 9), (4, 2)),
+ ((12, 8), (2, 10)),
+ ((16, 4), (0, 14)),
+ ((0, 15), (0, 2)),
+ ((19, 15), (17, 13)),
+ ((6, 19), (1, 9)),
+ ((14, 7), (10, 10)),
+ ((15, 1), (6, 1)),
+ ((10, 13), (15, 0)),
+ ((17, 15), (16, 17)),
+ ((7, 15), (11, 4)),
+ ((5, 18), (17, 7)),
+ ((6, 17), (14, 16)),
+ ((0, 17), (8, 16)),
+ ((11, 0), (2, 19)),
+ ((17, 12), (12, 0)),
+ ((5, 5), (16, 4)),
+ ((6, 3), (10, 3)),
+ ((4, 5), (7, 2)),
+ ((8, 4), (5, 14)),
+ ((3, 11), (13, 8)),
+ ((5, 14), (11, 13)),
+ ((12, 3), (10, 17)),
+ ((7, 0), (6, 5)),
+ ((15, 2), (15, 5)),
+ ((7, 7), (8, 4)),
+ ((14, 9), (16, 2)),
+ ((6, 14), (0, 7)),
+ ((6, 2), (8, 4)),
+ ((1, 0), (17, 15)),
+ ((2, 19), (13, 1)),
+ ((14, 2), (16, 0)),
+ ((19, 0), (7, 5)),
+ ((15, 11), (8, 0)),
+ ((13, 13), (7, 15)),
+ ((6, 12), (12, 7)),
+ ((7, 15), (16, 6)),
+ ((11, 7), (1, 9)),
+ ((6, 5), (9, 17)),
+ ((19, 15), (10, 0)),
+ ((10, 1), (19, 12)),
+ ((9, 4), (15, 18)),
+ ((16, 15), (2, 17)),
+ ((19, 18), (17, 1)),
+ ((19, 16), (18, 16)),
+ ((12, 17), (9, 12)),
+ ((5, 1), (15, 6)),
+ ((15, 1), (6, 13)),
+ ((3, 14), (13, 0)),
+ ((7, 16), (12, 1))]
+
+ag_schedule, _, _ = tp(input_map=i_map, start_pos_list=Agents_starting_positions,
+                       task_list=Task_List, parking_spot_list=[],
+                       imm_task_split=0)
+
+for a in ag_schedule.items():
+    print(a)
+print('\n\n')
+
+from utils.metrics import count_collision
+coll_count, coll_list = count_collision(agent_schedule=ag_schedule)
+
+print(coll_count)'''

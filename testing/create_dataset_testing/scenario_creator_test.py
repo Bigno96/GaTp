@@ -5,6 +5,7 @@ import numpy as np
 
 from create_dataset.map_creator import create_random_grid_map
 from create_dataset.scenario_creator import create_task, create_starting_pos
+from testing.test_utils import build_free_task_list
 
 
 class ScenarioCreatorTest(unittest.TestCase):
@@ -177,13 +178,6 @@ class ScenarioCreatorTest(unittest.TestCase):
             for loc in task:
                 self.assertEqual(0, grid_map[loc])
                 self.assertNotIn(loc, non_task_ep_list)
-
-
-def build_free_task_list(input_map, length):
-    task_list = [create_task(input_map=input_map, mode='free')
-                 for _ in range(length)]
-
-    return task_list
 
 
 if __name__ == '__main__':

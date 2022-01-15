@@ -4,22 +4,24 @@ import unittest
 from pprint import pprint
 
 from create_dataset.map_creator import create_random_grid_map
-from experts.experts_testing.tp_agent_test import get_start_pos_non_tep_task_list
 from experts.token_passing import tp
+from testing.test_utils import get_start_pos_non_tep_task_list
 from utils.metrics import count_collision
 
 
 class TpTest(unittest.TestCase):
     def test_tp(self):
         repetition = 1
+
         time_list = []
         collision_count_list = []
         makespan_list = []
         service_time_list = []
         timestep_runtime_list = []
-        shape = (20, 40)
+
+        shape = (20, 20)
         density = 0.1
-        agent_num = 50
+        agent_num = 20
         task_num = 500
         imm_task_split = 0
         new_task_per_timestep = 1
@@ -40,9 +42,7 @@ class TpTest(unittest.TestCase):
                                                                                           task_num=task_num)
             parking_spot_list = list(set(non_task_ep_list)-set(start_pos_list))
 
-            # relaunch tp to get agent schedule and timer
             start_time = timeit.default_timer()
-
             agent_schedule, service_time, timestep_runtime = tp(input_map=grid_map,
                                                                 start_pos_list=start_pos_list,
                                                                 task_list=task_list,
@@ -81,12 +81,12 @@ class TpTest(unittest.TestCase):
             print(schedule)
         print(f'Average makespan: {statistics.mean(makespan_list)}')
         print(f'Average service time: {statistics.mean(service_time_list)}')
-        print(f'Average timestep runtime: {statistics.mean(timestep_runtime_list)} s')
+        print(f'Average timestep runtime: {statistics.mean(timestep_runtime_list)} ms')
         print(f'Average TP execution time: {statistics.mean(time_list)} s')
         print(f'Number of instances with collisions: {sum(i > 0 for i in collision_count_list)} out of {repetition}')
 
         # coll_count, collision_time_list = count_collision(agent_schedule=agent_schedule)
-        # pprint(good_map)
+        # pprint(grid_map)
         # print(f'Collision detected: {coll_count}')
         # print(f'Collision times: {collision_time_list}')
 
