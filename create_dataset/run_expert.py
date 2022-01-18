@@ -129,7 +129,7 @@ class __TpWorker(__ExpertWorker):
                                       new_task_per_insertion=self.config.new_task_per_timestep,
                                       step_between_insertion=self.config.step_between_insertion)
 
-            collision_count = count_collision(agent_schedule=agent_schedule)
+            collision_count, _ = count_collision(agent_schedule=agent_schedule)
 
             # no collisions
             if not collision_count:
