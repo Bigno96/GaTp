@@ -46,8 +46,8 @@ class MetricsTest(unittest.TestCase):
 
         coll_count, coll_list = count_collision(agent_schedule=ag_sched)
 
-        self.assertEqual(coll_count, 2)
-        self.assertIn(1, coll_list)
+        self.assertEqual(coll_count, 1)
+        self.assertIn(0, coll_list)
 
         '''4) multiple swap collision'''
         # define a colliding agent schedule at time 0-1, and 2-3
@@ -56,9 +56,9 @@ class MetricsTest(unittest.TestCase):
 
         coll_count, coll_list = count_collision(agent_schedule=ag_sched)
 
-        self.assertEqual(coll_count, 4)
-        self.assertIn(1, coll_list)
-        self.assertIn(3, coll_list)
+        self.assertEqual(coll_count, 2)
+        self.assertIn(0, coll_list)
+        self.assertIn(2, coll_list)
 
         '''5) multiple combined collision'''
         # node collision at time 0 and 3, swap collision at time 1-2
@@ -69,9 +69,9 @@ class MetricsTest(unittest.TestCase):
 
         coll_count, coll_list = count_collision(agent_schedule=ag_sched)
 
-        self.assertEqual(coll_count, 4)
+        self.assertEqual(coll_count, 3)
         self.assertIn(0, coll_list)
-        self.assertIn(2, coll_list)
+        self.assertIn(1, coll_list)
         self.assertIn(3, coll_list)
 
         '''6) schedule length 1 with no collision'''

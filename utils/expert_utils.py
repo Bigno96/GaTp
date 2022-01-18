@@ -83,7 +83,7 @@ def check_token_conflicts(token, new_pos, curr_pos, new_timestep):
 
     # when called, all paths in the token are from a different agent
     # construct list of bad moves
-    bad_moves_list = [(x_s, y_s)
+    bad_moves_list = {(x_s, y_s)
                       for path in token.values()
                       for x_s, y_s, t_s in path
                       # no swap constraint
@@ -95,7 +95,7 @@ def check_token_conflicts(token, new_pos, curr_pos, new_timestep):
                           )
                       # avoid node collision
                       or t_s == new_timestep
-                      ]
+                      }
 
     # if attempted move not conflicting, return True
     return new_pos not in bad_moves_list
