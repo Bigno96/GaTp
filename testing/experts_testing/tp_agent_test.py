@@ -38,7 +38,7 @@ class TpAgentTest(unittest.TestCase):
             self.assertTrue((v == compute_manhattan_heuristic(grid_map, k)).all())
 
     def test_free_cell_h(self):
-        shape = (20, 20)    # don't shrink under (4, 4)
+        shape = (20, 20)    # don't shrink under (5, 5)
 
         '''no token'''
         # empty map at start
@@ -69,7 +69,30 @@ class TpAgentTest(unittest.TestCase):
         self.assertEqual(0, free_cell_heuristic(target=pos, input_map=empty_map,
                                                 token={}, target_timestep=0))  # don't matter here
 
-        # TODO: check borders, add token
+        '''borders'''
+        pos = (0, 0)
+        self.assertEqual(2, free_cell_heuristic(target=pos, input_map=empty_map,
+                                                token={}, target_timestep=0))  # don't matter here
+
+        pos = (0, shape[1]-1)
+        self.assertEqual(2, free_cell_heuristic(target=pos, input_map=empty_map,
+                                                token={}, target_timestep=0))  # don't matter here
+
+        pos = (shape[1]-1, 0)
+        self.assertEqual(2, free_cell_heuristic(target=pos, input_map=empty_map,
+                                                token={}, target_timestep=0))  # don't matter here
+
+        pos = (shape[1]-1, shape[1]-1)
+        self.assertEqual(2, free_cell_heuristic(target=pos, input_map=empty_map,
+                                                token={}, target_timestep=0))  # don't matter here
+
+        '''token'''
+        token = {0: [(3, 5, 0), (3, 4, 1)]}
+        pos = (3, 3)
+        self.assertEqual(3, free_cell_heuristic(target=pos, input_map=empty_map,
+                                                token=token, target_timestep=1))
+        self.assertEqual(4, free_cell_heuristic(target=pos, input_map=empty_map,
+                                                token=token, target_timestep=0))
 
     def test_move_one_step(self):
         path_len = 10
@@ -350,13 +373,13 @@ class TpAgentTest(unittest.TestCase):
 
             # ag1 utilizes coll shield
             if len(agent1.path) > 1:
-                self.assertFalse(agent1.is_free)
-                self.assertNotEqual(agent1.path[1], agent2.path[1])
+                self.assertTrue(agent1.is_free)
+                self.assertNotEqual(agent1.path[-1], agent2.path[-1])
             else:
                 # verify no available cell around him
                 d_list = [(-1, 0), (1, 0), (0, -1), (0, 1)]
                 c = start_pos_ag1
-                cell_around = [(c[0]+d[0], c[1]+d[1])
+                cell_around = [(c[0] + d[0], c[1] + d[1])
                                for d in d_list]
                 cell_around = [cell
                                for cell in cell_around
@@ -367,9 +390,6 @@ class TpAgentTest(unittest.TestCase):
 
                 self.assertFalse(cell_around)       # no cell around
                 self.assertTrue(agent1.is_free)
-
-        # TODO add checks for triggering other agents collision shielding
-        #      add checks for going to the most free cell
 
 
 if __name__ == '__main__':

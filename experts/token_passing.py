@@ -133,7 +133,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
            statistics.mean(metrics['timestep_runtime'])*1000
 
 
-'''import numpy as np
+import numpy as np
 i_map = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0],
        [0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0],
        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 0],
@@ -218,4 +218,4 @@ print('\n\n')
 from utils.metrics import count_collision
 coll_count, coll_list = count_collision(agent_schedule=ag_schedule)
 
-print(coll_count)'''
+print(coll_count)
