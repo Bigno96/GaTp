@@ -10,15 +10,16 @@ A matrix-form notation is used to represent produced agent schedule:
 """
 
 import pickle
+import statistics
 from abc import abstractmethod
 from multiprocessing import Pool, Manager
 from os.path import normpath, basename
 
 from easydict import EasyDict
-from gevent import Timeout
+from threading import Thread
 
 from experts.token_passing import tp
-from utils.expert_utils import transform_agent_schedule
+from utils.expert_utils import transform_agent_schedule, StopToken
 from utils.file_utils import get_all_files, dump_data
 from utils.metrics import count_collision
 
@@ -113,50 +114,58 @@ class __TpWorker(__ExpertWorker):
     """
 
     def __call__(self, environment):
-        # set up a timer
-        timer = Timeout(seconds=self.config.timeout, exception=TimeoutError)
-        timer.start()
+        # setup return structures
+        agent_schedule = {}
+        metrics = {}
+        execution = StopToken()
 
-        try:
-            # run token passing
-            agent_schedule, \
-                service_time, \
-                timestep_runtime = tp(input_map=environment.map,
-                                      start_pos_list=environment.start_pos_list,
-                                      task_list=environment.task_list,
-                                      parking_spot_list=environment.parking_spot_list,
-                                      imm_task_split=self.config.imm_task_split,
-                                      new_task_per_insertion=self.config.new_task_per_timestep,
-                                      step_between_insertion=self.config.step_between_insertion)
+        # run tp
+        kwargs = {'input_map': environment.map,
+                  'start_pos_list': environment.start_pos_list,
+                  'task_list': environment.task_list,
+                  'parking_spot_list': environment.parking_spot_list,
+                  'imm_task_split': self.config.imm_task_split,
+                  'new_task_per_insertion': self.config.new_task_per_timestep,
+                  'step_between_insertion': self.config.step_between_insertion,
+                  'agent_schedule': agent_schedule,
+                  'metrics': metrics,
+                  'execution': execution}
 
+        # run token passing
+        worker = Thread(target=tp, kwargs=kwargs)
+        worker.start()
+
+        # wait for timeout
+        worker.join(self.config.timeout)
+
+        # bad MAPD, doesn't terminate
+        if worker.is_alive():
+            execution.cancel()
+            self.bad_instances_list.append(f'{environment.name}')
+            worker.join()
+
+            name = basename(normpath(environment.name))
+            print(f'Timed out Expert on Scenario {name}')
+
+        else:
+            # collect metrics
             collision_count, _ = count_collision(agent_schedule=agent_schedule)
+            service_time = statistics.mean(metrics['service_time'])
+            timestep_runtime = statistics.mean(metrics['timestep_runtime'])
 
-            # no collisions
-            if not collision_count:
-                # convert agent schedule into matrix notation
-                matrix_schedule = transform_agent_schedule(agent_schedule=agent_schedule)
+            # convert agent schedule into matrix notation
+            matrix_schedule = transform_agent_schedule(agent_schedule=agent_schedule)
 
-                # organize data to dump
-                file_name = f'{environment.name}_tp_sol'
-                expert_data = {'name': file_name,
-                               'makespan': matrix_schedule.shape[2],
-                               'service_time': service_time,
-                               'runtime_per_timestep': timestep_runtime,
-                               'schedule': matrix_schedule}
-                # dump data into pickle file
-                dump_data(file_path=file_name, data=expert_data)
+            # organize data to dump
+            file_name = f'{environment.name}_tp_sol'
+            expert_data = {'name': file_name,
+                           'makespan': matrix_schedule.shape[2],
+                           'service_time': service_time,
+                           'runtime_per_timestep': timestep_runtime,
+                           'collisions': collision_count,
+                           'schedule': matrix_schedule}
+            # dump data into pickle file
+            dump_data(file_path=file_name, data=expert_data)
 
-                name = basename(normpath(environment.name))
-                print(f'Running Expert on Scenario {name}')
-
-            # collisions found
-            else:
-                self.bad_instances_list.append(environment.name)
-
-        # bad MAPD instance that can not be solved is caught here
-        except TimeoutError:
-            self.bad_instances_list.append(environment.name)
-
-        # close timer
-        finally:
-            timer.close()
+            name = basename(normpath(environment.name))
+            print(f'Run Expert on Scenario {name}')

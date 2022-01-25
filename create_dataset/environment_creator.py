@@ -17,8 +17,7 @@ from multiprocessing import Pool
 
 from create_dataset.map_creator import *
 from create_dataset.scenario_creator import create_scenario
-from utils.file_utils import create_dirs
-from utils.file_utils import create_folder_switch, get_folder_from_switch
+from utils.file_utils import create_dirs, FolderSwitch
 from utils.file_utils import save_image, dump_data
 
 
@@ -75,10 +74,10 @@ def __random_grid_environment(config, dataset_dir, file_path_list=None, recovery
     """
     if not recovery_mode:
         # dict to simulate switch case for test/train/valid folders
-        folder_switcher = create_folder_switch(dataset_dir=dataset_dir, config=config)
+        folder_switch = FolderSwitch(dataset_dir=dataset_dir, config=config)
 
         # setup multiprocessing
-        worker = __RandomGridWorker(config=config, folder_switcher=folder_switcher)
+        worker = __RandomGridWorker(config=config, folder_switch=folder_switch)
 
         # run pool of processes over map_id sequence
         with Pool() as pool:
@@ -107,13 +106,13 @@ class __RandomGridWorker:
     Worker for __random_grid_environment, executed on a thread
     """
 
-    def __init__(self, config, folder_switcher):
+    def __init__(self, config, folder_switch):
         """
         :param config: Namespace of dataset configurations
-        :param folder_switcher: dict, containing folder to save into
+        :param folder_switch: instance of FolderSwitch, simulate switch for saving into folders
         """
         self.config = config
-        self.folder_switcher = folder_switcher
+        self.folder_switch = folder_switch
 
     def __call__(self, map_id):
         """
@@ -130,7 +129,7 @@ class __RandomGridWorker:
                                                                            input_map=random_grid_map)
 
             # get directory where to save scenario and map data
-            save_dir = get_folder_from_switch(map_id=map_id, switcher_dict=self.folder_switcher)
+            save_dir = self.folder_switch.get_folder(map_id=map_id, sc_id=sc_id)
             file_path = os.path.join(save_dir, f'map{map_id:03d}_case{sc_id:02d}')
 
             # save map image and dump env file

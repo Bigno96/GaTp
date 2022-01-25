@@ -200,3 +200,14 @@ def transform_agent_schedule(agent_schedule):
             matrix[(move_idx, agent, t)] = 1
 
     return matrix
+
+
+class StopToken:
+    """
+    Used to stop execution of experts instance that hangs or takes too long
+    """
+    def __init__(self):
+        self.is_cancelled = False
+
+    def cancel(self):
+        self.is_cancelled = True

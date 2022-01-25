@@ -42,48 +42,6 @@ def save_image(file_path, input_map, start_pos_list):
              black='black', white='white', mid='red').resize((256, 256), resample=Image.BOX).save(img_path)
 
 
-def create_folder_switch(dataset_dir, config):
-    """
-    Create train, valid and test folders
-    Return a dictionary to emulate a switch case with ranges to use during dataset splitting
-    :param dataset_dir: directory of the dataset where to set up train, valid and test folders
-    :param config: Namespace of dataset creation configurations
-    :return: dict, representing the switch-case
-    """
-    train_dir = os.path.join(dataset_dir, 'train')
-    valid_dir = os.path.join(dataset_dir, 'valid')
-    test_dir = os.path.join(dataset_dir, 'test')
-
-    create_dirs([train_dir, valid_dir, test_dir])  # if not there, create
-
-    # set how to divide scenarios between train, validation and test
-    train_split = int(config.train_split * config.map_number)
-    valid_split = int(config.valid_split * config.map_number)
-
-    # dictionary to emulate a switch case with ranges
-    folder_switcher = {
-        range(0, train_split): train_dir,
-        range(train_split, train_split + valid_split): valid_dir,
-        range(train_split + valid_split, config.map_number): test_dir
-    }
-
-    return folder_switcher
-
-
-def get_folder_from_switch(map_id, switcher_dict):
-    """
-    Simulate a switch-case to decide which folder to use when splitting into train, valid and test
-    :param map_id: id of the map on which scenarios are being created
-    :param switcher_dict: dict -> {range : folder}
-    :return: selected folder
-    """
-    for key, value in switcher_dict.items():
-        if map_id in key:
-            return value
-
-    raise ValueError('Map ID out of switcher range')
-
-
 def dump_data(file_path, data):
     """
     Write date with pickle into specified file
@@ -107,3 +65,48 @@ def get_all_files(directory):
     return [os.path.join(dir_path, filename)
             for (dir_path, subdirs, files) in os.walk(directory)  # os.walk returns root, sub-dir list and file list
             for filename in files]  # get all filenames
+
+
+class FolderSwitch:
+    """
+    Create train, valid and test folders
+    Simulate a switch case with ranges to use during dataset splitting
+    """
+
+    def __init__(self, dataset_dir, config):
+        """
+        :param dataset_dir: directory of the dataset where to set up train, valid and test folders
+        :param config: Namespace of dataset creation configurations
+        """
+        train_dir = os.path.join(dataset_dir, 'train')
+        valid_dir = os.path.join(dataset_dir, 'valid')
+        test_dir = os.path.join(dataset_dir, 'test')
+
+        create_dirs([train_dir, valid_dir, test_dir])  # if not there, create
+
+        # set how to divide scenarios between train, validation and test
+        self.scenario_number = config.scenario_number   # save it for 'get_folder' method
+        tot_scenario_number = config.map_number * self.scenario_number
+        train_split = int(config.train_split * tot_scenario_number)
+        valid_split = int(config.valid_split * tot_scenario_number)
+
+        # dictionary to emulate a switch case with ranges
+        self.folder_switcher = {
+            range(0, train_split): train_dir,
+            range(train_split, train_split + valid_split): valid_dir,
+            range(train_split + valid_split, tot_scenario_number): test_dir
+        }
+
+    def get_folder(self, map_id, sc_id):
+        """
+        Simulate a switch-case to decide which folder to use when splitting into train, valid and test
+        :param map_id: id of the map on which scenarios are being created
+        :param sc_id: id of the scenario to create
+        :return: selected folder
+        """
+        key_val = int(map_id * self.scenario_number) + sc_id
+        for key_range, value in self.folder_switcher.items():
+            if key_val in key_range:
+                return value
+
+        raise ValueError('Map ID out of switcher range')

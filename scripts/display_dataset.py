@@ -1,42 +1,50 @@
-import os
-import pickle
+from data_loading.dataset import GaTpDataset
+from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
+import torch
 from pprint import pprint
 
-from PIL import Image
+
+def display(dataset_path):
+
+    train_dataset = GaTpDataset(data_dir=dataset_path, mode='train', expert_type='tp')
+    valid_dataset = GaTpDataset(data_dir=dataset_path, mode='valid', expert_type='tp')
+    test_dataset = GaTpDataset(data_dir=dataset_path, mode='test', expert_type='tp')
+
+    train_dataloader = DataLoader(dataset=train_dataset, batch_size=1, shuffle=False)
+    valid_dataloader = DataLoader(dataset=valid_dataset, batch_size=1, shuffle=False)
+    test_dataloader = DataLoader(dataset=test_dataset, batch_size=1, shuffle=False)
+
+    print('Showing train dataset')
+    iterate_data(dataloader=train_dataloader)
+
+    print('Showing validation dataset')
+    iterate_data(dataloader=valid_dataloader)
+
+    print('Showing test dataset')
+    iterate_data(dataloader=test_dataloader)
 
 
-def display():
-    # change this to change which dataset to read
-    dataset_path = "D:\\Uni\\TESI\\GaTp\\datasets\\random_grid\\20x20map\\0.2density\\10agents_50tasks\\random_start" \
-                   "+avoid_non_task_rep_task"
+def iterate_data(dataloader):
 
-    for dir_name in os.listdir(dataset_path):
-        print(f'Showing {dir_name} folder')
-        dir_path = os.path.join(dataset_path, dir_name)
+    it = iter(dataloader)
+    end = False
 
-        file_set = {f for (r, d_l, f_l) in os.walk(dir_path)
-                     for f in f_l}
-        img_set = {f for f in file_set
-                    if f.endswith('.png')}
-        exp_set = {f for f in file_set
-                   if 'sol' in f}
-        env_set = file_set - img_set - exp_set
+    while not end:
+        image, environment, expert_sol = next(it)
 
-        for (img, env, exp) in zip(img_set, env_set, exp_set):
-            img_path = os.path.join(dir_path, img)
-            env_path = os.path.join(dir_path, env)
-            exp_path = os.path.join(dir_path, exp)
+        plt.imshow(image.squeeze())
+        plt.show()
+        pprint(environment)
+        pprint(expert_sol)
 
-            im = Image.open(img_path)
-            im.show(title=img)
-            with open(env_path, 'rb') as _d1:
-                pprint(pickle.load(_d1))
-            with open(exp_path, 'rb') as _d2:
-                pprint(pickle.load(_d2))
-
-            input("\nPress Enter to continue...\n")
+        input('\nPress Enter to continue\n')
 
 
 if __name__ == '__main__':
     __spec__ = None
-    display()
+    torch.set_printoptions(profile='full')
+
+    data_path = 'D:\\Uni\\TESI\\GaTp\\datasets\\random_grid\\20x20map\\0.1density\\' \
+                   '20agents_500tasks_0split_+1_every1\\random_start+avoid_non_task_rep_task'
+    display(dataset_path=data_path)

@@ -58,6 +58,7 @@ def create_dataset():
         bad_instances_count = 0
         # until no bad MAPD instances are left, repeat their generation
         while bad_instances_list:
+            print(f'\n\nRegenerating bad MAPD instances')
             bad_instances_count += len(bad_instances_list)
             create_environment(config=config, dataset_dir=dataset_dir,
                                recovery_mode=True, file_path_list=bad_instances_list)

@@ -2,16 +2,19 @@ import statistics
 import timeit
 import unittest
 from pprint import pprint
+from threading import Thread
 
 from create_dataset.map_creator import create_random_grid_map
 from experts.token_passing import tp
+from utils.expert_utils import StopToken
 from testing.test_utils import get_start_pos_non_tep_task_list
 from utils.metrics import count_collision
 
 
 class TpTest(unittest.TestCase):
     def test_tp(self):
-        repetition = 1
+        repetition = 100
+        timeout = 5
 
         time_list = []
         collision_count_list = []
@@ -42,36 +45,59 @@ class TpTest(unittest.TestCase):
                                                                                           task_num=task_num)
             parking_spot_list = list(set(non_task_ep_list)-set(start_pos_list))
 
+            # return dictionaries
+            agent_schedule = {}
+            metrics = {}
+            execution = StopToken()
+
+            # run tp
+            kwargs = {'input_map': grid_map,
+                      'start_pos_list': start_pos_list,
+                      'task_list': task_list,
+                      'parking_spot_list': parking_spot_list,
+                      'imm_task_split': imm_task_split,
+                      'new_task_per_insertion': new_task_per_timestep,
+                      'step_between_insertion': step_between_insertion,
+                      'agent_schedule': agent_schedule,
+                      'metrics': metrics,
+                      'execution': execution}
+
+            # set up the Thread
+            worker = Thread(target=tp, kwargs=kwargs)
+
+            # run TP
             start_time = timeit.default_timer()
-            agent_schedule, service_time, timestep_runtime = tp(input_map=grid_map,
-                                                                start_pos_list=start_pos_list,
-                                                                task_list=task_list,
-                                                                parking_spot_list=parking_spot_list,
-                                                                imm_task_split=imm_task_split,
-                                                                new_task_per_insertion=new_task_per_timestep,
-                                                                step_between_insertion=step_between_insertion)
+            worker.start()
 
-            # write time
-            time_diff = timeit.default_timer() - start_time
-            time_list.append(time_diff)
+            # wait for timeout
+            worker.join(timeout)
+            if worker.is_alive():
+                execution.cancel()
+                print(f'Terminated scenario {i+1}/{repetition}')
+                worker.join()
 
-            # collect conflicts
-            coll_count, _ = count_collision(agent_schedule=agent_schedule)
-            collision_count_list.append(coll_count)
+            else:
+                # write time
+                time_diff = timeit.default_timer() - start_time
+                time_list.append(time_diff)
 
-            # collect makespan
-            makespan_list.append(len(agent_schedule[0]))
+                # collect conflicts
+                coll_count, _ = count_collision(agent_schedule=agent_schedule)
+                collision_count_list.append(coll_count)
 
-            # collect timings
-            service_time_list.append(service_time)
-            timestep_runtime_list.append(timestep_runtime)
+                # collect makespan
+                makespan_list.append(len(agent_schedule[0]))
 
-            self.assertIsInstance(agent_schedule, dict)
-            length = len(agent_schedule[0])
-            for schedule in agent_schedule.values():
-                self.assertEqual(length, len(schedule))
+                # collect timings
+                service_time_list.append(statistics.mean(metrics['service_time']))
+                timestep_runtime_list.append(statistics.mean(metrics['timestep_runtime']))
 
-            print(f'Solved scenario {i+1}/{repetition}')
+                self.assertIsInstance(agent_schedule, dict)
+                length = len(agent_schedule[0])
+                for schedule in agent_schedule.values():
+                    self.assertEqual(length, len(schedule))
+
+                print(f'Solved scenario {i+1}/{repetition}')
 
         print(f'Agents starting positions: {start_pos_list}')
         print('Task List:')
@@ -84,11 +110,6 @@ class TpTest(unittest.TestCase):
         print(f'Average timestep runtime: {statistics.mean(timestep_runtime_list)} ms')
         print(f'Average TP execution time: {statistics.mean(time_list)} s')
         print(f'Number of instances with collisions: {sum(i > 0 for i in collision_count_list)} out of {repetition}')
-
-        # coll_count, collision_time_list = count_collision(agent_schedule=agent_schedule)
-        # pprint(grid_map)
-        # print(f'Collision detected: {coll_count}')
-        # print(f'Collision times: {collision_time_list}')
 
 
 if __name__ == '__main__':
