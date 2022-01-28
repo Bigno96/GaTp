@@ -7,12 +7,6 @@ from operator import sub
 import numpy as np
 
 # delta dictionary
-DELTA = [(-1, 0),  # go up
-         (0, -1),  # go left
-         (1, 0),  # go down
-         (0, 1)]  # go right
-
-# move dictionary
 MOVE_LIST = [(-1, 0),  # go up
              (0, -1),  # go left
              (1, 0),  # go down
@@ -37,49 +31,52 @@ def compute_manhattan_heuristic(input_map, goal):
     return np.array(heuristic, dtype=int).reshape(input_map.shape)
 
 
-def is_valid_expansion(child_pos, input_map, closed_list):
+def is_valid_expansion(next_node, input_map, closed_list):
     """
     Check if is possible for A* to expand the new cell
     1) Check if the cell is inside map boundaries
     2) Check if the cell has already been expanded
     3) Check if the cell has an obstacle inside
-    :param child_pos: (x, y), int tuple of new position
+    :param next_node: (x, y, t), int tuple of new node
     :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
-    :param closed_list: implemented as matrix with shape = input_map.shape, np.ndarray
+    :param closed_list: implemented as a set of nodes
     :return: True if all 3 checks are passed, False else
     """
-    x, y = child_pos
+    x, y = next_node[:-1]
 
     # check 1), x < shape_x & x >= 0 & y >= 0 & y < shape_y
     if x < 0 or x >= input_map.shape[0] or y < 0 or y >= input_map.shape[1]:
         return False
 
     # check 2), the current node has not been expanded
-    if closed_list[child_pos] == 1:
+    if next_node in closed_list:
         return False
 
     # check 3), the current cell is not an obstacle (not 1)
-    if input_map[child_pos] == 1:
+    if input_map[(x, y)] == 1:
         return False
 
     return True
 
 
-def check_token_conflicts(token, new_pos, curr_pos, new_timestep):
+def check_token_conflicts(token, next_node, curr_node):
     """
     Check that at new_pos there are no conflicts in token
     :param token: summary of other agents planned paths
                   dict -> {agent_id : path}
                   with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
                   x, y -> cartesian coords, t -> timestep
-    :param curr_pos: (x, y), int tuple of curr position
-    :param new_pos: (x, y), int tuple of new position
-    :param new_timestep: int, global timestep of new expansion, always > 0
+    :param curr_node: (x, y, t), int tuple of curr node
+    :param next_node: (x, y, t), int tuple of new node
     :return: True if no conflicts are found, False else
     """
     # if something is not specified, defaults to True
-    if not token or not new_pos or not curr_pos or new_timestep is None:
+    if not token or not next_node or not curr_node:
         return True
+
+    new_timestep = next_node[-1]
+    curr_pos = curr_node[:-1]
+    next_pos = next_node[:-1]
 
     # when called, all paths in the token are from a different agent
     # construct list of bad moves
@@ -98,7 +95,7 @@ def check_token_conflicts(token, new_pos, curr_pos, new_timestep):
                       }
 
     # if attempted move not conflicting, return True
-    return new_pos not in bad_moves_list
+    return next_pos not in bad_moves_list
 
 
 def preprocess_heuristics(input_map, task_list, non_task_ep_list):
@@ -145,7 +142,7 @@ def free_cell_heuristic(target, input_map, token, target_timestep):
     """
     # get agent adjacent cells
     target_neighbours = [(target[0]+move[0], target[1]+move[1])
-                         for move in DELTA]
+                         for move in MOVE_LIST[:-1]]    # exclude standing still to find neighbours
     # get token positions at target_timestep
     # agent who called this must not be in the token
     token_pos_list = [(x, y)

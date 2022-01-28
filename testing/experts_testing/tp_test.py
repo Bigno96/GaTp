@@ -13,8 +13,8 @@ from utils.metrics import count_collision
 
 class TpTest(unittest.TestCase):
     def test_tp(self):
-        repetition = 100
-        timeout = 5
+        repetition = 1
+        timeout = 60
 
         time_list = []
         collision_count_list = []
@@ -25,7 +25,7 @@ class TpTest(unittest.TestCase):
         shape = (20, 20)
         density = 0.1
         agent_num = 20
-        task_num = 500
+        task_num = 50
         imm_task_split = 0
         new_task_per_timestep = 1
         step_between_insertion = 1
@@ -74,7 +74,6 @@ class TpTest(unittest.TestCase):
             if worker.is_alive():
                 execution.cancel()
                 print(f'Terminated scenario {i+1}/{repetition}')
-                worker.join()
 
             else:
                 # write time

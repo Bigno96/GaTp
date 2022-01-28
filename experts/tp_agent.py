@@ -10,7 +10,7 @@ from collections import deque
 import numpy as np
 
 from experts.a_star import a_star
-from utils.expert_utils import DELTA, free_cell_heuristic
+from utils.expert_utils import MOVE_LIST, free_cell_heuristic
 
 
 class TpAgent:
@@ -227,8 +227,8 @@ class TpAgent:
                            if t == sys_timestep+1}:
 
                 # try to move the agent towards a non-conflicting cell around him
-                d1_cell_list = [(end_pos[0]+move[0], end_pos[1]+move[1])    # distance 1
-                                for move in DELTA]
+                d1_cell_list = [(end_pos[0]+move[0], end_pos[1]+move[1])  # distance 1
+                                for move in MOVE_LIST]
                 # reverse order, higher number of free cells first
                 # count free cell at sys_timestep+1 when the agent will be in target
                 d1_cell_list = sorted(d1_cell_list, reverse=True,

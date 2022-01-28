@@ -13,6 +13,7 @@ from experts.a_star import a_star
 from utils.expert_utils import compute_manhattan_heuristic, is_valid_expansion, check_token_conflicts
 from testing.test_utils import get_grid_map_free_cell_token
 
+
 # noinspection PySingleQuotedDocstring
 class AStarTest(unittest.TestCase):
 
@@ -45,103 +46,92 @@ class AStarTest(unittest.TestCase):
 
         '''verify check 1, the cell is inside map boundaries'''
         # child_pos negative
-        self.assertFalse(is_valid_expansion(child_pos=(-1, -1), input_map=grid_map, closed_list=None))
-        self.assertFalse(is_valid_expansion(child_pos=(0, -1), input_map=grid_map, closed_list=None))
-        self.assertFalse(is_valid_expansion(child_pos=(-1, 0), input_map=grid_map, closed_list=None))
+        self.assertFalse(is_valid_expansion(next_node=(-1, -1, 0), input_map=grid_map, closed_list=None))
+        self.assertFalse(is_valid_expansion(next_node=(0, -1, 0), input_map=grid_map, closed_list=None))
+        self.assertFalse(is_valid_expansion(next_node=(-1, 0, 0), input_map=grid_map, closed_list=None))
 
         # child_pos out of positive bounds
         x_bound, y_bound = grid_map.shape
-        self.assertFalse(is_valid_expansion(child_pos=(x_bound, y_bound), input_map=grid_map, closed_list=None))
-        self.assertFalse(is_valid_expansion(child_pos=(0, y_bound), input_map=grid_map, closed_list=None))
-        self.assertFalse(is_valid_expansion(child_pos=(x_bound, 0), input_map=grid_map, closed_list=None))
+        self.assertFalse(is_valid_expansion(next_node=(x_bound, y_bound, 0), input_map=grid_map, closed_list=None))
+        self.assertFalse(is_valid_expansion(next_node=(0, y_bound, 0), input_map=grid_map, closed_list=None))
+        self.assertFalse(is_valid_expansion(next_node=(x_bound, 0, 0), input_map=grid_map, closed_list=None))
 
         '''verify check 2, the cell has already been expanded'''
         # next pos, inbound
         child_pos = random.choice(free_cell_list)
         # set closed list, child_pos already expanded
-        closed_list = np.zeros(grid_map.shape, dtype=int)
-        closed_list[child_pos] = 1
+        child_node = (child_pos[0], child_pos[1], 0)
+        closed_list = {child_node}
 
-        self.assertFalse(is_valid_expansion(child_pos=child_pos, input_map=grid_map, closed_list=closed_list))
+        self.assertFalse(is_valid_expansion(next_node=child_node, input_map=grid_map, closed_list=closed_list))
 
         '''verify check 3, the cell has an obstacle inside'''
         # next pos, inbound but with obstacle
         child_pos = random.choice(obs_cell_list)
         # set closed list, child_pos not expanded
-        closed_list = np.zeros(grid_map.shape, dtype=int)
+        child_node = (child_pos[0], child_pos[1], 0)
+        closed_list = set()
 
-        self.assertFalse(is_valid_expansion(child_pos=child_pos, input_map=grid_map, closed_list=closed_list))
+        self.assertFalse(is_valid_expansion(next_node=child_node, input_map=grid_map, closed_list=closed_list))
 
         '''verify return True'''
         # next pos, inbound and valid
         child_pos = random.choice(free_cell_list)
         # set closed list, child_pos not expanded
-        closed_list = np.zeros(grid_map.shape, dtype=int)
+        child_node = (child_pos[0], child_pos[1], 0)
+        closed_list = set()
 
-        self.assertTrue(is_valid_expansion(child_pos=child_pos, input_map=grid_map, closed_list=closed_list))
+        self.assertTrue(is_valid_expansion(next_node=child_node, input_map=grid_map, closed_list=closed_list))
 
     def test_check_token_conflicts(self):
 
         '''check it defaults to true if some parameter is missing'''
         # default behaviour for classic A* usage
-        self.assertTrue(check_token_conflicts(token=None, new_pos=(2, 2), curr_pos=(0, 0), new_timestep=0))
-        self.assertTrue(check_token_conflicts(token={1: [(2, 2, 0)]}, new_pos=None, curr_pos=(0, 0), new_timestep=0))
-        self.assertTrue(check_token_conflicts(token={1: [(2, 2, 0)]}, new_pos=(2, 2), curr_pos=None, new_timestep=0))
-        self.assertTrue(check_token_conflicts(token={1: [(2, 2, 0)]}, new_pos=(2, 2), curr_pos=(0, 0), new_timestep=None))
+        self.assertTrue(check_token_conflicts(token=None, next_node=(2, 2, 0), curr_node=(0, 0, 0)))
+        self.assertTrue(check_token_conflicts(token={1: [(2, 2, 0)]}, next_node=None, curr_node=(0, 0, 0)))
+        self.assertTrue(check_token_conflicts(token={1: [(2, 2, 0)]}, next_node=(2, 2, 0), curr_node=None))
 
         '''check no swap constraint'''
         token = {0: [(4, 5, 0), (4, 6, 1), (5, 6, 2)]}
-        new_timestep = 1
-        new_pos = (4, 5)
-        curr_pos = (4, 6)
+        new_node = (4, 5, 1)
+        curr_node = (4, 6, 0)
 
-        self.assertFalse(check_token_conflicts(token=token, new_pos=new_pos, curr_pos=curr_pos,
-                                               new_timestep=new_timestep))
+        self.assertFalse(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
 
         '''check no nodes conflicts'''
         # crash into a moving agent, avoided
         token = {0: [(4, 5, 0), (4, 6, 1), (5, 6, 2)]}
-        new_timestep = 1
-        new_pos = (4, 6)
-        curr_pos = (3, 6)
+        new_node = (4, 6, 1)
+        curr_node = (3, 6, 0)
 
-        self.assertFalse(check_token_conflicts(token=token, new_pos=new_pos, curr_pos=curr_pos,
-                                               new_timestep=new_timestep))
+        self.assertFalse(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
 
         # goes into a spot before the other agent, permitted
         token = {0: [(4, 5, 0), (4, 6, 1), (5, 6, 2), (5, 7, 3)]}
-        new_timestep = 1
-        new_pos = (5, 6)
-        curr_pos = (4, 6)
+        new_node = (5, 6, 1)
+        curr_node = (4, 6, 0)
 
-        self.assertTrue(check_token_conflicts(token=token, new_pos=new_pos, curr_pos=curr_pos,
-                                               new_timestep=new_timestep))
+        self.assertTrue(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
 
         '''test boundaries'''
         # see behaviour when new_pos == curr_pos
         token = {0: [(4, 5, 0), (4, 6, 1), (5, 6, 2)]}
-        new_timestep = 1
-        new_pos = (4, 5)
-        curr_pos = (4, 5)
+        new_node = (4, 5, 1)
+        curr_node = (4, 5, 1)
 
-        self.assertTrue(check_token_conflicts(token=token, new_pos=new_pos, curr_pos=curr_pos,
-                                              new_timestep=new_timestep))
+        self.assertTrue(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
 
         # called at the start of the system
         token = {0: [(4, 5, 0), (4, 6, 1), (5, 6, 2)]}
-        new_timestep = 0
-        new_pos = (4, 6)
-        curr_pos = (4, 6)
+        new_node = (4, 6, 0)
+        curr_node = (4, 6, 0)
 
-        self.assertTrue(check_token_conflicts(token=token, new_pos=new_pos, curr_pos=curr_pos,
-                                               new_timestep=new_timestep))
+        self.assertTrue(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
 
-        new_timestep = 0
-        new_pos = (4, 5)
-        curr_pos = (4, 5)
+        new_node = (4, 5, 0)
+        curr_node = (4, 5, 0)
 
-        self.assertFalse(check_token_conflicts(token=token, new_pos=new_pos, curr_pos=curr_pos,
-                                               new_timestep=new_timestep))
+        self.assertFalse(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
 
     def test_a_star(self):
         repetition = 1000
@@ -154,25 +144,25 @@ class AStarTest(unittest.TestCase):
             grid_map, free_cell_list, t_ = get_grid_map_free_cell_token(shape=shape, density=density,
                                                                         agent_num=agent_num,
                                                                         token_path_length=0)
-            # start_pos, goal
-            start_pos, goal = random.sample(population=free_cell_list, k=2)
+            # start, goal
+            start, goal = random.sample(population=free_cell_list, k=2)
             # heuristic
             h_map = compute_manhattan_heuristic(input_map=grid_map, goal=goal)
 
             try:
                 # no heuristic
                 path1, length1 = a_star(input_map=grid_map,
-                                        start=start_pos, goal=goal)
+                                        start=start, goal=goal)
 
                 # precomputed heuristic
                 path2, length2 = a_star(input_map=grid_map,
-                                        start=start_pos, goal=goal,
+                                        start=start, goal=goal,
                                         h_map=h_map)
 
                 # no heuristic, starting timestep > 0
                 starting_timestep = random.choice(range(1, 100))
                 path3, length3 = a_star(input_map=grid_map,
-                                        start=start_pos, goal=goal,
+                                        start=start, goal=goal,
                                         starting_t=starting_timestep)
 
                 # check type integrity
@@ -197,15 +187,15 @@ class AStarTest(unittest.TestCase):
                 # equal with or without precomputed h
                 self.assertEqual(length1, length2)
                 self.assertEqual(path1, path2)
-                # start from start_pos, timestep 0
-                self.assertEqual(path1[0][:-1], start_pos)
+                # start from start, timestep 0
+                self.assertEqual(path1[0][:-1], start)
                 self.assertEqual(path1[0][-1], 0)
                 # ends in goal at timestep = length-1
                 self.assertEqual(path1[-1][:-1], goal)
                 self.assertEqual(path1[-1][-1], length1-1)
 
                 # checking consistency with different starting time
-                self.assertEqual(path3[0][:-1], start_pos)
+                self.assertEqual(path3[0][:-1], start)
                 self.assertEqual(path3[0][-1], starting_timestep)
                 self.assertEqual(path3[-1][:-1], goal)
                 self.assertEqual(path3[-1][-1], length3+starting_timestep-1)
@@ -234,8 +224,8 @@ class AStarTest(unittest.TestCase):
             token_pos_list = [(x, y)
                               for path in token.values()
                               for x, y, t in path]
-            # start_pos, goal
-            start_pos, goal = random.sample(population=(list(set(free_cell_list) - set(token_pos_list))),
+            # start, goal
+            start, goal = random.sample(population=(list(set(free_cell_list) - set(token_pos_list))),
                                             k=2)
             # heuristic
             h_map = compute_manhattan_heuristic(input_map=grid_map, goal=goal)
@@ -245,13 +235,13 @@ class AStarTest(unittest.TestCase):
             try:
                 # no heuristic
                 path1, length1 = a_star(input_map=grid_map,
-                                        start=start_pos, goal=goal,
+                                        start=start, goal=goal,
                                         token=token, starting_t=starting_timestep)
 
                 start_time = timeit.default_timer()
                 # as in TP, with token and heuristic
                 path2, length2 = a_star(input_map=grid_map,
-                                        start=start_pos, goal=goal,
+                                        start=start, goal=goal,
                                         token=token, h_map=h_map, starting_t=starting_timestep)
                 diff_time = timeit.default_timer() - start_time
                 time_list.append(diff_time)
@@ -269,9 +259,9 @@ class AStarTest(unittest.TestCase):
 
                 # equal with or without precomputed h
                 self.assertEqual(path1, path2)
-                # start from start_pos, timestep == starting_time
+                # start from start, timestep == starting_time
                 # ends in goal at timestep = length-1
-                self.assertEqual(path1[0][:-1], start_pos)
+                self.assertEqual(path1[0][:-1], start)
                 self.assertEqual(path1[-1][:-1], goal)
                 self.assertEqual(path1[0][-1], starting_timestep)
                 self.assertEqual(path1[-1][-1], length1+starting_timestep-1)
@@ -281,7 +271,8 @@ class AStarTest(unittest.TestCase):
                     pprint(grid_map)
                     print('\nToken:')
                     pprint(token)
-                    print(f'\nStart: {start_pos}, Goal: {goal}')
+                    print(f'\nStart: {start}, Goal: {goal}')
+                    print(f'Starting timestep: {starting_timestep}')
                     print(f'\nA* path:')
                     pprint(path1)
                     printed = True

@@ -12,9 +12,6 @@ a_i moving from location l to location l_0 at timestep t results in it colliding
 with other agents a_j that move along their paths in the token.
 
 The following implementation is based on:
-    - A* implementation by Andrew Dahdouh,
-        Copyright (c) 2017, Andrew Dahdouh.
-        All rights reserved.
     - Token Passing pseudocode as described in
         Ma, H., Li, J., Kumar, T. K., & Koenig, S. (2017).
         Lifelong multiagent path finding for online pickup and delivery tasks.
@@ -26,7 +23,7 @@ from collections import deque
 
 import numpy as np
 
-from utils.expert_utils import compute_manhattan_heuristic, DELTA
+from utils.expert_utils import compute_manhattan_heuristic, MOVE_LIST
 from utils.expert_utils import is_valid_expansion, check_token_conflicts
 
 
@@ -61,70 +58,62 @@ def a_star(input_map, start, goal,
     Supporting data structures
     '''
     # closed list, implemented as matrix with shape = input_map.shape
-    closed_list = np.zeros(input_map.shape, dtype=int)
-    # delta_tracker, used to track moves for reconstructing return path
-    delta_tracker = np.full(input_map.shape, fill_value=-1, dtype=int)
+    closed_list = set()
+    # back_tracker, used to track moves for reconstructing return path
+    back_tracker = {}
 
     '''
     Initialization
     '''
-    x, y = start
+    start_node = (start[0], start[1], starting_t)
 
     # check that start is not going to cause conflict next timestep
-    if not check_token_conflicts(token=token, new_pos=start, curr_pos=start, new_timestep=starting_t):
+    if not check_token_conflicts(token=token, next_node=start_node, curr_node=start_node):
         raise ValueError('No path found')
 
     g = 0  # cost of the path to the current cell
-    f = g + h_map[(x, y)]
-    t = starting_t  # timestep
+    f = g + h_map[start]
     cost = 1  # cost of each step
 
-    open_list = [(f, g, x, y, t)]  # fringe
+    open_list = [(f, g, start_node)]  # fringe
     heapq.heapify(open_list)    # priority queue in ascending order of f
-    closed_list[(x, y)] = 1  # visit the starting cell
+    closed_list.add(start_node)  # visit the starting node
 
     '''
     Main execution loop
     '''
     # while open list is not empty
     while open_list:
-        _, g, x, y, t = heapq.heappop(open_list)
+        _, g, curr_node = heapq.heappop(open_list)
 
-        curr_c = (x, y)
         # if goal is reached
-        if curr_c == goal:
+        if curr_node[:-1] == goal:
             path = deque()
             # loop back until start is reached and build full path
-            while curr_c != start:
-                previous_x = x - DELTA[delta_tracker[curr_c]][0]
-                previous_y = y - DELTA[delta_tracker[curr_c]][1]
-                path.appendleft((x, y, t))  # (x_t, y_t, t)
-                # trace back
-                x = previous_x
-                y = previous_y
-                curr_c = (x, y)
-                t -= 1
-            # add start
-            path.appendleft((start[0], start[1], t))
+            while curr_node != start_node:
+                path.appendleft(curr_node)
+                curr_node = back_tracker[curr_node]
+            # add start node
+            path.appendleft(start_node)
 
             return path, len(path)
 
         else:
-            # keep track of the timestep
-            t += 1
+            # get position and timestep
+            x, y, t = curr_node
             # for each possible move
-            for idx, move in enumerate(DELTA):
+            for move in MOVE_LIST:
                 x_next = x + move[0]
                 y_next = y + move[1]
-                next_c = (x_next, y_next)
+                next_node = (x_next, y_next, t+1)
                 # if the point is valid for the expansion
-                if is_valid_expansion(child_pos=next_c, input_map=input_map, closed_list=closed_list)\
-                        and check_token_conflicts(token=token, new_pos=next_c, curr_pos=curr_c, new_timestep=t):
+                if is_valid_expansion(next_node=next_node, input_map=input_map, closed_list=closed_list)\
+                        and check_token_conflicts(token=token, next_node=next_node, curr_node=curr_node):
                     # update values and append to the fringe
-                    closed_list[next_c] = 1  # node has been visited
-                    delta_tracker[next_c] = idx  # keep track of the move
+                    closed_list.add(next_node)  # node has been visited
+                    back_tracker[next_node] = curr_node  # keep track of the move
                     g_next = g + cost
-                    f = g_next + h_map[next_c]
-                    heapq.heappush(open_list, (f, g_next, x_next, y_next, t))
+                    f = g_next + h_map[next_node[:-1]]
+                    heapq.heappush(open_list, (f, g_next, next_node))
 
     raise ValueError('No path found')
