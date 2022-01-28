@@ -13,6 +13,11 @@ MOVE_LIST = [(-1, 0),  # go up
              (0, 1),  # go right
              (0, 0)]  # stay still
 
+NEIGHBOUR_LIST = [(-1, 0),  # go up
+                  (0, -1),  # go left
+                  (1, 0),  # go down
+                  (0, 1)]  # go right
+
 
 def compute_manhattan_heuristic(input_map, goal):
     """
@@ -142,7 +147,7 @@ def free_cell_heuristic(target, input_map, token, target_timestep):
     """
     # get agent adjacent cells
     target_neighbours = [(target[0]+move[0], target[1]+move[1])
-                         for move in MOVE_LIST[:-1]]    # exclude standing still to find neighbours
+                         for move in NEIGHBOUR_LIST]    # exclude standing still to find neighbours
     # get token positions at target_timestep
     # agent who called this must not be in the token
     token_pos_list = [(x, y)

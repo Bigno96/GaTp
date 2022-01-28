@@ -20,6 +20,7 @@ The following implementation is based on:
 
 import heapq
 from collections import deque
+from math import hypot
 
 import numpy as np
 
@@ -66,6 +67,8 @@ def a_star(input_map, start, goal,
     Initialization
     '''
     start_node = (start[0], start[1], starting_t)
+    # max path length
+    max_depth = starting_t + int(hypot(input_map.shape[0], input_map.shape[1]) * 1.5)
 
     # check that start is not going to cause conflict next timestep
     if not check_token_conflicts(token=token, next_node=start_node, curr_node=start_node):
@@ -101,6 +104,11 @@ def a_star(input_map, start, goal,
         else:
             # get position and timestep
             x, y, t = curr_node
+
+            # avoid infinite looping
+            if t > max_depth:
+                raise ValueError('No path found')
+
             # for each possible move
             for move in MOVE_LIST:
                 x_next = x + move[0]
