@@ -13,8 +13,8 @@ from utils.metrics import count_collision
 
 class TpTest(unittest.TestCase):
     def test_tp(self):
-        repetition = 1
-        timeout = 60
+        repetition = 2500
+        timeout = 20
 
         time_list = []
         collision_count_list = []
@@ -87,7 +87,7 @@ class TpTest(unittest.TestCase):
                 # collect conflicts
                 coll_count, coll_list = count_collision(agent_schedule=agent_schedule)
 
-                if coll_count > 0:
+                '''if coll_count > 0:
                     print(coll_list)
                     pprint(grid_map)
                     print(f'Agents starting positions: {start_pos_list}')
@@ -96,7 +96,7 @@ class TpTest(unittest.TestCase):
                     print('Resulting Schedule:')
                     for schedule in agent_schedule.items():
                         print(schedule)
-                    end = True
+                    end = True'''
 
                 collision_count_list.append(coll_count)
 

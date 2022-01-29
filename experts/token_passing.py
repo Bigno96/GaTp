@@ -54,15 +54,16 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     h_coll = preprocess_heuristics(input_map=input_map,
                                    task_list=task_list, non_task_ep_list=non_task_ep_list)
 
-    # instantiate agents
+    # instantiate agents and free agent queue
     agent_pool = {TpAgent(name=idx, input_map=input_map,
                           start_pos=start_pos_list[idx], h_coll=h_coll)
                   for idx in range(len(start_pos_list))
                   }
-    agent_name_pool = {agent.name for agent in agent_pool}
+    free_agent_queue = deque()
 
     # instantiate token, dict -> {agent_id : path}
-    token = dict(zip(agent_name_pool, [agent.path for agent in agent_pool]))
+    token = dict(zip([agent.name for agent in agent_pool],
+                     [agent.path for agent in agent_pool]))
 
     # set up a list of active, immediately available tasks and a pool of 'new' tasks
     # split done according to imm_task_split value
@@ -75,11 +76,11 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     total_task_count = len(task_list)
 
     # set up agent_schedule
-    for name in agent_name_pool:
-        agent_schedule[name] = []
+    for agent in agent_pool:
+        agent_schedule[agent.name] = [(agent.path[0])]
 
     # track time and metrics
-    timestep = 0
+    timestep = 1            # timestep = 0 is the initialization
     metrics['service_time'] = []
     metrics['timestep_runtime'] = []
 
@@ -92,16 +93,25 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
         if execution.is_cancelled:
             return
 
-        start_time = timeit.default_timer()     # timing for metrics
+        # add new tasks, if any, at the start of the iteration
+        if (timestep % step_between_insertion) == 0:  # every n step add new tasks
+            new_task_list = [new_task_pool.popleft()
+                             for _ in range(min(len(new_task_pool), new_task_per_insertion))
+                             ]
+            active_task_list.extend(new_task_list)
+            activated_task_count += len(new_task_list)
+
+        # timing for metrics
+        start_time = timeit.default_timer()
 
         # list of free agents that will request the token
-        free_agent_queue = deque([agent
-                                  for agent in agent_pool
-                                  if agent.is_free])
+        free_agent_queue.extend([agent
+                                 for agent in agent_pool
+                                 if agent.is_free])
 
         # while agent a_i exists that requests token
         while free_agent_queue:
-            agent = free_agent_queue.pop()
+            agent = free_agent_queue.popleft()
             # pass control to agent a_i
             # a_i updates token, active_task_list and its 'free' status
             sel_task = agent.receive_token(token=token,
@@ -110,7 +120,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
                                            sys_timestep=timestep)
             # if a task was assigned
             if sel_task:
-                metrics['service_time'].append(len(agent.path)-1)     # add path length to complete the task
+                metrics['service_time'].append(len(agent.path))     # add path length to complete the task
 
         # check for eventual collisions and adapt
         for agent in agent_pool:
@@ -123,17 +133,11 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
             # agents update also here if they are free or not (when they end a path, they become free)
             agent.move_one_step()
 
-        # add new tasks, if any, before next iteration
-        if (timestep % step_between_insertion) == 0:    # every n step add new tasks
-            new_task_list = [new_task_pool.popleft()
-                             for _ in range(min(len(new_task_pool), new_task_per_insertion))
-                             ]
-            active_task_list.extend(new_task_list)
-            activated_task_count += len(new_task_list)
-        timestep += 1
-
+        # update timings
         elapsed_time = timeit.default_timer() - start_time
-        metrics['timestep_runtime'].append(elapsed_time*1000)       # ms conversion
+        metrics['timestep_runtime'].append(elapsed_time * 1000)  # ms conversion
+
+        timestep += 1
 
 
 '''if __name__ == '__main__':

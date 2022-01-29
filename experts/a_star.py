@@ -28,7 +28,7 @@ from utils.expert_utils import compute_manhattan_heuristic, MOVE_LIST
 from utils.expert_utils import is_valid_expansion, check_token_conflicts
 
 
-def a_star(input_map, start, goal,
+def a_star(input_map, start, goal, include_start_node,
            token=None, h_map=None, starting_t=0):
     """
     A* Planner method
@@ -38,6 +38,8 @@ def a_star(input_map, start, goal,
     :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
     :param start: (x, y), tuple of int with start cartesian coordinates
     :param goal: (x, y), tuple of int with goal cartesian coordinates
+    :param include_start_node: bool, whether to include starting position (visited at time = starting_t)
+                                into the returned plan or not
     :param token: summary of other agents planned paths
                   dict -> {agent_id : path}
                   with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
@@ -51,6 +53,10 @@ def a_star(input_map, start, goal,
              path_length: int
     :raise ValueError if no path are found
     """
+    # fist check, if start == goal
+    if start == goal:
+        return deque([(start[0], start[1], 0)]), 1
+
     # pre-compute heuristic if none
     if not isinstance(h_map, np.ndarray):
         h_map = compute_manhattan_heuristic(input_map=input_map, goal=goal)
@@ -66,13 +72,11 @@ def a_star(input_map, start, goal,
     '''
     Initialization
     '''
+    if not include_start_node:      # no starting node
+        starting_t -= 1
     start_node = (start[0], start[1], starting_t)
     # max path length
     max_depth = starting_t + int(hypot(input_map.shape[0], input_map.shape[1]) * 1.5)
-
-    # check that start is not going to cause conflict next timestep
-    if not check_token_conflicts(token=token, next_node=start_node, curr_node=start_node):
-        raise ValueError('No path found')
 
     g = 0  # cost of the path to the current cell
     f = g + h_map[start]
@@ -96,8 +100,9 @@ def a_star(input_map, start, goal,
             while curr_node != start_node:
                 path.appendleft(curr_node)
                 curr_node = back_tracker[curr_node]
-            # add start node
-            path.appendleft(start_node)
+            # add start node if included
+            if include_start_node:
+                path.appendleft(start_node)
 
             return path, len(path)
 

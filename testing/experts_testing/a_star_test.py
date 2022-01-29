@@ -124,12 +124,12 @@ class AStarTest(unittest.TestCase):
         # called at the start of the system
         token = {0: [(4, 5, 0), (4, 6, 1), (5, 6, 2)]}
         new_node = (4, 6, 0)
-        curr_node = (4, 6, 0)
+        curr_node = (4, 6, -1)
 
         self.assertTrue(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
 
         new_node = (4, 5, 0)
-        curr_node = (4, 5, 0)
+        curr_node = (4, 5, -1)
 
         self.assertFalse(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
 
@@ -152,18 +152,18 @@ class AStarTest(unittest.TestCase):
             try:
                 # no heuristic
                 path1, length1 = a_star(input_map=grid_map,
-                                        start=start, goal=goal)
+                                        start=start, goal=goal, include_start_node=True)
 
                 # precomputed heuristic
                 path2, length2 = a_star(input_map=grid_map,
                                         start=start, goal=goal,
-                                        h_map=h_map)
+                                        h_map=h_map, include_start_node=True)
 
                 # no heuristic, starting timestep > 0
                 starting_timestep = random.choice(range(1, 100))
                 path3, length3 = a_star(input_map=grid_map,
                                         start=start, goal=goal,
-                                        starting_t=starting_timestep)
+                                        starting_t=starting_timestep, include_start_node=True)
 
                 # check type integrity
                 self.assertIsInstance(length1, int)
@@ -236,13 +236,15 @@ class AStarTest(unittest.TestCase):
                 # no heuristic
                 path1, length1 = a_star(input_map=grid_map,
                                         start=start, goal=goal,
-                                        token=token, starting_t=starting_timestep)
+                                        token=token, starting_t=starting_timestep,
+                                        include_start_node=False)
 
                 start_time = timeit.default_timer()
                 # as in TP, with token and heuristic
                 path2, length2 = a_star(input_map=grid_map,
                                         start=start, goal=goal,
-                                        token=token, h_map=h_map, starting_t=starting_timestep)
+                                        token=token, h_map=h_map, starting_t=starting_timestep,
+                                        include_start_node=False)
                 diff_time = timeit.default_timer() - start_time
                 time_list.append(diff_time)
 
@@ -259,9 +261,8 @@ class AStarTest(unittest.TestCase):
 
                 # equal with or without precomputed h
                 self.assertEqual(path1, path2)
-                # start from start, timestep == starting_time
+                # start from timestep == starting_time
                 # ends in goal at timestep = length-1
-                self.assertEqual(path1[0][:-1], start)
                 self.assertEqual(path1[-1][:-1], goal)
                 self.assertEqual(path1[0][-1], starting_timestep)
                 self.assertEqual(path1[-1][-1], length1+starting_timestep-1)

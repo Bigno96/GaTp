@@ -53,7 +53,7 @@ def get_grid_map_free_cell_token(shape, density, agent_num, token_path_length):
     free_cell_list = list(zip(where_res[0], where_res[1]))
 
     # cell pool, avoid repetition
-    pool = random.sample(population=free_cell_list, k=int(token_path_length*3)+1)
+    pool = random.sample(population=free_cell_list, k=int(token_path_length*agent_num)+1)
 
     # token
     token = {}
@@ -99,14 +99,14 @@ def get_tok_posl_startl_epl(token):
 
 
 # build agent schedule from token bounding the length over the action of the specified agent
-def build_ag_schedule(token, agent_name):
+def build_ag_schedule(token, bottleneck_agent_name):
     agent_schedule = deepcopy(token)
     # make all the paths in the token the same length
     max_len = max([len(path)
                    for ag, path in token.items()
-                   if ag != agent_name
+                   if ag != bottleneck_agent_name
                    ])
-    agent_len = len(token[agent_name])
+    agent_len = len(token[bottleneck_agent_name])
 
     max_len = min(max_len, agent_len)
     for ag, path in token.items():
