@@ -7,6 +7,7 @@ import numpy as np
 
 from create_dataset.map_creator import create_random_grid_map, is_connected
 from experts.a_star import a_star
+from utils.expert_utils import NoPathError
 from testing.test_utils import create_grid_test_map, find_start_goal
 
 
@@ -34,8 +35,8 @@ class MapCreatorTest(unittest.TestCase):
             time_list.append(time_diff)
 
             try:
-                a_star(input_map=grid_map, start=start, goal=goal)
-            except ValueError:
+                a_star(input_map=grid_map, start=start, goal=goal, include_start_node=True)
+            except NoPathError:
                 if is_conn:     # path not found in a connected map
                     pprint(grid_map)
                     self.fail("a_star didn't find path in connected map")
@@ -78,8 +79,8 @@ class MapCreatorTest(unittest.TestCase):
             start, goal = find_start_goal(input_map=grid_map)
 
             try:
-                a_star(input_map=grid_map, start=start, goal=goal)
-            except ValueError:
+                a_star(input_map=grid_map, start=start, goal=goal, include_start_node=True)
+            except NoPathError:
                 pprint(grid_map)
                 self.fail("a_star didn't find path in connected map")
 

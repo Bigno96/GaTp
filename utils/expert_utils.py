@@ -19,6 +19,21 @@ NEIGHBOUR_LIST = [(-1, 0),  # go up
                   (0, 1)]  # go right
 
 
+class NoPathError(Exception):
+    pass
+
+
+class StopToken:
+    """
+    Used to stop execution of experts instance that hangs or takes too long
+    """
+    def __init__(self):
+        self.is_cancelled = False
+
+    def cancel(self):
+        self.is_cancelled = True
+
+
 def compute_manhattan_heuristic(input_map, goal):
     """
     Create a matrix the same shape of the input map
@@ -64,43 +79,95 @@ def is_valid_expansion(next_node, input_map, closed_list):
     return True
 
 
-def check_token_conflicts(token, next_node, curr_node):
+def check_token_conflicts(token, next_node, curr_node, starting_t=0):
     """
     Check that at new_pos there are no conflicts in token
+    Assumes its own path is not in the token
     :param token: summary of other agents planned paths
-                  dict -> {agent_id : path}
-                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
+                  dict -> {agent_name : {'pos': (x,y), ''path': path}}
+                  with pos = current agent pos
+                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...]), future steps
                   x, y -> cartesian coords, t -> timestep
     :param curr_node: (x, y, t), int tuple of curr node
     :param next_node: (x, y, t), int tuple of new node
+    :param starting_t: starting timestep of the search
     :return: True if no conflicts are found, False else
     """
     # if something is not specified, defaults to True
     if not token or not next_node or not curr_node:
         return True
 
+    curr_timestep = curr_node[-1]
     new_timestep = next_node[-1]
     curr_pos = curr_node[:-1]
     next_pos = next_node[:-1]
 
     # when called, all paths in the token are from a different agent
     # construct list of bad moves
-    bad_moves_list = {(x_s, y_s)
-                      for path in token.values()
-                      for x_s, y_s, t_s in path
+    bad_moves_list = [(x_s, y_s)
+                      for val in token.values()
+                      for x_s, y_s, t_s in val['path']
                       # no swap constraint
-                      if (t_s == (new_timestep-1)  # avoid going into their current position next move
+                      if (t_s == curr_timestep  # avoid going into their current position next move
                           # if that agent is going into my current position
                           and curr_pos in [(x_p, y_p)
-                                           for x_p, y_p, t_p in path
+                                           for x_p, y_p, t_p in val['path']
                                            if t_p == new_timestep]
                           )
                       # avoid node collision
                       or t_s == new_timestep
-                      }
+                      ]
+
+    # if include_start_node = False
+    # if another agent a_i is moving into curr_pos at timestep == starting_t
+    # bad_moves_list still allows next_pos == loc(a_i) -> swap conflict
+    if new_timestep == starting_t:
+        # only possible if include_start_node = False at first depth expansions
+        bad_moves_list.extend([val['pos']       # don't go into his current position
+                               for val in token.values()
+                               # if that agent is going into my current position
+                               if val['path'][0][:-1] == curr_pos
+                               ])
 
     # if attempted move not conflicting, return True
     return next_pos not in bad_moves_list
+
+
+def get_next_node_list(curr_node, max_depth, starting_t, input_map, closed_list, token):
+    """
+    Get list of nodes available for A* expansion
+    :param curr_node: (x, y, t), int tuple of curr node
+    :param max_depth: int, maximum path depth
+    :param starting_t: starting timestep for the search
+    :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
+    :param closed_list: implemented as a set of nodes
+    :param token: summary of other agents planned paths
+                  dict -> {agent_name : {'pos': (x,y), ''path': path}}
+                  with pos = current agent pos
+                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...]), future steps
+                  x, y -> cartesian coords, t -> timestep
+    :return: list of 'next_nodes' available for expansion
+    :raise ValueError if path is longer than max_depth
+    """
+
+    # get position and timestep
+    x, y, t = curr_node
+
+    # avoid infinite looping
+    if t > max_depth:
+        raise NoPathError('No path found')
+
+    # for each possible move
+    next_node_list = [(x+move[0], y+move[1], t+1)
+                      for move in MOVE_LIST]
+
+    # filter out invalid node for the expansion
+    # TODO: check swap for depth 1 expansions
+    return [next_node
+            for next_node in next_node_list
+            if is_valid_expansion(next_node=next_node, input_map=input_map, closed_list=closed_list)
+            and check_token_conflicts(token=token, next_node=next_node, curr_node=curr_node, starting_t=starting_t)
+            ]
 
 
 def preprocess_heuristics(input_map, task_list, non_task_ep_list):
@@ -139,9 +206,10 @@ def free_cell_heuristic(target, input_map, token, target_timestep):
     :param target: int tuple (x,y)
     :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
     :param token: summary of other agents planned paths
-                      dict -> {agent_id : path}
-                      with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
-                      x, y -> cartesian coords, t -> timestep
+                  dict -> {agent_name : {'pos': (x,y), ''path': path}}
+                  with pos = current agent pos
+                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...]), future steps
+                  x, y -> cartesian coords, t -> timestep
     :param target_timestep: global timestep of the execution
     :return: int, value of free cells around
     """
@@ -151,8 +219,8 @@ def free_cell_heuristic(target, input_map, token, target_timestep):
     # get token positions at target_timestep
     # agent who called this must not be in the token
     token_pos_list = [(x, y)
-                      for path in token.values()
-                      for x, y, t in path
+                      for val in token.values()
+                      for x, y, t in val['path']
                       if t == target_timestep]
     # count and return free cells
     return sum([1
@@ -202,14 +270,3 @@ def transform_agent_schedule(agent_schedule):
             matrix[(move_idx, agent, t)] = 1
 
     return matrix
-
-
-class StopToken:
-    """
-    Used to stop execution of experts instance that hangs or takes too long
-    """
-    def __init__(self):
-        self.is_cancelled = False
-
-    def cancel(self):
-        self.is_cancelled = True

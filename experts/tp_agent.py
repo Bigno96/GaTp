@@ -10,7 +10,7 @@ from collections import deque
 import numpy as np
 
 from experts.a_star import a_star
-from utils.expert_utils import NEIGHBOUR_LIST, free_cell_heuristic
+from utils.expert_utils import NEIGHBOUR_LIST, free_cell_heuristic, NoPathError
 
 
 class TpAgent:
@@ -66,9 +66,10 @@ class TpAgent:
         Agent receives token and assigns himself to a new task
         Add its new path to the token, remove assigned task from task_list
         :param token: summary of other agents planned paths
-                      dict -> {agent_id : path}
-                      with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
-                      x, y -> cartesian coords, t -> timestep
+                  dict -> {agent_name : {'pos': (x,y), ''path': path}}
+                  with pos = current agent pos
+                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...]), future steps
+                  x, y -> cartesian coords, t -> timestep
         :param task_list: list of tasks -> [(task1), (task2), ...]
                           task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
         :param non_task_ep_list: list of endpoints not belonging to a task -> [(ep1), (ep2), ...]
@@ -82,7 +83,7 @@ class TpAgent:
         del token[self.name]
 
         # get subset of tasks s.t. their pickup or delivery spots don't coincide with endpoints of token paths
-        token_ep_list = [path[-1][:-1] for path in token.values()]
+        token_ep_list = [val['path'][-1][:-1] for val in token.values()]
         avail_task_list = [task for task in task_list
                            # check paths endpoints in token
                            if not any(loc in token_ep_list
@@ -121,21 +122,24 @@ class TpAgent:
                 # assign task
                 task_list.remove(best_task)
                 # update token
-                token[self.name] = self.path
+                token[self.name] = {'pos': self.pos,
+                                    'path': self.path}
                 self.is_free = False
                 self.is_idle = False
 
                 return best_task
 
             # since MAPD can be not well-formed, it can happen to not find a path
-            except ValueError:
-                token[self.name] = self.path    # try another timestep
+            except NoPathError:
+                token[self.name] = {'pos': self.pos,
+                                    'path': self.path}   # try another timestep
                 return None
 
         # no task in task_list has delivery_pos == self.pos
         elif all([delivery != self.pos for _, delivery in task_list]):
             # keep the same path
-            token[self.name] = self.path
+            token[self.name] = {'pos': self.pos,
+                                'path': self.path}
             return None
 
         # no available task, agent is in a delivery spot
@@ -152,9 +156,10 @@ class TpAgent:
         and does not collide with the paths of other agents stored in the token
         Update its path with minimal cost path to the chosen endpoint
         :param token: summary of other agents planned paths
-                      dict -> {agent_id : path}
-                      with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
-                      x, y -> cartesian coords, t -> timestep
+                  dict -> {agent_name : {'pos': (x,y), ''path': path}}
+                  with pos = current agent pos
+                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...]), future steps
+                  x, y -> cartesian coords, t -> timestep
         :param task_list: list of tasks -> [(task1), (task2), ...]
                           task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
         :param non_task_ep_list: list of endpoints not belonging to a task -> [(ep1), (ep2), ...]
@@ -171,8 +176,8 @@ class TpAgent:
         ep_list.extend(non_task_ep_list)
 
         # get list of all endpoints in the token (cutting off timesteps)
-        token_ep_list = {path[-1][:-1]
-                         for path in token.values()}
+        token_ep_list = {val['path'][-1][:-1]
+                         for val in token.values()}
         # remove an endpoint if it's an endpoint also for another agent's path in the token
         ep_list = list(set(ep_list) - token_ep_list)
 
@@ -189,26 +194,29 @@ class TpAgent:
                 self.path, _ = a_star(input_map=self.map, start=self.pos, goal=best_ep,
                                       token=token, h_map=self.h_coll[best_ep], starting_t=sys_timestep,
                                       include_start_node=False)
-                token[self.name] = self.path
+                token[self.name] = {'pos': self.pos,
+                                    'path': self.path}
                 self.is_free = True
                 self.is_idle = False
 
                 return
 
-            except ValueError:
+            except NoPathError:
                 pass  # keep going and try another endpoint
 
         # no endpoint was reachable -> keep current path
         # this happens due to MAPD instance not being well-formed
-        token[self.name] = self.path
+        token[self.name] = {'pos': self.pos,
+                            'path': self.path}
 
     def collision_shielding(self, token, sys_timestep, agent_pool):
         """
         Avoid collisions by moving an agent if another one is coming into its current idle spot
         :param token: summary of other agents planned paths
-                      dict -> {agent_id : path}
-                      with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...])
-                      x, y -> cartesian coords, t -> timestep
+                  dict -> {agent_name : {'pos': (x,y), ''path': path}}
+                  with pos = current agent pos
+                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...]), future steps
+                  x, y -> cartesian coords, t -> timestep
         :param sys_timestep: global timestep of the execution
         :param agent_pool: set of agents
         """
@@ -222,8 +230,8 @@ class TpAgent:
             # if some other agent is coming into agent end path position on this timestep
             end_pos = self.path[-1][:-1]
             if end_pos in {(x, y)
-                           for path in token.values()
-                           for x, y, t in path
+                           for val in token.values()
+                           for x, y, t in val['path']
                            if t == sys_timestep}:
 
                 # try to move the agent towards a non-conflicting cell around him
@@ -235,6 +243,8 @@ class TpAgent:
                                       key=lambda c: free_cell_heuristic(target=c, input_map=self.map,
                                                                         token=token,
                                                                         target_timestep=sys_timestep))
+
+                # TODO: ignore idle?
 
                 # loop over d1 cells
                 for cell in d1_cell_list:
@@ -248,14 +258,15 @@ class TpAgent:
                         # agent can be disturbed only if they are idle
                         # otherwise -> node collision prevention will avoid the conflict
                         disturbed_agent_names = [ag
-                                                 for ag, path in token.items()
-                                                 for x, y, t in path
+                                                 for ag, val in token.items()
+                                                 for x, y, t in val['path']
                                                  if t == sys_timestep    # next move
                                                  and (x, y) == self.path[-1][:-1]  # potential collision incoming
                                                  ]
 
                         # add here path to token for others
-                        token[self.name] = self.path
+                        token[self.name] = {'pos': self.pos,
+                                            'path': self.path}
                         self.is_free = True
                         self.is_idle = False
 
@@ -271,8 +282,9 @@ class TpAgent:
                         return
 
                     # no path, try another cell
-                    except ValueError:
+                    except NoPathError:
                         pass
 
             # re add agent path to token if nothing done
-            token[self.name] = self.path
+            token[self.name] = {'pos': self.pos,
+                                'path': self.path}

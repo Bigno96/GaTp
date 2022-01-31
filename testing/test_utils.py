@@ -5,6 +5,7 @@ Utility files for unit testing modules
 import numpy as np
 import random
 from copy import deepcopy
+from collections import deque
 
 from create_dataset.map_creator import create_random_grid_map
 from create_dataset.scenario_creator import create_task, create_starting_pos
@@ -53,17 +54,22 @@ def get_grid_map_free_cell_token(shape, density, agent_num, token_path_length):
     free_cell_list = list(zip(where_res[0], where_res[1]))
 
     # cell pool, avoid repetition
-    pool = random.sample(population=free_cell_list, k=int(token_path_length*agent_num)+1)
+    pool = random.sample(population=free_cell_list, k=int((token_path_length+1) * agent_num) + 1)
+    start_pos_pool = pool[:agent_num]
+    path_pool = pool[agent_num:-1]
 
     # token
     token = {}
     for i in range(agent_num-1):
-        token[i] = [(x, y, t)
-                    for t, (x, y) in enumerate(pool[int(i*token_path_length):
-                                                    int((i+1)*token_path_length)])
-                    ]
+        token[i] = {'pos': start_pos_pool[i],
+                    'path': deque([(x, y, t)
+                                   for t, (x, y)
+                                   in enumerate(path_pool[int(i * token_path_length):
+                                                          int((i+1) * token_path_length)])
+                                   ])
+                    }
     x, y = pool[-1]
-    token['stands_still'] = [(x, y, 0)]  # one agent stands still
+    token['stands_still'] = {'pos': (x, y), 'path': [(x, y, 0)]}  # one agent stands still
 
     return grid_map, free_cell_list, token
 
@@ -88,35 +94,28 @@ def get_start_pos_non_tep_task_list(input_map, agent_num, task_num):
 # get token all position list, token starting position list and token endpoint list
 def get_tok_posl_startl_epl(token):
     token_pos_list = [(x, y)
-                      for path in token.values()
-                      for x, y, t in path]
-    token_start_pos_list = [path[0][:-1]
-                            for path in token.values()]
-    token_ep_list = [path[-1][:-1]
-                     for path in token.values()]
+                      for val in token.values()
+                      for x, y, t in val['path']
+                      ]
+    token_start_pos_list = [val['path'][0][:-1]
+                            for val in token.values()]
+    token_ep_list = [val['path'][-1][:-1]
+                     for val in token.values()]
 
     return token_pos_list, token_start_pos_list, token_ep_list
 
 
 # build agent schedule from token bounding the length over the action of the specified agent
-def build_ag_schedule(token, bottleneck_agent_name):
+def build_ag_schedule(token):
     agent_schedule = deepcopy(token)
     # make all the paths in the token the same length
-    max_len = max([len(path)
-                   for ag, path in token.items()
-                   if ag != bottleneck_agent_name
+    min_len = min([len(val['path'])
+                   for val in token.values()
                    ])
-    agent_len = len(token[bottleneck_agent_name])
 
-    max_len = min(max_len, agent_len)
-    for ag, path in token.items():
-        diff = max_len - len(path)
-        # path was shorter
-        if diff >= 0:
-            for i in range(diff):
-                agent_schedule[ag].append((path[-1][0], path[-1][1], path[-1][2]+i+1))
-        else:
-            # path might be a deque
-            agent_schedule[ag] = list(path)[:agent_len].copy()
+    for ag, val in token.items():
+        path = list(val['path'])
+        # path is a deque
+        agent_schedule[ag] = deque(path[:min_len])
 
     return agent_schedule

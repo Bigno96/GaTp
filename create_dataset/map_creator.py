@@ -37,8 +37,8 @@ def create_random_grid_map(map_shape, map_density, connected):
         # reshape as matrix
         grid_map = flat_map.reshape(map_shape)
 
-        # if it doesn't need to be connected, or it's all obstacles
-        if not connected or cell_count == obstacle_count:
+        # if it doesn't need to be connected or has none/only obstacles
+        if not connected or cell_count == obstacle_count or obstacle_count == 0:
             return grid_map
 
         # check if it's connected

@@ -10,7 +10,7 @@ from scipy.spatial.distance import cityblock
 
 from create_dataset.map_creator import create_random_grid_map
 from experts.a_star import a_star
-from utils.expert_utils import compute_manhattan_heuristic, is_valid_expansion, check_token_conflicts
+from utils.expert_utils import compute_manhattan_heuristic, is_valid_expansion, check_token_conflicts, NoPathError
 from testing.test_utils import get_grid_map_free_cell_token
 
 
@@ -88,11 +88,13 @@ class AStarTest(unittest.TestCase):
         '''check it defaults to true if some parameter is missing'''
         # default behaviour for classic A* usage
         self.assertTrue(check_token_conflicts(token=None, next_node=(2, 2, 0), curr_node=(0, 0, 0)))
-        self.assertTrue(check_token_conflicts(token={1: [(2, 2, 0)]}, next_node=None, curr_node=(0, 0, 0)))
-        self.assertTrue(check_token_conflicts(token={1: [(2, 2, 0)]}, next_node=(2, 2, 0), curr_node=None))
+        self.assertTrue(check_token_conflicts(token={1: {'pos': (0, 0), 'path': [(2, 2, 0)]}},
+                                              next_node=None, curr_node=(0, 0, 0)))
+        self.assertTrue(check_token_conflicts(token={1: {'pos': (0, 0), 'path': [(2, 2, 0)]}},
+                                              next_node=(2, 2, 0), curr_node=None))
 
         '''check no swap constraint'''
-        token = {0: [(4, 5, 0), (4, 6, 1), (5, 6, 2)]}
+        token = {0: {'pos': (0, 0), 'path': deque([(4, 5, 0), (4, 6, 1), (5, 6, 2)])}}
         new_node = (4, 5, 1)
         curr_node = (4, 6, 0)
 
@@ -100,14 +102,14 @@ class AStarTest(unittest.TestCase):
 
         '''check no nodes conflicts'''
         # crash into a moving agent, avoided
-        token = {0: [(4, 5, 0), (4, 6, 1), (5, 6, 2)]}
+        token = {0: {'pos': (0, 0), 'path': deque([(4, 5, 0), (4, 6, 1), (5, 6, 2)])}}
         new_node = (4, 6, 1)
         curr_node = (3, 6, 0)
 
         self.assertFalse(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
 
         # goes into a spot before the other agent, permitted
-        token = {0: [(4, 5, 0), (4, 6, 1), (5, 6, 2), (5, 7, 3)]}
+        token = {0: {'pos': (0, 0), 'path': deque([(4, 5, 0), (4, 6, 1), (5, 6, 2), (5, 7, 3)])}}
         new_node = (5, 6, 1)
         curr_node = (4, 6, 0)
 
@@ -115,20 +117,27 @@ class AStarTest(unittest.TestCase):
 
         '''test boundaries'''
         # see behaviour when new_pos == curr_pos
-        token = {0: [(4, 5, 0), (4, 6, 1), (5, 6, 2)]}
+        token = {0: {'pos': (0, 0), 'path': deque([(4, 5, 0), (4, 6, 1), (5, 6, 2)])}}
         new_node = (4, 5, 1)
         curr_node = (4, 5, 1)
 
         self.assertTrue(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
 
         # called at the start of the system
-        token = {0: [(4, 5, 0), (4, 6, 1), (5, 6, 2)]}
+        token = {0: {'pos': (0, 0), 'path': deque([(4, 5, 0), (4, 6, 1), (5, 6, 2)])}}
         new_node = (4, 6, 0)
         curr_node = (4, 6, -1)
 
         self.assertTrue(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
 
         new_node = (4, 5, 0)
+        curr_node = (4, 5, -1)
+
+        self.assertFalse(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
+
+        # first move swap
+        token = {0: {'pos': (4, 6), 'path': deque([(4, 5, 0), (4, 6, 1), (5, 6, 2)])}}
+        new_node = (4, 6, 0)
         curr_node = (4, 5, -1)
 
         self.assertFalse(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
@@ -205,8 +214,7 @@ class AStarTest(unittest.TestCase):
                 no_timestep_path3 = [(x, y) for x, y, t_ in path3]
                 self.assertEqual(no_timestep_path1, no_timestep_path3)
 
-            except ValueError as err:
-                print(err)
+            except NoPathError:
                 pass
 
         '''A* with token'''
@@ -219,11 +227,11 @@ class AStarTest(unittest.TestCase):
                                                                            agent_num=agent_num,
                                                                            token_path_length=tok_path_length)
             token_step_list = [step
-                               for path in token.values()
-                               for step in path]
+                               for val in token.values()
+                               for step in val['path']]
             token_pos_list = [(x, y)
-                              for path in token.values()
-                              for x, y, t in path]
+                              for val in token.values()
+                              for x, y, t in val['path']]
             # start, goal
             start, goal = random.sample(population=(list(set(free_cell_list) - set(token_pos_list))),
                                             k=2)
@@ -278,8 +286,7 @@ class AStarTest(unittest.TestCase):
                     pprint(path1)
                     printed = True
 
-            except ValueError as err:
-                print(err)
+            except NoPathError:
                 pass
 
         print(f'\nAverage full A* execution time: {statistics.mean(time_list)}')

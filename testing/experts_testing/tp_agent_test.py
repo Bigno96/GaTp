@@ -87,7 +87,7 @@ class TpAgentTest(unittest.TestCase):
                                                 token={}, target_timestep=0))  # don't matter here
 
         '''token'''
-        token = {0: [(3, 5, 0), (3, 4, 1)]}
+        token = {0: {'pos': (0, 0), 'path': deque([(3, 5, 0), (3, 4, 1)])}}
         pos = (3, 3)
         self.assertEqual(3, free_cell_heuristic(target=pos, input_map=empty_map,
                                                 token=token, target_timestep=1))
@@ -99,8 +99,8 @@ class TpAgentTest(unittest.TestCase):
         shape = (20, 20)
         # random path to move along
         start_pos = (random.choice(range(shape[0])), random.choice(range(shape[1])))
-        path = [(random.choice(range(shape[0])), random.choice(range(shape[1])), t)
-                for t in range(path_len)]
+        path = deque([(random.choice(range(shape[0])), random.choice(range(shape[1])), t)
+                      for t in range(path_len)])
         # create agent and give him the path
         agent = TpAgent(name='ag', input_map=None, start_pos=start_pos, h_coll=None)
         agent.path = deque(path)
@@ -173,14 +173,23 @@ class TpAgentTest(unittest.TestCase):
                 self.assertEqual((agent.path[0][0], agent.path[0][1], agent.path[0][2]),
                                  (start_pos[0], start_pos[1], 0))
             # path has been added to the token and agent is free
-            self.assertEqual(token['ag'], agent.path)
+            self.assertEqual(token['ag']['path'], agent.path)
+            self.assertEqual(token[agent.name]['pos'], agent.pos)
             self.assertTrue(agent.is_free)
 
-            agent_schedule = build_ag_schedule(token=token, bottleneck_agent_name='ag')
+            agent_schedule = build_ag_schedule(token=token)
             collision_count, l_ = count_collision(agent_schedule=agent_schedule)
 
             # no collision provoked by agent
-            self.assertFalse(collision_count)
+            if collision_count > 0:
+                for ag in agent_schedule.items():
+                    print(ag)
+                print('\n')
+                for p in token.items():
+                    print(p)
+                print('\n')
+                print(collision_count, l_)
+                self.fail()
 
     def test_receive_token(self):
         repetition = 1000
@@ -213,7 +222,8 @@ class TpAgentTest(unittest.TestCase):
             start_pos = random.choice(list(set(free_cell_list) - set(token_pos_list)))
             # why? if it stands still since no task assigned, no collision shielding and might collide
             agent = TpAgent(name='ag', input_map=grid_map, start_pos=start_pos, h_coll=h_coll)
-            token[agent.name] = agent.path
+            token[agent.name] = {'pos': agent.pos,
+                                 'path': agent.path}
 
             '''test TpAgent receive token'''
             if not printed:
@@ -229,7 +239,8 @@ class TpAgentTest(unittest.TestCase):
             agent.receive_token(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list,
                                 sys_timestep=0)
 
-            self.assertIsNotNone(token[agent.name])
+            self.assertEqual(token[agent.name]['path'], agent.path)
+            self.assertEqual(token[agent.name]['pos'], agent.pos)
             if agent.is_free:
                 self.assertEqual(task_num, len(task_list))      # no task assigned
                 if not agent.is_idle:
@@ -239,7 +250,7 @@ class TpAgentTest(unittest.TestCase):
                 self.assertEqual(task_num-1, len(task_list))    # one task assigned
                 self.assertFalse(agent.is_idle)
 
-            agent_schedule = build_ag_schedule(token=token, bottleneck_agent_name=agent.name)
+            agent_schedule = build_ag_schedule(token=token)
             collision_count, l_ = count_collision(agent_schedule=agent_schedule)
 
             # no collision
@@ -267,14 +278,16 @@ class TpAgentTest(unittest.TestCase):
             agent.is_free = True
             agent.is_idle = True
             agent.path = deque([(start_pos[0], start_pos[1], 0)])
-            token[agent.name] = agent.path
+            token[agent.name] = {'pos': agent.pos,
+                                 'path': agent.path}
             # no task to assign himself
             agent.receive_token(token=token, task_list=[], non_task_ep_list=non_task_ep_list, sys_timestep=0)
 
             self.assertEqual(start_pos, agent.path[0][:-1])     # stand still
             self.assertTrue(agent.is_free)
             self.assertTrue(agent.is_idle)
-            self.assertEqual(token[agent.name], agent.path)
+            self.assertEqual(token[agent.name]['path'], agent.path)
+            self.assertEqual(token[agent.name]['pos'], agent.pos)
 
             '''b) conflicting position, reposition into an available endpoint'''
             '''B1 -> task unavailable due to delivery position blocked'''
@@ -285,12 +298,14 @@ class TpAgentTest(unittest.TestCase):
             agent.is_free = True
             agent.is_idle = True
             agent.path = deque([(start_pos[0], start_pos[1], 0)])
-            token[agent.name] = agent.path
+            token[agent.name] = {'pos': agent.pos,
+                                 'path': agent.path}
             # another agent going into start pos == delivery pos of the only task available
             # -> 'ag' can't assign to the only task available
             # -> 'ag' is in a delivery spot
             # -> 'ag' will move with 'find_resting_pos'
-            token['stands_still'] = [(start_pos[0], start_pos[1], 1)]
+            token['stands_still'] = {'pos': start_pos,
+                                     'path': deque([(start_pos[0], start_pos[1], 1)])}
             agent.receive_token(token=token, task_list=[(pickup, start_pos)],
                                 non_task_ep_list=non_task_ep_list, sys_timestep=0)
 
@@ -298,7 +313,8 @@ class TpAgentTest(unittest.TestCase):
             avail_pos = non_task_ep_list + [pickup]
             avail_pos = set(avail_pos) - {start_pos} - set(token_ep_list)
 
-            self.assertEqual(token[agent.name], agent.path)
+            self.assertEqual(token[agent.name]['path'], agent.path)
+            self.assertEqual(token[agent.name]['pos'], agent.pos)
             if not agent.is_idle:
                 self.assertIn(agent.path[-1][:-1], avail_pos)  # moves to an available endpoint
                 self.assertTrue(agent.is_free)
@@ -312,12 +328,14 @@ class TpAgentTest(unittest.TestCase):
             agent.is_free = True
             agent.is_idle = True
             agent.path = deque([(start_pos[0], start_pos[1], 0)])
-            token[agent.name] = agent.path
+            token[agent.name] = {'pos': agent.pos,
+                                 'path': agent.path}
             # another agent going into start pos == pickup pos of the only task available
             # -> 'ag' can't assign to the only task available
             # -> 'ag' is in a delivery spot
             # -> 'ag' will move with 'find_resting_pos'
-            token['stands_still'] = [(pickup[0], pickup[1], 2)]
+            token['stands_still'] = {'pos': pickup,
+                                     'path': deque([(pickup[0], pickup[1], 2)])}
             agent.receive_token(token=token, task_list=[(pickup, start_pos)],
                                 non_task_ep_list=non_task_ep_list, sys_timestep=0)
 
@@ -325,7 +343,8 @@ class TpAgentTest(unittest.TestCase):
             avail_pos = non_task_ep_list + [pickup]
             avail_pos = set(avail_pos) - {start_pos} - set(token_ep_list)
 
-            self.assertEqual(token[agent.name], agent.path)
+            self.assertEqual(token[agent.name]['path'], agent.path)
+            self.assertEqual(token[agent.name]['pos'], agent.pos)
             if not agent.is_idle:
                 self.assertIn(agent.path[-1][:-1], avail_pos)  # moves to an available endpoint
                 self.assertTrue(agent.is_free)
@@ -362,10 +381,12 @@ class TpAgentTest(unittest.TestCase):
             starting_t = random.choice(range(starting_t_range))
             # ag1 standing still
             agent1.path = deque([(start_pos_ag1[0], start_pos_ag1[1], starting_t)])
-            token[agent1.name] = agent1.path
+            token[agent1.name] = {'pos': agent1.pos,
+                                  'path': agent1.path}
             # ag2 coming into ag1.pos 'after' him
             agent2.path = deque([(start_pos_ag1[0], start_pos_ag1[1], starting_t)])
-            token[agent2.name] = agent2.path
+            token[agent2.name] = {'pos': agent2.pos,
+                                  'path': agent2.path}
             agent2.is_idle = False
 
             # apply to both collision shielding
@@ -394,8 +415,50 @@ class TpAgentTest(unittest.TestCase):
                 self.assertFalse(cell_around)       # no cell around
                 self.assertTrue(agent1.is_free)
 
-        '''Chain reaction'''
-        # TODO
+        '''Chain Collision Shielding'''
+        grid_map = np.zeros(shape=shape, dtype=np.int8)
+        token = {}
+
+        # 3 agents, 2 will stay idle near each other, 1 is going into their positions
+        pos = random.choice(range(2, min(shape[0], shape[1])-2))        # don't pick borders
+        starting_t = random.choice(range(starting_t_range))
+
+        start_pos_ag1 = (pos, pos)      # idle ag1
+        start_pos_ag2 = (pos-1, pos)    # idle ag2
+        start_pos_ag3 = (pos+1, pos)    # going into ag1
+        agent1 = TpAgent(name='ag1', input_map=grid_map, start_pos=start_pos_ag1, h_coll=None)  # h coll doesnt matter
+        agent2 = TpAgent(name='ag2', input_map=grid_map, start_pos=start_pos_ag2, h_coll=None)  # h coll doesnt matter
+        agent3 = TpAgent(name='ag3', input_map=grid_map, start_pos=start_pos_ag3, h_coll=None)  # h coll doesnt matter
+        agent_pool = {agent1, agent2, agent3}
+
+        # ag1 standing idle
+        agent1.path = deque([(start_pos_ag1[0], start_pos_ag1[1], starting_t)])
+        token[agent1.name] = {'pos': agent1.pos,
+                              'path': agent1.path}
+
+        # ag2 standing idle
+        agent2.path = deque([(start_pos_ag2[0], start_pos_ag2[1], starting_t)])
+        token[agent2.name] = {'pos': agent2.pos,
+                              'path': agent2.path}
+
+        # agent3 going into agent1 position
+        agent3.path = deque([(start_pos_ag1[0], start_pos_ag1[1], starting_t)])
+        token[agent3.name] = {'pos': agent3.pos,
+                              'path': agent3.path}
+        agent3.is_idle = False
+
+        # make ag1 only available to move into ag2 pos
+        grid_map[(pos, pos+1)] = 1
+        grid_map[(pos, pos-1)] = 1
+        grid_map[(pos-1, pos+1)] = 1
+        grid_map[(pos-1, pos-1)] = 1
+
+        # apply collision shielding
+        # order of calling: ag3 -> ag2 -> ag1
+        # ag2 will detect nothing with CS
+        # ag1 will plan to move into ag2 position and re-call CS for ag2 to make him re-plan
+        for agent in agent_pool:
+            agent.collision_shielding(token=token, sys_timestep=starting_t, agent_pool=agent_pool)
 
 
 if __name__ == '__main__':

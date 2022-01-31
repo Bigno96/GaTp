@@ -150,22 +150,31 @@ class __TpWorker(__ExpertWorker):
         else:
             # collect metrics
             collision_count, _ = count_collision(agent_schedule=agent_schedule)
-            service_time = statistics.mean(metrics['service_time'])
-            timestep_runtime = statistics.mean(metrics['timestep_runtime'])
 
-            # convert agent schedule into matrix notation
-            matrix_schedule = transform_agent_schedule(agent_schedule=agent_schedule)
+            # if collisions, regenerate
+            if collision_count:
+                self.bad_instances_list.append(f'{environment.name}')
 
-            # organize data to dump
-            file_name = f'{environment.name}_tp_sol'
-            expert_data = {'name': file_name,
-                           'makespan': matrix_schedule.shape[2],
-                           'service_time': service_time,
-                           'runtime_per_timestep': timestep_runtime,
-                           'collisions': collision_count,
-                           'schedule': matrix_schedule}
-            # dump data into pickle file
-            dump_data(file_path=file_name, data=expert_data)
+                name = basename(normpath(environment.name))
+                print(f'Collision on Scenario {name}')
 
-            name = basename(normpath(environment.name))
-            print(f'Run Expert on Scenario {name}')
+            else:
+                service_time = statistics.mean(metrics['service_time'])
+                timestep_runtime = statistics.mean(metrics['timestep_runtime'])
+
+                # convert agent schedule into matrix notation
+                matrix_schedule = transform_agent_schedule(agent_schedule=agent_schedule)
+
+                # organize data to dump
+                file_name = f'{environment.name}_tp_sol'
+                expert_data = {'name': file_name,
+                               'makespan': matrix_schedule.shape[2],
+                               'service_time': service_time,
+                               'runtime_per_timestep': timestep_runtime,
+                               'collisions': collision_count,
+                               'schedule': matrix_schedule}
+                # dump data into pickle file
+                dump_data(file_path=file_name, data=expert_data)
+
+                name = basename(normpath(environment.name))
+                print(f'Successful Expert on Scenario {name}')

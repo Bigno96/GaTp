@@ -61,9 +61,11 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
                   }
     free_agent_queue = deque()
 
-    # instantiate token, dict -> {agent_id : path}
-    token = dict(zip([agent.name for agent in agent_pool],
-                     [agent.path for agent in agent_pool]))
+    # instantiate token, dict -> {agent_name : {pos: (x,y), path: [(x,y,t), ...]}}
+    token = {}
+    for agent in agent_pool:
+        token[agent.name] = {'pos': agent.pos,
+                             'path': agent.path.copy()}
 
     # set up a list of active, immediately available tasks and a pool of 'new' tasks
     # split done according to imm_task_split value
@@ -77,7 +79,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
 
     # set up agent_schedule
     for agent in agent_pool:
-        agent_schedule[agent.name] = [(agent.path[0])]
+        agent_schedule[agent.name] = agent.path.copy()
 
     # track time and metrics
     timestep = 1            # timestep = 0 is the initialization
@@ -130,8 +132,10 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
         for agent in agent_pool:
             # update schedule
             agent_schedule[agent.name].append(agent.path[0])
-            # agents update also here if they are free or not (when they end a path, they become free)
+            # agents update here if they are free or not (when they end a path, they become free)
             agent.move_one_step()
+            # update token
+            token[agent.name]['pos'] = agent.pos
 
         # update timings
         elapsed_time = timeit.default_timer() - start_time
@@ -140,7 +144,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
         timestep += 1
 
 
-'''if __name__ == '__main__':
+if __name__ == '__main__':
     __spec__ = None
 
     import numpy as np
@@ -684,4 +688,4 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     from utils.metrics import count_collision
     print(count_collision(agent_schedule=agent_sched))
     for sched in agent_sched.items():
-        print(sched)'''
+        print(sched)
