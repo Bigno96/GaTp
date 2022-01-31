@@ -118,11 +118,10 @@ def check_token_conflicts(token, next_node, curr_node, starting_t=0):
                       or t_s == new_timestep
                       ]
 
-    # if include_start_node = False
     # if another agent a_i is moving into curr_pos at timestep == starting_t
     # bad_moves_list still allows next_pos == loc(a_i) -> swap conflict
-    if new_timestep == starting_t:
-        # only possible if include_start_node = False at first depth expansions
+    if curr_timestep == starting_t:
+        # only possible at first depth expansions
         bad_moves_list.extend([val['pos']       # don't go into his current position
                                for val in token.values()
                                # if that agent is going into my current position
@@ -162,7 +161,6 @@ def get_next_node_list(curr_node, max_depth, starting_t, input_map, closed_list,
                       for move in MOVE_LIST]
 
     # filter out invalid node for the expansion
-    # TODO: check swap for depth 1 expansions
     return [next_node
             for next_node in next_node_list
             if is_valid_expansion(next_node=next_node, input_map=input_map, closed_list=closed_list)
@@ -228,6 +226,26 @@ def free_cell_heuristic(target, input_map, token, target_timestep):
                 if (0 <= pos[0] < input_map.shape[0] and 0 <= pos[1] < input_map.shape[1])
                 and input_map[pos] == 0
                 and pos not in token_pos_list])
+
+
+def drop_idle(agent_pool, curr_agent, token):
+    """
+    Drop idle agents' path from the token, excluding calling agent
+    :param agent_pool: set of Agent instances
+    :param curr_agent: instance of Agent who calls the function
+    :param token: summary of other agents planned paths
+                  dict -> {agent_name : {'pos': (x,y), ''path': path}}
+                  with pos = current agent pos
+                  with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...]), future steps
+                  x, y -> cartesian coords, t -> timestep
+    :return: dict with idle agents path
+    """
+    idle_token = {}
+    for agent in agent_pool:
+        if agent.is_idle and agent != curr_agent:
+            idle_token[agent.name] = token.pop(agent.name)
+
+    return idle_token
 
 
 def transform_agent_schedule(agent_schedule):

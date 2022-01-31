@@ -415,50 +415,61 @@ class TpAgentTest(unittest.TestCase):
                 self.assertFalse(cell_around)       # no cell around
                 self.assertTrue(agent1.is_free)
 
-        '''Chain Collision Shielding'''
-        grid_map = np.zeros(shape=shape, dtype=np.int8)
-        token = {}
+            '''Chain Collision Shielding'''
+            grid_map = np.zeros(shape=shape, dtype=np.int8)
+            token = {}
 
-        # 3 agents, 2 will stay idle near each other, 1 is going into their positions
-        pos = random.choice(range(2, min(shape[0], shape[1])-2))        # don't pick borders
-        starting_t = random.choice(range(starting_t_range))
+            # 3 agents, 2 will stay idle near each other, 1 is going into their positions
+            pos = random.choice(range(2, min(shape[0], shape[1])-2))        # don't pick borders
+            starting_t = random.choice(range(starting_t_range))
 
-        start_pos_ag1 = (pos, pos)      # idle ag1
-        start_pos_ag2 = (pos-1, pos)    # idle ag2
-        start_pos_ag3 = (pos+1, pos)    # going into ag1
-        agent1 = TpAgent(name='ag1', input_map=grid_map, start_pos=start_pos_ag1, h_coll=None)  # h coll doesnt matter
-        agent2 = TpAgent(name='ag2', input_map=grid_map, start_pos=start_pos_ag2, h_coll=None)  # h coll doesnt matter
-        agent3 = TpAgent(name='ag3', input_map=grid_map, start_pos=start_pos_ag3, h_coll=None)  # h coll doesnt matter
-        agent_pool = {agent1, agent2, agent3}
+            start_pos_ag1 = (pos, pos)      # idle ag1
+            start_pos_ag2 = (pos-1, pos)    # idle ag2
+            start_pos_ag3 = (pos+1, pos)    # going into ag1
+            agent1 = TpAgent(name='ag1', input_map=grid_map, start_pos=start_pos_ag1, h_coll=None)  # h coll doesnt matter
+            agent2 = TpAgent(name='ag2', input_map=grid_map, start_pos=start_pos_ag2, h_coll=None)  # h coll doesnt matter
+            agent3 = TpAgent(name='ag3', input_map=grid_map, start_pos=start_pos_ag3, h_coll=None)  # h coll doesnt matter
+            agent_pool = {agent1, agent2, agent3}
 
-        # ag1 standing idle
-        agent1.path = deque([(start_pos_ag1[0], start_pos_ag1[1], starting_t)])
-        token[agent1.name] = {'pos': agent1.pos,
-                              'path': agent1.path}
+            # ag1 standing idle
+            agent1.path = deque([(start_pos_ag1[0], start_pos_ag1[1], starting_t)])
+            token[agent1.name] = {'pos': agent1.pos,
+                                  'path': agent1.path}
 
-        # ag2 standing idle
-        agent2.path = deque([(start_pos_ag2[0], start_pos_ag2[1], starting_t)])
-        token[agent2.name] = {'pos': agent2.pos,
-                              'path': agent2.path}
+            # ag2 standing idle
+            agent2.path = deque([(start_pos_ag2[0], start_pos_ag2[1], starting_t)])
+            token[agent2.name] = {'pos': agent2.pos,
+                                  'path': agent2.path}
 
-        # agent3 going into agent1 position
-        agent3.path = deque([(start_pos_ag1[0], start_pos_ag1[1], starting_t)])
-        token[agent3.name] = {'pos': agent3.pos,
-                              'path': agent3.path}
-        agent3.is_idle = False
+            # agent3 passing through agent1 and agent 2 position
+            agent3.path = deque([(start_pos_ag1[0], start_pos_ag1[1], starting_t),
+                                 (start_pos_ag2[0], start_pos_ag2[1], starting_t+1)])
+            token[agent3.name] = {'pos': agent3.pos,
+                                  'path': agent3.path}
+            agent3.is_idle = False
 
-        # make ag1 only available to move into ag2 pos
-        grid_map[(pos, pos+1)] = 1
-        grid_map[(pos, pos-1)] = 1
-        grid_map[(pos-1, pos+1)] = 1
-        grid_map[(pos-1, pos-1)] = 1
+            # funnel around ag1 and ag2 position
+            grid_map[(pos, pos+1)] = 1
+            grid_map[(pos, pos-1)] = 1
+            grid_map[(pos-1, pos+1)] = 1
+            grid_map[(pos-1, pos-1)] = 1
 
-        # apply collision shielding
-        # order of calling: ag3 -> ag2 -> ag1
-        # ag2 will detect nothing with CS
-        # ag1 will plan to move into ag2 position and re-call CS for ag2 to make him re-plan
-        for agent in agent_pool:
-            agent.collision_shielding(token=token, sys_timestep=starting_t, agent_pool=agent_pool)
+            # apply collision shielding
+            # order of calling: ag3 -> ag2 -> ag1
+            # ag2 will detect nothing with CS
+            # ag1 will plan to move into ag2 position and re-call CS for ag2 to make him re-plan
+            for agent in agent_pool:
+                agent.collision_shielding(token=token, sys_timestep=starting_t, agent_pool=agent_pool)
+
+            # both ag1 and ag2 uses cs
+            self.assertTrue(agent1.is_free)
+            self.assertTrue(agent2.is_free)
+            self.assertFalse(agent1.is_idle)
+            self.assertFalse(agent2.is_idle)
+
+            # ag3 doesn't utilize coll shield
+            self.assertEqual(agent3.path, deque([(start_pos_ag1[0], start_pos_ag1[1], starting_t),
+                                                 (start_pos_ag2[0], start_pos_ag2[1], starting_t+1)]))
 
 
 if __name__ == '__main__':

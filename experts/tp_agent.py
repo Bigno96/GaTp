@@ -10,7 +10,7 @@ from collections import deque
 import numpy as np
 
 from experts.a_star import a_star
-from utils.expert_utils import NEIGHBOUR_LIST, free_cell_heuristic, NoPathError
+from utils.expert_utils import NEIGHBOUR_LIST, free_cell_heuristic, drop_idle, NoPathError
 
 
 class TpAgent:
@@ -224,67 +224,83 @@ class TpAgent:
         if self.is_idle:
 
             # remove himself from the token, if present
-            # most functions assume that current agent path is not in the token (since it's to be decided)
+            # most functions assume that current agent path is not in the token
             del token[self.name]
 
-            # if some other agent is coming into agent end path position on this timestep
-            end_pos = self.path[-1][:-1]
-            if end_pos in {(x, y)
-                           for val in token.values()
-                           for x, y, t in val['path']
-                           if t == sys_timestep}:
+            # check whether the idle agent is potentially causing a conflict
+            idle_pos = self.path[-1][:-1]
+            next_pos_pool = {(x, y)
+                             for val in token.values()
+                             for x, y, t in val['path']
+                             if t == sys_timestep}
 
-                # try to move the agent towards a non-conflicting cell around him
-                d1_cell_list = [(end_pos[0]+move[0], end_pos[1]+move[1])  # distance 1
-                                for move in NEIGHBOUR_LIST]
-                # reverse order, higher number of free cells first
-                # count free cell at sys_timestep when the agent will be in target
-                d1_cell_list = sorted(d1_cell_list, reverse=True,
-                                      key=lambda c: free_cell_heuristic(target=c, input_map=self.map,
-                                                                        token=token,
-                                                                        target_timestep=sys_timestep))
+            # it is not causing any conflict
+            if idle_pos not in next_pos_pool:
+                # re add agent path to token
+                token[self.name] = {'pos': self.pos,
+                                    'path': self.path}
+                return
 
-                # TODO: ignore idle?
+            # some other agent is coming into agent end path position on this timestep -> conflict
 
-                # loop over d1 cells
-                for cell in d1_cell_list:
-                    try:
-                        self.path, _ = a_star(input_map=self.map, start=end_pos, goal=cell,
-                                              token=token, h_map=None,     # cell is not always an endpoint
-                                              starting_t=sys_timestep,
-                                              include_start_node=False)
+            # don't consider idle agents -> make them re-plan after
+            idle_token = drop_idle(agent_pool=agent_pool, curr_agent=self, token=token)
 
-                        # if agent is going to 'disturb' another agent, call collision shielding on him
-                        # agent can be disturbed only if they are idle
-                        # otherwise -> node collision prevention will avoid the conflict
-                        disturbed_agent_names = [ag
-                                                 for ag, val in token.items()
-                                                 for x, y, t in val['path']
-                                                 if t == sys_timestep    # next move
-                                                 and (x, y) == self.path[-1][:-1]  # potential collision incoming
-                                                 ]
+            # try to move the agent towards a non-conflicting cell around him
+            d1_cell_list = [(idle_pos[0]+move[0], idle_pos[1]+move[1])  # distance 1
+                            for move in NEIGHBOUR_LIST]
+            # reverse order, higher number of free cells first
+            # count free cell at sys_timestep when the agent will be in target
+            d1_cell_list = sorted(d1_cell_list, reverse=True,
+                                  key=lambda c: free_cell_heuristic(target=c, input_map=self.map,
+                                                                    token=token,
+                                                                    target_timestep=sys_timestep))
 
-                        # add here path to token for others
-                        token[self.name] = {'pos': self.pos,
-                                            'path': self.path}
-                        self.is_free = True
-                        self.is_idle = False
+            # loop over d1 cells
+            for cell in d1_cell_list:
+                try:
+                    self.path, _ = a_star(input_map=self.map, start=idle_pos, goal=cell,
+                                          token=token, h_map=None,     # cell is not always an endpoint
+                                          starting_t=sys_timestep,
+                                          include_start_node=False)
 
-                        for ag in disturbed_agent_names:
-                            # get the agent
-                            agent = [a
-                                     for a in agent_pool
-                                     if a.name == ag][0]
-                            # run coll shield
-                            agent.collision_shielding(token=token, sys_timestep=sys_timestep,
-                                                      agent_pool=agent_pool)
-                        # all agents called, return
-                        return
+                    # re add removed idle
+                    token.update(idle_token)
 
-                    # no path, try another cell
-                    except NoPathError:
-                        pass
+                    # if agent is going to 'disturb' another agent, call collision shielding on him
+                    # agent can be disturbed only if they are idle
+                    # otherwise -> node collision prevention will avoid the conflict
+                    disturbed_agent_names = [ag
+                                             for ag, val in token.items()
+                                             for x, y, t in val['path']
+                                             if t == sys_timestep    # next move
+                                             and (x, y) == self.path[0][:-1]  # potential collision incoming
+                                             ]
 
-            # re add agent path to token if nothing done
+                    # add here path to token for others CS
+                    token[self.name] = {'pos': self.pos,
+                                        'path': self.path}
+                    self.is_free = True
+                    self.is_idle = False
+
+                    for ag in disturbed_agent_names:
+                        # get the agent
+                        agent = [a
+                                 for a in agent_pool
+                                 if a.name == ag][0]
+                        # run coll shield
+                        agent.collision_shielding(token=token, sys_timestep=sys_timestep,
+                                                  agent_pool=agent_pool)
+                    # all disturbed agents called, return
+                    return
+
+                # no path, try another cell
+                except NoPathError:
+                    pass
+
+            # impossible to avoid collision
+            # re add agent path to token
             token[self.name] = {'pos': self.pos,
                                 'path': self.path}
+            # re add removed idle
+            token.update(idle_token)

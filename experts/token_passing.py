@@ -80,6 +80,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     # set up agent_schedule
     for agent in agent_pool:
         agent_schedule[agent.name] = agent.path.copy()
+        agent.move_one_step()       # move them to timestep 1
 
     # track time and metrics
     timestep = 1            # timestep = 0 is the initialization
@@ -144,7 +145,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
         timestep += 1
 
 
-if __name__ == '__main__':
+'''if __name__ == '__main__':
     __spec__ = None
 
     import numpy as np
@@ -688,4 +689,4 @@ if __name__ == '__main__':
     from utils.metrics import count_collision
     print(count_collision(agent_schedule=agent_sched))
     for sched in agent_sched.items():
-        print(sched)
+        print(sched)'''

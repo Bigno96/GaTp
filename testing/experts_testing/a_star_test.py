@@ -140,7 +140,8 @@ class AStarTest(unittest.TestCase):
         new_node = (4, 6, 0)
         curr_node = (4, 5, -1)
 
-        self.assertFalse(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node))
+        self.assertFalse(check_token_conflicts(token=token, next_node=new_node, curr_node=curr_node,
+                                               starting_t=-1))
 
     def test_a_star(self):
         repetition = 1000

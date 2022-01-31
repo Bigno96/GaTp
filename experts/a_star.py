@@ -25,6 +25,7 @@ from math import hypot
 import numpy as np
 
 from utils.expert_utils import compute_manhattan_heuristic, get_next_node_list, NoPathError
+from utils.expert_utils import check_token_conflicts
 
 
 def a_star(input_map, start, goal, include_start_node,
@@ -53,10 +54,18 @@ def a_star(input_map, start, goal, include_start_node,
              path_length: int
     :raise NoPathError if no paths are found
     """
-    # fist check, if start == goal
+    # degenerate case
     if start == goal:
-        return deque([(start[0], start[1], 0)]), 1
-
+        # check start position does not generate conflicts
+        if check_token_conflicts(token=token,
+                                 next_node=(start[0], start[1], starting_t),
+                                 curr_node=(start[0], start[1], starting_t),
+                                 starting_t=starting_t):
+            return deque([(start[0], start[1], starting_t)]), 1
+        else:
+            # let Collision Shielding handle it
+            raise NoPathError('No path found')
+        
     # pre-compute heuristic if none
     if not isinstance(h_map, np.ndarray):
         h_map = compute_manhattan_heuristic(input_map=input_map, goal=goal)
@@ -96,6 +105,7 @@ def a_star(input_map, start, goal, include_start_node,
         # if goal is reached
         if curr_node[:-1] == goal:
             path = deque()
+
             # loop back until start is reached and build full path
             while curr_node != start_node:
                 path.appendleft(curr_node)
@@ -106,14 +116,14 @@ def a_star(input_map, start, goal, include_start_node,
 
             return path, len(path)
 
-        else:
-            for next_node in get_next_node_list(curr_node=curr_node, max_depth=max_depth, starting_t=starting_t,
-                                                input_map=input_map, closed_list=closed_list, token=token):
-                # update values and append to the fringe
-                closed_list.add(next_node)  # node has been visited
-                back_tracker[next_node] = curr_node  # keep track of the move
-                g_next = g + cost
-                f = g_next + h_map[next_node[:-1]]
-                heapq.heappush(open_list, (f, g_next, next_node))
+        # add all available child nodes
+        for next_node in get_next_node_list(curr_node=curr_node, max_depth=max_depth, starting_t=starting_t,
+                                            input_map=input_map, closed_list=closed_list, token=token):
+            # update values and append to the fringe
+            closed_list.add(next_node)  # node has been visited
+            back_tracker[next_node] = curr_node  # keep track of the move
+            g_next = g + cost
+            f = g_next + h_map[next_node[:-1]]
+            heapq.heappush(open_list, (f, g_next, next_node))
 
     raise NoPathError('No path found')
