@@ -13,7 +13,7 @@ from utils.metrics import count_collision
 
 class TpTest(unittest.TestCase):
     def test_tp(self):
-        repetition = 2500
+        repetition = 100
         timeout = 20
 
         time_list = []
@@ -25,7 +25,7 @@ class TpTest(unittest.TestCase):
         shape = (20, 20)
         density = 0.1
         agent_num = 20
-        task_num = 50
+        task_num = 500
         imm_task_split = 0
         new_task_per_timestep = 1
         step_between_insertion = 1

@@ -9,11 +9,12 @@ Scenario:
 
 This file does not provide methods to feed tasks to the agents
 Tasks are provided in the scenario as a list, how those are passed into the problem is managed externally
-It is possible to add tasks into a scenario after its creation
 
 Tasks locations can coincide or not with agents starting position or with other tasks locations
 Both of these options are controllable with a parameter
 Default -> tasks locations can't coincide with non-task endpoints in order to generate well-formed MAPD instances
+
+Task endpoints cannot be on map borders, to increase probabilities of well-formed MAPD instances
 """
 
 from random import sample
@@ -86,10 +87,11 @@ def create_starting_pos(input_map, agent_num, mode='random', fixed_pos_list=None
         return sample(population=free_cell_list, k=agent_num)  # list of tuples
 
 
-def create_task(input_map, mode='avoid_non_task_rep',
+def create_task(input_map, mode='avoid_non_task_rep', task_amount=1,
                 non_task_ep_list=None, task_list=None):
     """
     Return a task for the given map and starting positions
+    Task endpoints cannot be on map borders, to increase probabilities of well-formed MAPD instances
     Whether tasks can coincide with starting locations or with other tasks is controlled by 'mode'
     :param input_map: np.ndarray, shape:H*W, matrix of 0 and 1
     :param mode:
@@ -112,6 +114,11 @@ def create_task(input_map, mode='avoid_non_task_rep',
     # filters out obstacles coords
     where_res = np.nonzero(input_map == 0)
     free_cell_pool = set(zip(where_res[0], where_res[1]))
+
+    # filters out borders
+    free_cell_pool = set(filter(lambda c: c[0] != 0 and c[1] != 0
+                                          and c[0] != input_map.shape[1]-1 and c[1] != input_map.shape[1]-1,
+                                free_cell_pool))
 
     # no tasks on other task positions
     if mode == 'avoid_task_rep' or mode == 'avoid_all':

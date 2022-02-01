@@ -41,7 +41,7 @@ class TpAgent:
         return self.name == other.name
 
     def __str__(self):
-        return (f'TpAgent(name={self.name}, free={self.is_free}, pos={self.pos}\n'
+        return (f'TpAgent(name={self.name}, free={self.is_free}, idle={self.is_idle}, pos={self.pos}\n'
                 f'\t\tpath={self.path})')
 
     def __hash__(self):
@@ -209,9 +209,10 @@ class TpAgent:
         token[self.name] = {'pos': self.pos,
                             'path': self.path}
 
-    def collision_shielding(self, token, sys_timestep, agent_pool):
+    def collision_shielding(self, token, sys_timestep, agent_pool, _time_horizon=2):
         """
         Avoid collisions by moving an agent if another one is coming into its current idle spot
+        Scan token looking for potential future conflicts beneath the time horizon
         :param token: summary of other agents planned paths
                   dict -> {agent_name : {'pos': (x,y), ''path': path}}
                   with pos = current agent pos
@@ -219,6 +220,7 @@ class TpAgent:
                   x, y -> cartesian coords, t -> timestep
         :param sys_timestep: global timestep of the execution
         :param agent_pool: set of agents
+        :param _time_horizon: int, maximum time distance the agent will look in the future
         """
         # if the agent is doing nothing
         if self.is_idle:
@@ -232,7 +234,8 @@ class TpAgent:
             next_pos_pool = {(x, y)
                              for val in token.values()
                              for x, y, t in val['path']
-                             if t == sys_timestep}
+                             # +1 since range exclude second value
+                             if t in range(sys_timestep, sys_timestep+_time_horizon+1)}
 
             # it is not causing any conflict
             if idle_pos not in next_pos_pool:

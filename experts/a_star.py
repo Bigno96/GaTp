@@ -85,7 +85,7 @@ def a_star(input_map, start, goal, include_start_node,
         starting_t -= 1
     start_node = (start[0], start[1], starting_t)
     # max path length
-    max_depth = starting_t + int(hypot(input_map.shape[0], input_map.shape[1]) * 1.5)
+    max_depth = starting_t + int(hypot(input_map.shape[0], input_map.shape[1]) * 1.25)
 
     g = 0  # cost of the path to the current cell
     f = g + h_map[start]
