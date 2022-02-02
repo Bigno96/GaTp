@@ -36,6 +36,7 @@ def iterate_data(dataloader):
         plt.imshow(image.squeeze())
         plt.show()
         pprint(environment)
+        expert_sol['schedule'] = torch.transpose(expert_sol['schedule'].squeeze(), 0, 2)    # print formatting
         pprint(expert_sol)
 
         input('\nPress Enter to continue\n')

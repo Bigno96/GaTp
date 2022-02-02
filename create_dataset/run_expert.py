@@ -145,7 +145,7 @@ class __TpWorker(__ExpertWorker):
             worker.join()
 
             name = basename(normpath(environment.name))
-            print(f'Timed out Expert on Scenario {name}')
+            print(f'Timed out Expert on Environment {name}')
 
         else:
             # collect metrics
@@ -156,7 +156,7 @@ class __TpWorker(__ExpertWorker):
                 self.bad_instances_list.append(f'{environment.name}')
 
                 name = basename(normpath(environment.name))
-                print(f'Collision on Scenario {name}')
+                print(f'Collision on Environment {name}')
 
             else:
                 service_time = statistics.mean(metrics['service_time'])
@@ -177,4 +177,4 @@ class __TpWorker(__ExpertWorker):
                 dump_data(file_path=file_name, data=expert_data)
 
                 name = basename(normpath(environment.name))
-                print(f'Successful Expert on Scenario {name}')
+                print(f'Successful Expert on Environment {name}')

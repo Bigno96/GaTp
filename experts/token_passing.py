@@ -144,6 +144,10 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
 
         timestep += 1
 
+    # update schedule with last move
+    for agent in agent_pool:
+        agent_schedule[agent.name].append(agent.path[0])
+
 
 '''if __name__ == '__main__':
     __spec__ = None

@@ -137,7 +137,7 @@ class __RandomGridWorker:
                           start_pos_list=start_pos_list, parking_spot_list=parking_spot_list,
                           task_list=task_list)
 
-            print(f'Creating Scenario map{map_id:03d}_case{sc_id:02d}')
+            print(f'Created Environment map{map_id:03d}_case{sc_id:02d}')
 
 
 def save_and_dump(file_path, input_map, start_pos_list, parking_spot_list, task_list):
