@@ -1,10 +1,13 @@
 """
-Implementation of Residual Neural Network
+Function for building custom Residual Neural Network
 
-Based on original paper:
+Structure based on original paper:
 K. He, X. Zhang, S. Ren and J. Sun,
 "Deep residual learning for image recognition."
 In Proceedings of the IEEE conference on computer vision and pattern recognition, pp. 770-778. 2016.
+
+Implementation based on the following git-hub repo:
+https://github.com/FrancescoSaverioZuppichini/ResNet.git
 """
 
 from functools import partial
@@ -155,12 +158,12 @@ class BasicBlock(ResidualBlock):
         self.blocks = nn.Sequential(
             # Conv + Batch Norm
             conv_bn(in_channels=in_channels, out_channels=out_channels,
-                    conv=conv, stride=self.down_sampling),   # down sampling by stride, optional
+                    conv=conv, stride=self.down_sampling, bias=False),   # down sampling by stride, optional
             # activation function
             activation_func(activation=self.activation),
             # Conv + Batch Norm
             conv_bn(in_channels=out_channels, out_channels=self.expanded_channels,    # channels expansion
-                    conv=conv, stride=(1, 1))       # no stride
+                    conv=conv, stride=(1, 1), bias=False)       # no stride
         )
 
 
