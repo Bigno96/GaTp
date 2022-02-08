@@ -209,7 +209,7 @@ class TpAgent:
         token[self.name] = {'pos': self.pos,
                             'path': self.path}
 
-    def collision_shielding(self, token, sys_timestep, agent_pool, _time_horizon=2):
+    def collision_shielding(self, token, sys_timestep, agent_pool, _time_horizon=3):
         """
         Avoid collisions by moving an agent if another one is coming into its current idle spot
         Scan token looking for potential future conflicts beneath the time horizon

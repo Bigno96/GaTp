@@ -87,7 +87,7 @@ def create_starting_pos(input_map, agent_num, mode='random', fixed_pos_list=None
         return sample(population=free_cell_list, k=agent_num)  # list of tuples
 
 
-def create_task(input_map, mode='avoid_non_task_rep', task_amount=1,
+def create_task(input_map, mode='avoid_non_task_rep',
                 non_task_ep_list=None, task_list=None):
     """
     Return a task for the given map and starting positions
