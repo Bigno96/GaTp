@@ -86,18 +86,6 @@ class TpTest(unittest.TestCase):
 
                 # collect conflicts
                 coll_count, coll_list = count_collision(agent_schedule=agent_schedule)
-
-                '''if coll_count > 0:
-                    print(coll_list)
-                    pprint(grid_map)
-                    print(f'Agents starting positions: {start_pos_list}')
-                    print('Task List:')
-                    pprint(task_list)
-                    print('Resulting Schedule:')
-                    for schedule in agent_schedule.items():
-                        print(schedule)
-                    end = True'''
-
                 collision_count_list.append(coll_count)
 
                 # collect makespan
