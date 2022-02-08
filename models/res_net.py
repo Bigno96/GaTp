@@ -7,19 +7,8 @@ K. He, X. Zhang, S. Ren and J. Sun,
 In Proceedings of the IEEE conference on computer vision and pattern recognition, pp. 770-778. 2016.
 """
 
+from functools import partial
 import torch.nn as nn
-
-
-def activation_func(activation):
-    """
-    Dynamically select activation function
-    :return: ModuleDict with options for activation function
-    """
-    return nn.ModuleDict(modules={
-        'relu': nn.ReLU(inplace=True),    # Rectified Linear Unit
-        'leaky_relu': nn.LeakyReLU(negative_slope=0.01, inplace=True),
-        'selu': nn.SELU(inplace=True)      # Scaled Exponential Linear Unit
-    })[activation]
 
 
 class ResNet(nn.Module):
@@ -48,19 +37,18 @@ class ResNet(nn.Module):
         return x
 
 
-def conv3x3(in_channels, out_channels, stride=(1, 1), padding=(1, 1)):
+class Conv2dAuto(nn.Conv2d):
     """
-    :param in_channels: int, input planes
-    :param out_channels: int, output planes
-    :param stride: default (1, 1), no stride
-    :param padding: default (1, 1), padding added to all four sides of the input
-                    Padding mode = 'zeros'
-    :return: Conv2D layer with Kernel 3x3 and specified parameters
+    Conv2d with auto padding
     """
-    return nn.Conv2d(in_channels=in_channels, out_channels=out_channels,
-                     kernel_size=(3, 3),        # kernel size = 3
-                     stride=stride, padding=padding,
-                     bias=False, padding_mode='zeros')      # no bias
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # dynamic add padding based on the kernel_size
+        self.padding = (self.kernel_size[0] // 2, self.kernel_size[1] // 2)
+
+
+'''Conv2d with 3x3 Kernel and auto padding'''
+conv3x3 = partial(Conv2dAuto, kernel_size=(3, 3), bias=False, padding_mode='zeros')
 
 
 def conv_bn(in_channels, out_channels, conv, *args, **kwargs):
@@ -76,6 +64,18 @@ def conv_bn(in_channels, out_channels, conv, *args, **kwargs):
     """
     return nn.Sequential(conv(in_channels=in_channels, out_channels=out_channels, *args, **kwargs),
                          nn.BatchNorm2d(out_channels))
+
+
+def activation_func(activation):
+    """
+    Dynamically select activation function
+    :return: ModuleDict with options for activation function
+    """
+    return nn.ModuleDict(modules={
+        'relu': nn.ReLU(inplace=True),    # Rectified Linear Unit
+        'leaky_relu': nn.LeakyReLU(negative_slope=0.01, inplace=True),
+        'selu': nn.SELU(inplace=True)      # Scaled Exponential Linear Unit
+    })[activation]
 
 
 class ResidualBlock(nn.Module):
@@ -102,7 +102,8 @@ class ResidualBlock(nn.Module):
         self.expansion = expansion
         self.down_sampling = down_sampling
         # save activation
-        self.activation = activation_func(activation)
+        self.activation = activation
+        self.activation_func = activation_func(activation=activation)
         # layers implemented by subclasses
         self.blocks = nn.Identity()
         # save shortcut for skip connection
@@ -117,22 +118,23 @@ class ResidualBlock(nn.Module):
 
     @property
     def should_apply_shortcut(self):
-        return self.in_channels != self.out_channels
+        return self.in_channels != self.expanded_channels
 
     def forward(self, x):
         residual = x
         if self.should_apply_shortcut:
             residual = self.shortcut(x)
+
         x = self.blocks(x)
         x += residual
-        x = self.activation(x)
+        x = self.activation_func(x)
 
         return x
 
 
 class BasicBlock(ResidualBlock):
     """
-    Basic building Block of a ResNet, inheriting from ResidualBlock
+    Classic building Block of a ResNet, inheriting from ResidualBlock
     Structure:
         - Conv (with optional down-sampling) + Batch Norm
         - Activation function
@@ -155,10 +157,47 @@ class BasicBlock(ResidualBlock):
             conv_bn(in_channels=in_channels, out_channels=out_channels,
                     conv=conv, stride=self.down_sampling),   # down sampling by stride, optional
             # activation function
-            self.activation,
+            activation_func(activation=self.activation),
             # Conv + Batch Norm
             conv_bn(in_channels=out_channels, out_channels=self.expanded_channels,    # channels expansion
                     conv=conv, stride=(1, 1))       # no stride
+        )
+
+
+class BottleNeckBlock(ResidualBlock):
+    """
+    Building Block for deep, low parameters ResNet, inheriting from ResidualBlock
+    Structure:
+        - 1x1 Conv + Batch Norm
+        - Activation function
+        - 3x3 Conv (with optional down-sampling) + Batch Norm
+        - Activation function
+        - 1x1 Conv + Batch Norm, with out_channels expansion
+    """
+    expansion = 4
+
+    def __init__(self, in_channels, out_channels, *args, **kwargs):
+        """
+        :param in_channels: int, input planes
+        :param out_channels: int, output planes
+        :param args: optional positional arguments for Conv layer
+        :param kwargs: optional keyword arguments for Conv layer
+        """
+        super().__init__(in_channels=in_channels, out_channels=out_channels, expansion=4, *args, **kwargs)
+        self.blocks = nn.Sequential(
+            # 1x1 Conv + Batch Norm
+            conv_bn(in_channels=self.in_channels, out_channels=self.out_channels,
+                    conv=Conv2dAuto, kernel_size=(1, 1), bias=False),
+            # activation function
+            activation_func(activation=self.activation),
+            # 3x3 Conv with (optional) down-sampling by meaning of stride + Batch Norm
+            conv_bn(in_channels=self.out_channels, out_channels=self.out_channels, stride=self.down_sampling,
+                    conv=Conv2dAuto, kernel_size=(3, 3), bias=False),
+            # activation function
+            activation_func(activation=self.activation),
+            # 1x1 Conv + Batch Norm with expansion
+            conv_bn(in_channels=self.out_channels, out_channels=self.expanded_channels,
+                    conv=Conv2dAuto, kernel_size=(1, 1), bias=False),
         )
 
 
@@ -267,12 +306,3 @@ class ResnetDecoder(nn.Module):
         x = x.view(x.size(0), -1)       # flatten
         x = self.fc(x)
         return x
-
-
-if __name__ == '__main__':
-    res_net = ResNet(in_channels=3, out_features=128, activation='relu',
-                     blocks_size=[32, 64, 128], depths=(2, 2, 2), block=BasicBlock)
-
-    from torchsummary import summary
-
-    summary(res_net.cuda(), (3, 256, 256))
