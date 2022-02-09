@@ -10,8 +10,9 @@ Implementation based on the following git-hub repo:
 https://github.com/FrancescoSaverioZuppichini/ResNet.git
 """
 
-from functools import partial
 import torch.nn as nn
+
+from functools import partial
 
 
 class ResNet(nn.Module):
@@ -38,6 +39,9 @@ class ResNet(nn.Module):
         x = self.encoder(x)
         x = self.decoder(x)
         return x
+
+    def init_weights(self):
+        self.apply(init_res_net_weight)
 
 
 class Conv2dAuto(nn.Conv2d):
@@ -313,3 +317,22 @@ class ResnetDecoder(nn.Module):
         x = x.view(x.size(0), -1)       # flatten
         x = self.fc(x)
         return x
+
+
+def init_res_net_weight(m):
+    """
+    Initialize weights for Residual Network
+    Convolutional layer -> weights: He-normal, no bias
+    Batch Norm layer -> weights: 1, bias: 0
+    Linear layer -> weights: uniform (default), bias: 0
+    :param m: torch.nn.layer
+    """
+    if isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+
+    elif isinstance(m, nn.BatchNorm2d):
+        nn.init.constant_(m.weight, 1)
+        nn.init.constant_(m.bias, 0)
+
+    elif isinstance(m, nn.Linear):
+        nn.init.constant_(m.bias, 0)
