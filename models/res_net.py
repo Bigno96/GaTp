@@ -50,8 +50,16 @@ class Conv2dAuto(nn.Conv2d):
         self.padding = (self.kernel_size[0] // 2, self.kernel_size[1] // 2)
 
 
+'''Conv2d with 1x1 Kernel and auto padding'''
+conv1x1 = partial(Conv2dAuto, kernel_size=(1, 1), bias=False)
+
+
 '''Conv2d with 3x3 Kernel and auto padding'''
-conv3x3 = partial(Conv2dAuto, kernel_size=(3, 3), bias=False, padding_mode='zeros')
+conv3x3 = partial(Conv2dAuto, kernel_size=(3, 3), bias=False)
+
+
+'''Conv2d with 3x3 Kernel and auto padding'''
+conv7x7 = partial(Conv2dAuto, kernel_size=(7, 7), bias=False)
 
 
 def conv_bn(in_channels, out_channels, conv, *args, **kwargs):
@@ -111,8 +119,7 @@ class ResidualBlock(nn.Module):
         self.blocks = nn.Identity()
         # save shortcut for skip connection
         self.shortcut = nn.Sequential(
-            nn.Conv2d(in_channels=self.in_channels, out_channels=self.expanded_channels,
-                      kernel_size=(1, 1), stride=self.down_sampling, bias=False),
+            conv1x1(in_channels=self.in_channels, out_channels=self.expanded_channels, stride=self.down_sampling),
             nn.BatchNorm2d(self.expanded_channels)) if self.should_apply_shortcut else None
 
     @property
@@ -189,18 +196,16 @@ class BottleNeckBlock(ResidualBlock):
         super().__init__(in_channels=in_channels, out_channels=out_channels, expansion=4, *args, **kwargs)
         self.blocks = nn.Sequential(
             # 1x1 Conv + Batch Norm
-            conv_bn(in_channels=self.in_channels, out_channels=self.out_channels,
-                    conv=Conv2dAuto, kernel_size=(1, 1), bias=False),
+            conv_bn(in_channels=self.in_channels, out_channels=self.out_channels, conv=conv1x1),
             # activation function
             activation_func(activation=self.activation),
             # 3x3 Conv with (optional) down-sampling by meaning of stride + Batch Norm
-            conv_bn(in_channels=self.out_channels, out_channels=self.out_channels, stride=self.down_sampling,
-                    conv=Conv2dAuto, kernel_size=(3, 3), bias=False),
+            conv_bn(in_channels=self.out_channels, out_channels=self.out_channels, conv=conv3x3,
+                    stride=self.down_sampling),
             # activation function
             activation_func(activation=self.activation),
             # 1x1 Conv + Batch Norm with expansion
-            conv_bn(in_channels=self.out_channels, out_channels=self.expanded_channels,
-                    conv=Conv2dAuto, kernel_size=(1, 1), bias=False),
+            conv_bn(in_channels=self.out_channels, out_channels=self.expanded_channels, conv=conv1x1),
         )
 
 
@@ -263,9 +268,8 @@ class ResNetEncoder(nn.Module):
         super().__init__()
         # first layer, fixed
         self.gate = nn.Sequential(
-            nn.Conv2d(in_channels=in_channels, out_channels=blocks_size[0],
-                      kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False),   # 7x7 kernel, stride = 2
-            nn.BatchNorm2d(blocks_size[0]),
+            conv_bn(in_channels=in_channels, out_channels=blocks_size[0], conv=conv7x7,
+                    stride=(2, 2)),  # 7x7 kernel, stride = 2
             activation_func(activation=activation),
             nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))     # 3x3 max pooling
         )
