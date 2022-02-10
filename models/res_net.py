@@ -34,14 +34,13 @@ class ResNet(nn.Module):
         self.encoder = ResNetEncoder(in_channels=in_channels, *args, **kwargs)
         self.decoder = ResnetDecoder(in_features=self.encoder.blocks[-1].blocks[-1].expanded_channels,
                                      out_features=out_features)
+        # initialize weights
+        self.apply(init_res_net_weight)
 
     def forward(self, x):
         x = self.encoder(x)
         x = self.decoder(x)
         return x
-
-    def init_weights(self):
-        self.apply(init_res_net_weight)
 
 
 class Conv2dAuto(nn.Conv2d):
@@ -310,18 +309,19 @@ class ResnetDecoder(nn.Module):
         """
         super().__init__()
         self.avg = nn.AdaptiveAvgPool2d((1, 1))
+        self.flat = nn.Flatten()
         self.fc = nn.Linear(in_features=in_features, out_features=out_features)
 
     def forward(self, x):
         x = self.avg(x)
-        x = x.view(x.size(0), -1)       # flatten
+        x = self.flat(x)
         x = self.fc(x)
         return x
 
 
 def init_res_net_weight(m):
     """
-    Initialize weights for Residual Network
+    Initialize weights for Residual Network, following original paper initialization
     Convolutional layer -> weights: He-normal, no bias
     Batch Norm layer -> weights: 1, bias: 0
     Linear layer -> weights: uniform (default), bias: 0
