@@ -12,7 +12,7 @@ datasets
                         |-> validation
                         |-> testing
 
-All parameters are controlled in GaTp/yaml_configs/Dataset_creation.yaml
+All parameters are controlled in GaTp/yaml_configs/dataset_creation.yaml
 
 Inside each training, validation and testing folders there are:
 - image of the map + starting positions
@@ -37,7 +37,7 @@ def create_dataset():
     Create dataset consisting of maps, scenarios and experts solutions
     """
     # get config from yaml file
-    config = get_config_from_yaml('Dataset_creation')
+    config = get_config_from_yaml('dataset_creation')
 
     # create folder for the dataset
     dataset_dir = os.path.join(config.data_root,

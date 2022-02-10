@@ -25,7 +25,7 @@ start_position_mode: 'random'
 fixed_position_list: [[1, 1], [1, 2], [1, 3], [1, 4]]
 # how to create tasks -> 'free', 'avoid_non_task_rep', 'avoid_task_rep' or 'avoid_all'
 task_creation_mode: 'avoid_non_task_rep'
-# how many tasks of the scenario are immediately available at the start
+# percentage of tasks of the scenario immediately available at the start
 imm_task_split: 0
 # how many tasks to add at each insertion, until all 'task_number' agents are inserted
 new_task_per_timestep: 1

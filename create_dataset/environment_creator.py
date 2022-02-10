@@ -1,6 +1,6 @@
 """
 ### If you are searching for main of dataset creation, look for GaTp/create_dataset/dataset_creator ###
-### Parameters for environment and dataset creation are specified in GaTp/yaml_configs/Dataset_creation.yaml ###
+### Parameters for environment and dataset creation are specified in GaTp/yaml_configs/dataset_creation.yaml ###
 
 Functions to create a data pool of environments, meaning different maps and all the scenarios for those maps
 

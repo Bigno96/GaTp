@@ -95,21 +95,31 @@ def process_config(args):
     Add all args, parsed from main.py inputs, as Namespace attributes
     '''
     config.mode = args.mode     # train or test
-    # map and scenario configuration
+    # environment configuration
     config.map_type = args.map_type
     config.map_size = args.map_size
     config.map_density = args.map_density
     config.num_agents = args.num_agents
     config.tasks_number = args.tasks_number
+    config.imm_task_split = args.imm_task_split
+    config.new_task_per_timestep = args.new_task_per_timestep
+    config.step_between_insertion = args.step_between_insertion
+    config.start_position_mode = args.start_position_mode
+    config.task_creation_mode = args.task_creation_mode
 
     # set up experiment name with configuration summary:
     #   environment description, hyper parameters, timestamp
     config.env_setup = f'{config.map_type}_{config.map_size[0]}x{config.map_size[1]}' \
-                       f'_{config.map_density}rho_{config.num_agents}Agent'
-    config.exp_hyper_para = f'{config.communication_hops}hops'
+                       f'_{config.map_density}density_{config.num_agents}agents_{config.tasks_number}'
+    config.task_setup = f'{config.start_position_mode}_start+{config.task_creation_mode}_task' \
+                        f'+{config.imm_task_split}split_+{config.new_task_per_timestep}' \
+                        f'_every{config.step_between_insertion}'
+    config.exp_hyper_para = f'{config.attention_heads}heads+{config.attention_concat}_concat' \
+                            f'+{config.communication_hops}hops'
     config.exp_time = str(int(mktime(datetime.now().timetuple())))
     config.exp_name = os.path.join(f'{config.model_name}_{config.env_setup}',
                                    config.exp_hyper_para,
+                                   config.task_setup,
                                    config.exp_time)
 
     # setup and create useful directories
