@@ -232,12 +232,12 @@ class GraphFilterBatchAttentional(nn.Module):
         # x is of shape: batchSize x dimInFeatures x numberNodesIn
         B = x.shape[0]
         F = x.shape[1]
-        n_in = x.shape[2]
+        N = x.shape[2]
 
         # And now we add the zero padding
-        if n_in < self.N:
+        if N < self.N:
             x = torch.cat((x,
-                           torch.zeros(B, F, self.N-n_in)
+                           torch.zeros(B, F, self.N-N)
                                    .type(x.dtype).to(x.device)
                            ), dim=2)
 
@@ -246,14 +246,13 @@ class GraphFilterBatchAttentional(nn.Module):
                                                   W=self.weight, S=self.S, b=self.bias)
         self.aij = aij.detach().cpu().numpy()
 
-        # This output is of size B x P x F x N. Now, we can either concatenate
-        # them (inner layers) or average them (outer layer)
+        # This output is of size B x P x F x N.
+        # Now, we can either concatenate them (inner layers) or average them (outer layer)
         if self.concatenate:
             # When we concatenate we first apply the non-linearity
             y = self.non_linearity(y)
             # Concatenate: Make it B x PF x N such that first iterates over f
-            # and then over p: (p=0,f=0), (p=0,f=1), ..., (p=0,f=F-1), (p=1,f=0),
-            # (p=1,f=1), ..., etc.
+            # and then over p: (p=0,f=0), (p=0,f=1), ..., (p=0,f=F-1), (p=1,f=0), (p=1,f=1), ...
             y = y.permute(0, 3, 1, 2)\
                     .reshape([B, self.N, self.P*self.F])\
                     .permute(0, 2, 1)
@@ -263,8 +262,8 @@ class GraphFilterBatchAttentional(nn.Module):
             # And then we apply the non-linearity
             y = self.non_linearity(y)
 
-        if n_in < self.N:
-            y = torch.index_select(y, 2, torch.arange(n_in).to(y.device))
+        if N < self.N:
+            y = torch.index_select(y, 2, torch.arange(N).to(y.device))
         return y
 
     def extra_repr(self):
@@ -274,7 +273,6 @@ class GraphFilterBatchAttentional(nn.Module):
         repr_string += "attention_heads=%d, " % self.P
         repr_string += "edge_features=%d, " % self.E
         repr_string += "bias=%s, " % (self.bias is not None)
-        repr_string += "attentionMode=%s, " % self.attentionMode
         if self.S is not None:
             repr_string += "GSO stored: number_nodes=%d" % self.N
         else:
@@ -390,19 +388,9 @@ def learn_attention_gso_batch_key_query(x, a, W, S, negative_slope=0.2):
     E = a.shape[1]  # edge_features
     assert W.shape[0] == P
     assert W.shape[1] == E
-    # assert a.shape[2] == int(2 * F)
     G = W.shape[3]  # input_features
     assert S.shape[1] == E
     assert S.shape[2] == S.shape[3] == N
-
-    # Add ones of the GSO at all edge feature levels so that the node always
-    # has access to itself. The fact that it's one is not so relevant, because
-    # the attention coefficient that is learned would compensate for this
-    # S = S.type(torch.float) + torch.eye(N, dtype=torch.float).reshape([1, N, N]).repeat(B, E, 1, 1).to(S.device)
-
-    # W is of size P x E x F x G
-    # A is of size P x E x 2F
-    # Compute Wx for all nodes
 
     # x = batch_size x input_features x number_nodes -> x = batch_size x number_nodes x input_features
     x_key = x.permute([0, 2, 1]).reshape([B, 1, 1, N, G])

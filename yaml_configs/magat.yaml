@@ -1,6 +1,7 @@
 # Simple Token Passing with Graph Attention model
-model_name: "MAGAT"
-agent: "magat"
+model_name: 'MAGAT'
+agent: 'magat'
+device: 'cuda'
 
 # folder paths
 data_root: "D:\\Uni\\TESI\\GaTp\\datasets"
@@ -8,33 +9,36 @@ exp_folder: "D:\\Uni\\TESI\\GaTp\\experiments"
 
 # model hyper parameters
 # 1) CNN, feature extractor
-cnn_model: 'res'            # residual (network)
+cnn_model: 'res'            # type of cnn: residual (network)
+cnn_in_channels: 3          # number of input channels
 cnn_out_features: 128       # number of 'extracted' features from the input FOV by the CNN
-cnn_blocks_size: (32, 64, 128)    # number of channels for cnn blocks
-depths: (1, 1, 1)           # number of blocks that compose each layer of the cnn
+cnn_blocks_size: [32, 64, 128]    # number of channels for cnn blocks
+cnn_depths: [1, 1, 1]       # number of blocks that compose each layer of the cnn
                             # blocks in the i-th layer all have channels num = cnn_blocks_size[i]
 feature_compression: True   # if True, an additional MLP layer is placed at the end of the CNN
-skip_connection: True       # if True, a skip connection is added before and after the GNN
-feature_compr_out: 32       # if feature compression is used,
-                            # these coincide with skip connection features
-feature_compr_hidden_feat: (64,)  # number of features of the hidden layers in the MLP
+feature_compr_out: 32       # output from features compression. These coincide with skip connection features
+feature_compr_hidden_feat: [64]   # number of features of the hidden layers in the MLP
 feature_compr_dropout: True       # if True, add dropout to MLP
 feature_compr_dropout_rate: 0.2   # ratio of dropout, if used
 
+# if True, a skip connection is added before and after the GNN
+skip_connection: True
+
 # 2) GNN -> GAT with GSO
-gnn_model: 'gat_gso'      # graph convolution attentional network
-gnn_hidden_features: ()   # tuple of int, e.g. (128, 64, 32), vector of INPUT features of hidden layers
-                          # len = number of desired graph filtering layers - 1
-graph_filter_taps: (3,)   # tuple of int, 'power' of the GSO. Vector with number of filter taps for each layer.
+gnn_model: 'gat_gso'      # type of gnn: graph convolution attentional network
+gnn_hidden_features: []      # tuple of int, e.g. (32, 64, 128), vector of INPUT features of hidden layers
+                             # should be same size of feature_compr_out if used, else cnn_out_features
+                             # len = number of desired graph filtering layers - 1
+graph_filter_taps: [3]    # tuple of int, 'power' of the GSO. Vector with number of filter taps for each layer
                           # len = number of graph filtering layers
-attention_heads: (1,)     # tuple of int, vector with number of attention heads for each layer
+attention_heads: [1]      # tuple of int, vector with number of attention heads for each layer
                           # len = number of graph filtering layers
-attention_concat: True    # if True, concatenate the output of the attention heads. False, average the output.
+attention_concat: True    # if True, concatenate the output of the attention heads. False, average the output
 communication_radius: 7   # max range for agents communication
 communication_hops: 2     # maximum hops for neighbours communication
 
 # 3) MLP, map features to actions
-mlp_hidden_features: (32,)  # tuple of int, vector of INPUT features of hidden layers
+mlp_hidden_features: [32]   # tuple of int, vector of INPUT features of hidden layers
                             # len = number of layers - 1
 mlp_dropout: True         # if True, add dropout to MLP
 mlp_dropout_rate: 0.2     # ratio of dropout, if used

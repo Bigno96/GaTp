@@ -94,7 +94,8 @@ def process_config(args):
     ''' 
     Add all args, parsed from main.py inputs, as Namespace attributes
     '''
-    config.mode = args.mode     # train or test
+    # train or test
+    config.mode = args.mode
     # environment configuration
     config.map_type = args.map_type
     config.map_size = args.map_size
