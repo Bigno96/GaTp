@@ -4,9 +4,10 @@ PyTorch Custom Dataset implementation
 Functions and methods to create Dataset instance over all solved MAPD instances
 """
 
-from torch.utils.data import Dataset
-import pickle
 import os
+import pickle
+
+from torch.utils.data import Dataset
 from torchvision.io import read_image
 
 

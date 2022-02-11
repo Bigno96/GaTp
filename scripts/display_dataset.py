@@ -1,8 +1,10 @@
-from data_loading.dataset import GaTpDataset
-from torch.utils.data import DataLoader
+from pprint import pprint
+
 import matplotlib.pyplot as plt
 import torch
-from pprint import pprint
+from torch.utils.data import DataLoader
+
+from data_loading.dataset import GaTpDataset
 
 
 def display(dataset_path):

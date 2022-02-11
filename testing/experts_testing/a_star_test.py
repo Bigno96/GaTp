@@ -10,8 +10,8 @@ from scipy.spatial.distance import cityblock
 
 from create_dataset.map_creator import create_random_grid_map
 from experts.a_star import a_star
-from utils.expert_utils import compute_manhattan_heuristic, is_valid_expansion, check_token_conflicts, NoPathError
 from testing.test_utils import get_grid_map_free_cell_token
+from utils.expert_utils import compute_manhattan_heuristic, is_valid_expansion, check_token_conflicts, NoPathError
 
 
 # noinspection PySingleQuotedDocstring

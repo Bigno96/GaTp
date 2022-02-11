@@ -1,7 +1,7 @@
 import unittest
 
-from utils.metrics import count_collision
 from testing.test_utils import get_grid_map_free_cell_token, find_start_goal
+from utils.metrics import count_collision
 
 
 class MetricsTest(unittest.TestCase):

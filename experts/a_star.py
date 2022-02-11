@@ -24,8 +24,8 @@ from math import hypot
 
 import numpy as np
 
-from utils.expert_utils import compute_manhattan_heuristic, get_next_node_list, NoPathError
 from utils.expert_utils import check_token_conflicts
+from utils.expert_utils import compute_manhattan_heuristic, get_next_node_list, NoPathError
 
 
 def a_star(input_map, start, goal, include_start_node,

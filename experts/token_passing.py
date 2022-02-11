@@ -17,8 +17,8 @@ The following implementation is based on:
         Lifelong multiagent path finding for online pickup and delivery tasks.
         arXiv preprint arXiv:1705.10868.
 """
-from collections import deque
 import timeit
+from collections import deque
 
 from experts.tp_agent import TpAgent
 from utils.expert_utils import preprocess_heuristics

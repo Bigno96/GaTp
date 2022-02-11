@@ -6,8 +6,8 @@ from threading import Thread
 
 from create_dataset.map_creator import create_random_grid_map
 from experts.token_passing import tp
-from utils.expert_utils import StopToken
 from testing.test_utils import get_start_pos_non_tep_task_list
+from utils.expert_utils import StopToken
 from utils.metrics import count_collision
 
 

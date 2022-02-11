@@ -1,17 +1,16 @@
 import random
 import unittest
 from collections import deque
-
 from pprint import pprint
 
 import numpy as np
 
 from create_dataset.map_creator import create_random_grid_map
 from experts.tp_agent import TpAgent
-from utils.expert_utils import preprocess_heuristics, compute_manhattan_heuristic, free_cell_heuristic
-from utils.metrics import count_collision
 from testing.test_utils import get_grid_map_free_cell_token, get_start_pos_non_tep_task_list
 from testing.test_utils import get_tok_posl_startl_epl, build_ag_schedule
+from utils.expert_utils import preprocess_heuristics, compute_manhattan_heuristic, free_cell_heuristic
+from utils.metrics import count_collision
 
 
 # noinspection DuplicatedCode

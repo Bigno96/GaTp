@@ -2,10 +2,11 @@
 Utility files for unit testing modules
 """
 
-import numpy as np
 import random
-from copy import deepcopy
 from collections import deque
+from copy import deepcopy
+
+import numpy as np
 
 from create_dataset.map_creator import create_random_grid_map
 from create_dataset.scenario_creator import create_task, create_starting_pos

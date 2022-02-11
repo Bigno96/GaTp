@@ -7,8 +7,8 @@ import numpy as np
 
 from create_dataset.map_creator import create_random_grid_map, is_connected
 from experts.a_star import a_star
-from utils.expert_utils import NoPathError
 from testing.test_utils import create_grid_test_map, find_start_goal
+from utils.expert_utils import NoPathError
 
 
 class MapCreatorTest(unittest.TestCase):

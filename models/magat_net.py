@@ -16,13 +16,14 @@ Model structure:
     Receives both output of GAT and CNN (through a skip connection)
 """
 
-import torch
-import torch.nn as nn
 import logging
 
-from models.basic.res_net import ResNet
+import torch
+import torch.nn as nn
+
 from models.basic.gat_gso_net import GatGSO
 from models.basic.mlp import MLP
+from models.basic.res_net import ResNet
 
 
 class MAGATNet(nn.Module):

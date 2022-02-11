@@ -10,9 +10,9 @@ Implementation based on the following git-hub repo:
 https://github.com/FrancescoSaverioZuppichini/ResNet.git
 """
 
-import torch.nn as nn
-
 from functools import partial
+
+import torch.nn as nn
 
 
 class ResNet(nn.Module):

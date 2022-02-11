@@ -14,9 +14,9 @@ import statistics
 from abc import abstractmethod
 from multiprocessing import Pool, Manager
 from os.path import normpath, basename
+from threading import Thread
 
 from easydict import EasyDict
-from threading import Thread
 
 from experts.token_passing import tp
 from utils.expert_utils import transform_agent_schedule, StopToken
