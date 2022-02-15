@@ -1,6 +1,5 @@
-# Simple Token Passing with Graph Attention model
-model_name: 'MAGAT'
-agent: 'magat'
+# Solve Token Passing with Message-Aware Graph Attention model as in MAGAT
+# arXiv:2011.13219v2
 device: 'cuda'
 
 # folder paths
@@ -34,8 +33,6 @@ graph_filter_taps: [3]    # tuple of int, 'power' of the GSO. Vector with number
 attention_heads: [1]      # tuple of int, vector with number of attention heads for each layer
                           # len = number of graph filtering layers
 attention_concat: True    # if True, concatenate the output of the attention heads. False, average the output
-communication_radius: 7   # max range for agents communication
-communication_hops: 2     # maximum hops for neighbours communication
 
 # 3) MLP, map features to actions
 mlp_hidden_features: [32]   # tuple of int, vector of INPUT features of hidden layers
