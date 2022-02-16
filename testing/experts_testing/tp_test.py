@@ -13,7 +13,7 @@ from utils.metrics import count_collision
 
 class TpTest(unittest.TestCase):
     def test_tp(self):
-        repetition = 100
+        repetition = 1
         timeout = 20
 
         time_list = []
@@ -33,6 +33,7 @@ class TpTest(unittest.TestCase):
         start_pos_list = []
         task_list = []
         agent_schedule = {}
+        task_schedule = {}
 
         end = False
         for i in range(repetition):
@@ -51,6 +52,7 @@ class TpTest(unittest.TestCase):
 
             # return dictionaries
             agent_schedule = {}
+            task_schedule = {}
             metrics = {}
             execution = StopToken()
 
@@ -63,6 +65,7 @@ class TpTest(unittest.TestCase):
                       'new_task_per_insertion': new_task_per_timestep,
                       'step_between_insertion': step_between_insertion,
                       'agent_schedule': agent_schedule,
+                      'task_schedule': task_schedule,
                       'metrics': metrics,
                       'execution': execution}
 
@@ -105,8 +108,11 @@ class TpTest(unittest.TestCase):
         print(f'Agents starting positions: {start_pos_list}')
         print('Task List:')
         pprint(task_list)
-        print('Resulting Schedule:')
+        print('Resulting Agent Schedule:')
         for schedule in agent_schedule.items():
+            print(schedule)
+        print('Resulting Task Schedule:')
+        for schedule in task_schedule.items():
             print(schedule)
         print(f'Average makespan: {statistics.mean(makespan_list)}')
         print(f'Average service time: {statistics.mean(service_time_list)}')

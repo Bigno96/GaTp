@@ -25,7 +25,7 @@ from utils.expert_utils import preprocess_heuristics
 
 
 def tp(input_map, start_pos_list, task_list, parking_spot_list,
-       agent_schedule, metrics, execution,
+       agent_schedule, task_schedule, metrics, execution,
        imm_task_split=0, new_task_per_insertion=1, step_between_insertion=1):
     """
     Token Passing algorithm
@@ -40,7 +40,12 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     :param step_between_insertion: int, > 0, how many timestep between each insertion
     :param agent_schedule, dict, RETURN VALUE
              agent_schedule -> {agent_id : schedule}
-                                with schedule = deque([(x_0, y_0, 0), (x_1, y_1, t_1), ...])
+                                with schedule = deque([(x_0, y_0, 0), (x_1, y_1, 1), ...])
+    :param task_schedule, dict, RETURN VALUE
+             task_schedule -> {agent_id : schedule}
+                                with schedule = deque([(current_task, 0), (curr_task, 1), ...])
+                                curr_task -> task being executed by agent with agent_id
+                                             None if no task
     :param metrics, dict, RETURN VALUE
              service_time, list of float, number of timesteps for completing each task
              timestep_runtime, list of float, execution time of each timestep, in ms
@@ -82,6 +87,10 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
         agent_schedule[agent.name] = agent.path.copy()
         agent.move_one_step()       # move them to timestep 1
 
+    # set up task_schedule
+    for agent in agent_pool:
+        task_schedule[agent.name] = deque([(None, 0)])
+
     # track time and metrics
     timestep = 1            # timestep = 0 is the initialization
     metrics['service_time'] = []
@@ -104,6 +113,11 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
             active_task_list.extend(new_task_list)
             activated_task_count += len(new_task_list)
 
+        # collect task schedule
+        # if new task is assigned -> override current one
+        for sched in task_schedule.values():
+            sched.append((sched[-1][0], timestep))      # (old_task, new_timestep)
+
         # timing for metrics
         start_time = timeit.default_timer()
 
@@ -124,6 +138,8 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
             # if a task was assigned
             if sel_task:
                 metrics['service_time'].append(len(agent.path))     # add path length to complete the task
+            # if no task -> sel_task = None
+            task_schedule[agent.name][-1] = (sel_task, timestep)      # update task schedule
 
         # check for eventual collisions and adapt
         for agent in agent_pool:

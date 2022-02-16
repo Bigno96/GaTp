@@ -19,7 +19,7 @@ from threading import Thread
 from easydict import EasyDict
 
 from experts.token_passing import tp
-from utils.expert_utils import transform_agent_schedule, StopToken
+from utils.expert_utils import StopToken
 from utils.file_utils import get_all_files, dump_data
 from utils.metrics import count_collision
 
@@ -116,6 +116,7 @@ class __TpWorker(__ExpertWorker):
     def __call__(self, environment):
         # setup return structures
         agent_schedule = {}
+        task_schedule = {}
         metrics = {}
         execution = StopToken()
 
@@ -128,6 +129,7 @@ class __TpWorker(__ExpertWorker):
                   'new_task_per_insertion': self.config.new_task_per_timestep,
                   'step_between_insertion': self.config.step_between_insertion,
                   'agent_schedule': agent_schedule,
+                  'task_schedule': task_schedule,
                   'metrics': metrics,
                   'execution': execution}
 
@@ -162,17 +164,15 @@ class __TpWorker(__ExpertWorker):
                 service_time = statistics.mean(metrics['service_time'])
                 timestep_runtime = statistics.mean(metrics['timestep_runtime'])
 
-                # convert agent schedule into matrix notation
-                matrix_schedule = transform_agent_schedule(agent_schedule=agent_schedule)
-
                 # organize data to dump
                 file_name = f'{environment.name}_tp_sol'
                 expert_data = {'name': file_name,
-                               'makespan': matrix_schedule.shape[2],
+                               'makespan': len(agent_schedule[0]),
                                'service_time': service_time,
                                'runtime_per_timestep': timestep_runtime,
                                'collisions': collision_count,
-                               'schedule': matrix_schedule}
+                               'agent_schedule': agent_schedule,
+                               'task_schedule': task_schedule}
                 # dump data into pickle file
                 dump_data(file_path=file_name, data=expert_data)
 
