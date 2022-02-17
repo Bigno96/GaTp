@@ -1,15 +1,13 @@
 """
-Utilities for transforming environment data and expert solutions into neural network input state
+Utilities for transforming environment data and expert solutions into neural network compatible data
 
-Input state:
-    1- Agent starting pos list -> np.ndarray, shape = (num_agent, 2)
-    2- Input tensor -> torch.FloatTensor,
+NN data:
+    1- Input tensor -> torch.FloatTensor,
                        shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
             See GaTp/data_loading/agent_state.py for more information about input tensor composition
-    3- GSO -> np.ndarray, shape = (makespan, num_agent, num_agent)
+    2- GSO -> np.ndarray, shape = (makespan, num_agent, num_agent)
             Adjacency matrix at each timestep
-    4- Makespan -> int
-    5- Target -> np.ndarray, shape = (makespan, num_agent, 5)
+    3- Target -> np.ndarray, shape = (makespan, num_agent, 5)
                  matrix representation of agent schedule
                  5 actions: up, down, left, right, wait
                  sequence of moves that describes the policy to learn
@@ -31,42 +29,28 @@ class DataTransformer:
     Transform parsed data to prepare for ML Model input
     """
 
-    def __init__(self, config):
+    def __init__(self, config, data_path):
         """
         :param config: configuration Namespace
         """
         self.config = config
         self.agent_state = AgentState(config=config)
+        self.data_path = data_path
 
-        # path to datasets root folder
-        self.data_root = self.config.data_root
-        # get data folder using arguments specification
-        self.data_path = os.path.join(self.data_root,
-                                      f'{config.map_type}',
-                                      f'{config.map_shape[0]}x{config.map_shape[1]}map',
-                                      f'{config.map_density}density',
-                                      f'{config.agent_number}agents_{config.task_number}tasks_'
-                                      f'{config.imm_task_split}split_'
-                                      f'+{config.new_task_per_timestep}_every{config.step_between_insertion}',
-                                      f'{config.start_position_mode}_start+{config.task_creation_mode}_task'
-                                      )
         # expert used for solving scenarios
         self.expert_type = config.expert_type
 
-    def get_input_data(self, basename, mode):
+    def get_nn_data(self, basename, mode):
         """
-        Return tuple with all the input data, appropriately transformed
-        Input data = (Agent starting pos list, Input tensor, GSO, Makespan, Target)
+        Return tuple with all the data necessary for neural network training/testing, appropriately transformed
+        NN data = (Input tensor, GSO, Target)
         :param basename: str, 'mapID_caseID'
         :param mode: str, options: ['test', 'train', 'valid']
-        :return: Input data = (Agent starting pos list, Input tensor, GSO, Makespan, Target)
-                 Agent starting pos list -> np.ndarray,
-                    shape = (num_agent, 2)
+        :return: Input data = (Input tensor, GSO, Target)
                  Input tensor -> torch.FloatTensor,
                     shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
                  GSO -> np.ndarray,
                     shape = (makespan, num_agent, num_agent)
-                 Makespan -> int
                  Target -> np.ndarray,
                     shape = (makespan, num_agent, 5)
         """
@@ -82,24 +66,18 @@ class DataTransformer:
         with open(expert_sol_path, 'rb') as f:
             expert_sol = pickle.load(f)
 
-        # 1) starting positions of all agents
-        agent_start_pos_list = np.array(environment['start_pos_list'], dtype=np.int8)
-
-        # 2) input tensor
+        # 1) input tensor
         input_tensor = self.build_input_tensor(input_map=environment['map'],
                                                agent_schedule=expert_sol['agent_schedule'],
                                                goal_schedule=expert_sol['goal_schedule'])
 
-        # 3) GSO
+        # 2) GSO
         GSO = self.compute_gso(agent_schedule=expert_sol['agent_schedule'])
 
-        # 4) makespan
-        makespan = expert_sol['makespan']
-
-        # 5) target
+        # 3) target
         target = self.transform_agent_schedule(agent_schedule=expert_sol['agent_schedule'])
 
-        input_data = (agent_start_pos_list, input_tensor, GSO, makespan, target)
+        input_data = (input_tensor, GSO, target)
 
         return input_data
 
@@ -155,7 +133,7 @@ class DataTransformer:
         This is done in order to feed the neural network of the GaTp agent
         :param agent_schedule: {agent_id : schedule}
                                 with schedule = deque([(x_0, y_0, 0), (x_1, y_1, t_1), ...])
-        :return: matrix -> makespan x num_agent x 5 (5 actions)
+        :return: np.ndarray, shape = (makespan, num_agent, 5)
         """
         num_agent = len(agent_schedule)
         # get makespan (all paths are the same length, since everyone waits standing still the ending)

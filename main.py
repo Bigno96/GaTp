@@ -74,13 +74,6 @@ def main():
     config = process_config(args)
 
 
-    from data_loading.transform_data import DataTransformer
-    data_transformer = DataTransformer(config)
-    i_data = data_transformer.get_input_data(basename='map000_case00', mode='train')
-    ag_pos_list, i_tensor, GSO, makespan, target = i_data
-
-    print(GSO.shape)
-
 def __check_odd(v):
     if int(v) % 2 == 0:
         raise argparse.ArgumentTypeError('not an odd number')
