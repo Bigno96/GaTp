@@ -28,7 +28,7 @@ gnn_model: 'gat_gso'      # type of gnn: graph convolution attentional network
 gnn_hidden_features: []      # tuple of int, e.g. (32, 64, 128), vector of INPUT features of hidden layers
                              # should be same size of feature_compr_out if used, else cnn_out_features
                              # len = number of desired graph filtering layers - 1
-graph_filter_taps: [3]    # tuple of int, 'power' of the GSO. Vector with number of filter taps for each layer
+graph_filter_taps: [2]    # tuple of int, 'power' of the GSO. Vector with number of filter taps for each layer
                           # len = number of graph filtering layers
 attention_heads: [1]      # tuple of int, vector with number of attention heads for each layer
                           # len = number of graph filtering layers

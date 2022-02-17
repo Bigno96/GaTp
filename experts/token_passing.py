@@ -42,7 +42,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
              agent_schedule -> {agent_id : schedule}
                                 with schedule = deque([(x_0, y_0, 0), (x_1, y_1, 1), ...])
     :param goal_schedule, dict, RETURN VALUE
-             task_schedule -> {agent_id : schedule}
+             goal_schedule -> {agent_id : schedule}
                                 with schedule = deque([(current_goal, 0), (curr_goal, 1), ...])
                                 curr_goal -> position the agent is trying to reach
     :param metrics, dict, RETURN VALUE

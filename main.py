@@ -66,8 +66,6 @@ def main():
                             help='Radius of agents FOV. Has to be odd')     # check FOV size in dataset_creation.yaml
     arg_parser.add_argument('-comm_radius', type=int, default=7,
                             help='Maximum communication distance between agents')
-    arg_parser.add_argument('-comm_hops', type=int, default=2,
-                            help='Maximum hops a message is allowed')
 
     # get the argument from the console
     args = arg_parser.parse_args()
@@ -79,8 +77,9 @@ def main():
     from data_loading.transform_data import DataTransformer
     data_transformer = DataTransformer(config)
     i_data = data_transformer.get_input_data(basename='map000_case00', mode='train')
-    ag_pos_list = i_data
+    ag_pos_list, i_tensor, GSO, makespan, target = i_data
 
+    print(GSO.shape)
 
 def __check_odd(v):
     if int(v) % 2 == 0:

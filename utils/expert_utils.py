@@ -2,8 +2,6 @@
 Utility functions for experts algorithms
 """
 
-from operator import sub
-
 import numpy as np
 
 # delta dictionary
@@ -246,45 +244,3 @@ def drop_idle(agent_pool, curr_agent, token):
             idle_token[agent.name] = token.pop(agent.name)
 
     return idle_token
-
-
-def transform_agent_schedule(agent_schedule):
-    """
-    A matrix-form notation is used to represent produced agent schedule
-    This is done in order to feed the neural network of the GaTp agent
-    :param agent_schedule: {agent_id : schedule}
-                            with schedule = deque([(x_0, y_0, 0), (x_1, y_1, t_1), ...])
-    :return: matrix -> num_agent (x-axis) x makespan (max path length, y-axis) x 5 (5 actions, z-axis)
-    """
-    num_agent = len(agent_schedule)
-    # get makespan (all paths are the same length, since everyone waits standing still the ending)
-    makespan = len(agent_schedule[0])-1
-
-    # matrix -> num_agent (x-axis) x makespan (y-axis) x actions (z-axis)
-    # 5 actions order: go_up, go_left, go_down, go_right, stay_still
-    matrix = np.zeros(shape=(num_agent, makespan, 5), dtype=np.int8)
-
-    # iterate over all agent's schedules
-    for agent, schedule in agent_schedule.items():
-
-        # remove timesteps
-        schedule = [(x, y) for (x, y, t) in schedule]
-        # this will pair schedule[i] with schedule[i-1], starting from i = 1
-        zip_offset = list(zip(schedule[1:], schedule))
-        # get difference between each pair in zip_offset
-        diff_list = [tuple(map(sub, a, b))
-                     for (a, b) in zip_offset]
-
-        # get corresponding index in moves dictionary
-        diff: tuple[int, int]
-        move_idx_list = [MOVE_LIST.index(diff)
-                         for diff in diff_list]
-
-        # update matrix: actions x num_agent x makespan
-        #   agent -> x coord in np.array, agent number
-        #   t -> y coord in np.array, timestep
-        #   move_idx -> z coord in np.array, move performed by agent at timestep t
-        for t, move_idx in enumerate(move_idx_list):
-            matrix[(agent, t, move_idx)] = 1
-
-    return matrix

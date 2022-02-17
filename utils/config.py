@@ -116,7 +116,6 @@ def process_config(args):
     # agent configuration
     config.FOV = args.FOV
     config.comm_radius = args.comm_radius
-    config.comm_hops = args.comm_hops
 
     # set up experiment name with configuration summary:
     #   environment description, hyper parameters, timestamp
@@ -126,7 +125,7 @@ def process_config(args):
                         f'+{config.imm_task_split}split_+{config.new_task_per_timestep}' \
                         f'_every{config.step_between_insertion}'
     config.exp_hyper_para = f'{config.attention_heads}heads+{config.attention_concat}_concat' \
-                            f'+{config.comm_hops}hops+{config.comm_radius}comm_radius+{config.FOV}FOV'
+                            f'+{config.comm_radius}comm_radius+{config.FOV}FOV'
     config.exp_time = str(int(mktime(datetime.now().timetuple())))
     config.exp_name = os.path.join(f'{config.agent_type.upper()}_{config.env_setup}',
                                    config.exp_hyper_para,
