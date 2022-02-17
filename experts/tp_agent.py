@@ -34,6 +34,8 @@ class TpAgent:
         self.h_coll = h_coll
         # path the agent is following, [(x_0, y_0, t_0), (x_1, y_1, t_1), ..., (x_g, y_g, t_g)]
         self.path = deque([(start_pos[0], start_pos[1], 0)])
+        # position the agent is trying to reach
+        self.goal = self.pos
         self.is_free = True         # free -> agent is not doing any task (can be standing still or moving to rest)
         self.is_idle = True        # idle -> agent is free AND standing still
 
@@ -56,10 +58,14 @@ class TpAgent:
         if len(self.path) == 1:
             self.pos = self.path[-1][:-1]
             self.path[-1] = (self.pos[0], self.pos[1], self.path[-1][-1]+1)
+            self.goal = self.pos
             self.is_free = True
             self.is_idle = True
         else:
             self.pos = self.path.popleft()[:-1]  # move
+            # check pickup pos is reached
+            if self.pos == self.goal:
+                self.goal = self.path[-1][:-1]      # update with delivery position
 
     def receive_token(self, token, task_list, non_task_ep_list, sys_timestep):
         """
@@ -118,6 +124,8 @@ class TpAgent:
                                           include_start_node=False)
                 # merge paths and update
                 self.path = pickup_path + delivery_path
+                # update goal
+                self.goal = pickup_pos
 
                 # assign task
                 task_list.remove(best_task)
@@ -196,6 +204,7 @@ class TpAgent:
                                       include_start_node=False)
                 token[self.name] = {'pos': self.pos,
                                     'path': self.path}
+                self.goal = best_ep
                 self.is_free = True
                 self.is_idle = False
 
@@ -283,6 +292,7 @@ class TpAgent:
                     # add here path to token for others CS
                     token[self.name] = {'pos': self.pos,
                                         'path': self.path}
+                    self.goal = cell
                     self.is_free = True
                     self.is_idle = False
 

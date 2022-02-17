@@ -78,6 +78,7 @@ def get_config_from_yaml(config_name):
             exit(-1)
 
 
+# noinspection DuplicatedCode
 def process_config(args):
     """
     Get the yaml file
@@ -101,15 +102,16 @@ def process_config(args):
 
     # environment configuration
     config.map_type = args.map_type
-    config.map_size = args.map_size
+    config.map_shape = args.map_shape
     config.map_density = args.map_density
-    config.num_agents = args.num_agents
-    config.tasks_number = args.tasks_number
+    config.agent_number = args.agent_number
+    config.task_number = args.task_number
     config.imm_task_split = args.imm_task_split
     config.new_task_per_timestep = args.new_task_per_timestep
     config.step_between_insertion = args.step_between_insertion
     config.start_position_mode = args.start_position_mode
     config.task_creation_mode = args.task_creation_mode
+    config.expert_type = args.expert_type
 
     # agent configuration
     config.FOV = args.FOV
@@ -118,8 +120,8 @@ def process_config(args):
 
     # set up experiment name with configuration summary:
     #   environment description, hyper parameters, timestamp
-    config.env_setup = f'{config.map_type}_{config.map_size[0]}x{config.map_size[1]}' \
-                       f'_{config.map_density}density_{config.num_agents}agents_{config.tasks_number}'
+    config.env_setup = f'{config.map_type}_{config.map_shape[0]}x{config.map_shape[1]}' \
+                       f'_{config.map_density}density_{config.agent_number}agents_{config.task_number}'
     config.task_setup = f'{config.start_position_mode}_start+{config.task_creation_mode}_task' \
                         f'+{config.imm_task_split}split_+{config.new_task_per_timestep}' \
                         f'_every{config.step_between_insertion}'

@@ -33,7 +33,7 @@ class TpTest(unittest.TestCase):
         start_pos_list = []
         task_list = []
         agent_schedule = {}
-        task_schedule = {}
+        goal_schedule = {}
 
         end = False
         for i in range(repetition):
@@ -52,7 +52,7 @@ class TpTest(unittest.TestCase):
 
             # return dictionaries
             agent_schedule = {}
-            task_schedule = {}
+            goal_schedule = {}
             metrics = {}
             execution = StopToken()
 
@@ -65,7 +65,7 @@ class TpTest(unittest.TestCase):
                       'new_task_per_insertion': new_task_per_timestep,
                       'step_between_insertion': step_between_insertion,
                       'agent_schedule': agent_schedule,
-                      'task_schedule': task_schedule,
+                      'goal_schedule': goal_schedule,
                       'metrics': metrics,
                       'execution': execution}
 
@@ -111,8 +111,8 @@ class TpTest(unittest.TestCase):
         print('Resulting Agent Schedule:')
         for schedule in agent_schedule.items():
             print(schedule)
-        print('Resulting Task Schedule:')
-        for schedule in task_schedule.items():
+        print('Resulting Goal Schedule:')
+        for schedule in goal_schedule.items():
             print(schedule)
         print(f'Average makespan: {statistics.mean(makespan_list)}')
         print(f'Average service time: {statistics.mean(service_time_list)}')

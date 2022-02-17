@@ -100,9 +100,11 @@ class TpAgentTest(unittest.TestCase):
         start_pos = (random.choice(range(shape[0])), random.choice(range(shape[1])))
         path = deque([(random.choice(range(shape[0])), random.choice(range(shape[1])), t)
                       for t in range(path_len)])
+        goal = path[-1][:-1]
         # create agent and give him the path
         agent = TpAgent(name='ag', input_map=None, start_pos=start_pos, h_coll=None)
         agent.path = deque(path)
+        agent.goal = goal
         agent.is_free = False
         agent.is_idle = False
 
@@ -112,15 +114,20 @@ class TpAgentTest(unittest.TestCase):
         for x, y, t in path:
             self.assertFalse(agent.is_free)
             self.assertFalse(agent.is_idle)
+            self.assertEqual(agent.goal, goal)
             agent.move_one_step()
             self.assertEqual(agent.pos, (x, y))
         # last step, agent became free and idle
         self.assertTrue(agent.is_free)
         self.assertTrue(agent.is_idle)
+        self.assertEqual(agent.goal, agent.pos)
         # check stays in place after the path, updating its timestep
         agent.move_one_step()
         self.assertEqual(agent.pos, path[-1][:-1])
         self.assertEqual(path_len+1, agent.path[-1][-1])
+        self.assertTrue(agent.is_free)
+        self.assertTrue(agent.is_idle)
+        self.assertEqual(agent.goal, agent.pos)
 
     def test_find_resting_pos(self):
         repetition = 1000
@@ -169,12 +176,11 @@ class TpAgentTest(unittest.TestCase):
                 self.assertNotIn(agent.path[-1][:-1], task_delivery_list)
             # if agent is idle, due to not well-formed MAPD instances
             else:
-                self.assertEqual((agent.path[0][0], agent.path[0][1], agent.path[0][2]),
+                self.assertEqual((agent.path[-1][0], agent.path[-1][1], agent.path[-1][2]),
                                  (start_pos[0], start_pos[1], 0))
             # path has been added to the token and agent is free
             self.assertEqual(token['ag']['path'], agent.path)
             self.assertEqual(token[agent.name]['pos'], agent.pos)
-            self.assertTrue(agent.is_free)
 
             agent_schedule = build_ag_schedule(token=token)
             collision_count, l_ = count_collision(agent_schedule=agent_schedule)

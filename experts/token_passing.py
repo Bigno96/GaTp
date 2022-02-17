@@ -25,7 +25,7 @@ from utils.expert_utils import preprocess_heuristics
 
 
 def tp(input_map, start_pos_list, task_list, parking_spot_list,
-       agent_schedule, task_schedule, metrics, execution,
+       agent_schedule, goal_schedule, metrics, execution,
        imm_task_split=0, new_task_per_insertion=1, step_between_insertion=1):
     """
     Token Passing algorithm
@@ -41,11 +41,10 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     :param agent_schedule, dict, RETURN VALUE
              agent_schedule -> {agent_id : schedule}
                                 with schedule = deque([(x_0, y_0, 0), (x_1, y_1, 1), ...])
-    :param task_schedule, dict, RETURN VALUE
+    :param goal_schedule, dict, RETURN VALUE
              task_schedule -> {agent_id : schedule}
-                                with schedule = deque([(current_task, 0), (curr_task, 1), ...])
-                                curr_task -> task being executed by agent with agent_id
-                                             None if no task
+                                with schedule = deque([(current_goal, 0), (curr_goal, 1), ...])
+                                curr_goal -> position the agent is trying to reach
     :param metrics, dict, RETURN VALUE
              service_time, list of float, number of timesteps for completing each task
              timestep_runtime, list of float, execution time of each timestep, in ms
@@ -82,14 +81,11 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     activated_task_count = len(active_task_list)
     total_task_count = len(task_list)
 
-    # set up agent_schedule
+    # set up agent_schedule and goal_schedule
     for agent in agent_pool:
         agent_schedule[agent.name] = agent.path.copy()
+        goal_schedule[agent.name] = agent.path.copy()
         agent.move_one_step()       # move them to timestep 1
-
-    # set up task_schedule
-    for agent in agent_pool:
-        task_schedule[agent.name] = deque([(None, 0)])
 
     # track time and metrics
     timestep = 1            # timestep = 0 is the initialization
@@ -113,11 +109,6 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
             active_task_list.extend(new_task_list)
             activated_task_count += len(new_task_list)
 
-        # collect task schedule
-        # if new task is assigned -> override current one
-        for sched in task_schedule.values():
-            sched.append((sched[-1][0], timestep))      # (old_task, new_timestep)
-
         # timing for metrics
         start_time = timeit.default_timer()
 
@@ -138,8 +129,6 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
             # if a task was assigned
             if sel_task:
                 metrics['service_time'].append(len(agent.path))     # add path length to complete the task
-            # if no task -> sel_task = None
-            task_schedule[agent.name][-1] = (sel_task, timestep)      # update task schedule
 
         # check for eventual collisions and adapt
         for agent in agent_pool:
@@ -147,8 +136,9 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
 
         # all agents move along their paths in token for one timestep
         for agent in agent_pool:
-            # update schedule
+            # update agent and goal schedule
             agent_schedule[agent.name].append(agent.path[0])
+            goal_schedule[agent.name].append((agent.goal[0], agent.goal[1], timestep))
             # agents update here if they are free or not (when they end a path, they become free)
             agent.move_one_step()
             # update token
@@ -160,6 +150,7 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
 
         timestep += 1
 
-    # update schedule with last move
+    # update agent and goal schedule with last move
     for agent in agent_pool:
         agent_schedule[agent.name].append(agent.path[0])
+        goal_schedule[agent.name].append(agent.path[0])

@@ -1,5 +1,30 @@
 """
 Class for Agent State representation utilities
+
+4 different maps configurations:
+- original map -> shape = (H, W)
+- padded map -> shape = (H + FOV/2, W + FOV/2), original map but padded with half the FOV around
+- FOV map -> shape = (FOV, FOV), cut from padded map around agent position
+- padded FOV map -> shape = (FOV + 2*border, FOV + 2*border), FOV map padded with a border around
+
+Input tensor to feed to each agent -> 3 channels
+Each channel -> padded FOV map with different information
+Respectively:
+
+    1- obstacle map: 1s for obstacle, 0 else.
+                     The outside of the original map is padded with 1s, obstacles
+                     Border is filled with 0s, not used by this channel but dimensions have to be the same
+
+    2- goal map: 1 for the agent's goal, 0 else.
+                 Always one and only one goal
+                 The outside of the original map is padded with 0s, no goal outside
+                 Border is used when the goal is outside FOV map to project it
+                 If agent has no proper goal, its goal is its current position, meaning it will stand still
+
+    3- agents map: 1s for agents' positions, 0 else.
+                   Keep track of his relative position and relative position of the other agents
+                   The outside of the original map is padded with 0s, no agents outside
+                   Border is filled with 0s, not used by this channel but dimensions have to be the same
 """
 
 import numpy as np
@@ -7,11 +32,16 @@ import torch
 
 
 class AgentState:
+    """
+    Allow representing agent's state
+    Keep tracks of obstacle map and 'local' objective (in the FOV) of each agent
+    Allow retrieving input tensor to feed to an agent
+    """
 
     def __init__(self, config):
         self.config = config
 
-        self.num_agents = self.config.num_agents
+        self.agent_number = self.config.agent_number
         self.FOV = self.config.FOV                  # Field Of View radius
         self.FOV_width = int(self.FOV/2)            # half radius, used for padding
         self.border = 1                             # size of the border outside FOV, to project goal
@@ -65,7 +95,7 @@ class AgentState:
         agent_pos_map = np.zeros_like(self.obstacle_map, dtype=np.int8)
 
         # for each agent, read its position and write 1 in the map
-        for id_agent in range(self.num_agents):
+        for id_agent in range(self.agent_number):
             pos_x = agent_pos_list[id_agent][0]
             pos_y = agent_pos_list[id_agent][1]
             agent_pos_map[(pos_x, pos_y)] = 1
@@ -215,10 +245,10 @@ class AgentState:
         # get map with agents positions, padded in the outside
         agent_pos_map_pad = self.get_agent_pos_map(agent_pos_list)
         # matrix for holding local paths, num_agents x 2 (coordinates)
-        self.local_objective_list = np.zeros([self.num_agents, 2], dtype=np.int8)
+        self.local_objective_list = np.zeros([self.agent_number, 2], dtype=np.int8)
 
         input_state = []
-        for id_agent in range(self.num_agents):
+        for id_agent in range(self.agent_number):
             # agent state summary
             load_state = (goal_pos_list, agent_pos_list, agent_pos_map_pad, id_agent)
             # build agent state stacking the 3 maps and get local objective of the agent
@@ -234,11 +264,12 @@ class AgentState:
 
         return input_tensor
 
-    def get_sequence_input_tensor(self, goal_pos_list, agent_pos_schedule, makespan):
+    def get_sequence_input_tensor(self, goal_pos_schedule, agent_pos_schedule, makespan):
         """
         Build one input state of all the agents in tensor form for each timestep in the schedule
         Input state of one agent -> 3 'channels' (maps): obstacle map, agent pos map, goal map
-        :param goal_pos_list: list of agents goal position, np.ndarray, shape=(num_agents, 2)
+        :param goal_pos_schedule: schedule (sequence) of agent's goal positions
+                                  np.ndarray, shape = (makespan, num_agents, 2)
         :param agent_pos_schedule: schedule (sequence) of agents positions
                                    np.ndarray, shape = (makespan, num_agents, 2)
         :param makespan: length of the agents schedule
@@ -250,11 +281,13 @@ class AgentState:
         for t in range(makespan):
             # get list of agent position at current timestep
             agent_pos_list = agent_pos_schedule[t][:]
+            # get list of goal position at current timestep
+            goal_pos_list = goal_pos_schedule[t][:]
             # get padded map of all the agent positions at current timestep
             agent_pos_map_pad = self.get_agent_pos_map(agent_pos_list)
 
             input_step = []
-            for id_agent in range(self.num_agents):
+            for id_agent in range(self.agent_number):
                 # agent state summary
                 load_state = (goal_pos_list, agent_pos_list, agent_pos_map_pad, id_agent)
                 # build agent state stacking the 3 maps and get local objective of the agent
@@ -265,7 +298,8 @@ class AgentState:
             # collect all the input states for each timestep
             input_step_list.append(input_step)
 
-        # convert to tensor
-        input_tensor = torch.FloatTensor(input_step_list)
+        # transform input state (list of ndarray) into a ndarray,
+        # since creating a tensor from a list of ndarray is extremely slow
+        input_tensor = torch.FloatTensor(np.array(input_step_list))
 
         return input_tensor

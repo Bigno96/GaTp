@@ -116,7 +116,7 @@ class __TpWorker(__ExpertWorker):
     def __call__(self, environment):
         # setup return structures
         agent_schedule = {}
-        task_schedule = {}
+        goal_schedule = {}
         metrics = {}
         execution = StopToken()
 
@@ -129,7 +129,7 @@ class __TpWorker(__ExpertWorker):
                   'new_task_per_insertion': self.config.new_task_per_timestep,
                   'step_between_insertion': self.config.step_between_insertion,
                   'agent_schedule': agent_schedule,
-                  'task_schedule': task_schedule,
+                  'goal_schedule': goal_schedule,
                   'metrics': metrics,
                   'execution': execution}
 
@@ -172,7 +172,7 @@ class __TpWorker(__ExpertWorker):
                                'runtime_per_timestep': timestep_runtime,
                                'collisions': collision_count,
                                'agent_schedule': agent_schedule,
-                               'task_schedule': task_schedule}
+                               'goal_schedule': goal_schedule}
                 # dump data into pickle file
                 dump_data(file_path=file_name, data=expert_data)
 

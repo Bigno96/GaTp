@@ -37,13 +37,13 @@ def main():
     arg_parser.add_argument('-map_type', type=str, default='random_grid',
                             help='Type of map',
                             choices=['random_grid'])
-    arg_parser.add_argument('-map_size', type=int, nargs=2, default=[20, 20],
-                            help='Size of the squared map, HxW')
+    arg_parser.add_argument('-map_shape', type=int, nargs=2, default=[20, 20],
+                            help='Shape of the squared map, HxW')
     arg_parser.add_argument('-map_density', type=float, default=0.1,
                             help='Proportion of occupied over free space in the environment')
-    arg_parser.add_argument('-num_agents', type=int, default=20,
+    arg_parser.add_argument('-agent_number', type=int, default=20,
                             help='Number of agents in the map')
-    arg_parser.add_argument('-tasks_number', type=int, default=500,
+    arg_parser.add_argument('-task_number', type=int, default=500,
                             help='Number of tasks that will be fed to the agents')
     arg_parser.add_argument('-imm_task_split', type=float, default=0.0,
                             help='Percentage of tasks immediately available at the start')
@@ -57,10 +57,13 @@ def main():
     arg_parser.add_argument('-task_creation_mode', type=str, default='avoid_non_task_rep',
                             help='How tasks were created',
                             choices=['free', 'avoid_non_task_rep', 'avoid_task_rep', 'avoid_all'])
+    arg_parser.add_argument('-expert_type', type=str, default='tp',
+                            help='Expert used for solving cases',
+                            choices=['tp'])
 
     # agent parameters, if omitted -> default values
     arg_parser.add_argument('-FOV', type=__check_odd, default=9,
-                            help='Radius of agents FOV. Has to be odd')
+                            help='Radius of agents FOV. Has to be odd')     # check FOV size in dataset_creation.yaml
     arg_parser.add_argument('-comm_radius', type=int, default=7,
                             help='Maximum communication distance between agents')
     arg_parser.add_argument('-comm_hops', type=int, default=2,
@@ -71,6 +74,12 @@ def main():
 
     # parse the config json file
     config = process_config(args)
+
+
+    from data_loading.transform_data import DataTransformer
+    data_transformer = DataTransformer(config)
+    i_data = data_transformer.get_input_data(basename='map000_case00', mode='train')
+    ag_pos_list = i_data
 
 
 def __check_odd(v):
