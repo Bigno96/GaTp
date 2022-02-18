@@ -36,6 +36,8 @@ def create_dataset():
     """
     Create dataset consisting of maps, scenarios and experts solutions
     """
+    # get logger
+    logger = logging.getLogger("Dataset Creator")
     # get config from yaml file
     config = get_config_from_yaml('dataset_creation')
 
@@ -58,7 +60,7 @@ def create_dataset():
         bad_instances_count = 0
         # until no bad MAPD instances are left, repeat their generation
         while bad_instances_list:
-            print(f'\n\nRegenerating bad MAPD instances')
+            print(f'\n\nFound bad MAPD instances')
             bad_instances_count += len(bad_instances_list)
             create_environment(config=config, dataset_dir=dataset_dir,
                                recovery_mode=True, file_path_list=bad_instances_list)
@@ -69,7 +71,12 @@ def create_dataset():
 
     # invalid configuration parameters passed
     except ValueError as err:
-        logging.getLogger().warning(err)
+        logger.warning(err)
+        exit(-1)
+
+    # invalid configuration parameters passed
+    except AssertionError as err:
+        logger.warning(err)
         exit(-1)
 
 

@@ -65,16 +65,20 @@ def run_expert(config, dataset_dir, file_path_list=None, recovery_mode=False):
         with open(file_path, 'rb') as f:
             env_list.append(EasyDict(pickle.load(f)))
 
-    # get shared list
-    manager = Manager()
-    bad_instances_list = manager.list()
     # choose expert type to run
     if config.expert_type == 'tp':
-        worker = __TpWorker(config=config, bad_instances_list=bad_instances_list)
+        worker = TpWorker(config=config)
     else:
         raise ValueError('Invalid expert selected')
 
+    # get shared list
+    manager = Manager()
+    bad_instances_list = manager.list()
+    worker.set_bad_instance_list(bad_instances_list)
+
+    print('Running Expert')
     # run pool of processes over various environment
+    # can't use p_map of p_tqdm here, since it's not working with multiprocessing.Manager
     with Pool() as pool:
         # noinspection PyTypeChecker
         pool.map(func=worker, iterable=env_list)    # num of processes == num of cpu processors
@@ -82,17 +86,22 @@ def run_expert(config, dataset_dir, file_path_list=None, recovery_mode=False):
     return list(bad_instances_list)
 
 
-class __ExpertWorker:
+class ExpertWorker:
     """
     Base expert class to run on a process
     """
 
-    def __init__(self, config, bad_instances_list):
+    def __init__(self, config):
         """
         :param config: Namespace of dataset configurations
-        :param bad_instances_list: manager list, where to write bad environment filenames
         """
         self.config = config
+        self.bad_instances_list = None  # manager list, where to write bad environment filenames
+
+    def set_bad_instance_list(self, bad_instances_list):
+        """
+        :param bad_instances_list: manager list, where to write bad environment filenames
+        """
         self.bad_instances_list = bad_instances_list
 
     @abstractmethod
@@ -108,7 +117,7 @@ class __ExpertWorker:
         pass
 
 
-class __TpWorker(__ExpertWorker):
+class TpWorker(ExpertWorker):
     """
     Worker for token passing, implement ExpertWorker class
     """

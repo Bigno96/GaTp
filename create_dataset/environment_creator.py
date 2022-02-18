@@ -13,40 +13,15 @@ environment = {'name': file path to the env data file,
 After creating a data pool, an expert will be run on it to generate the complete dataset
 """
 import os
-from multiprocessing import Pool
+from p_tqdm import p_map
 
-from create_dataset.map_creator import *
+from create_dataset.map_creator import create_random_grid_map
 from create_dataset.scenario_creator import create_scenario
 from utils.file_utils import create_dirs, FolderSwitch
 from utils.file_utils import save_image, dump_data
 
 
 def create_environment(config, dataset_dir, file_path_list=None, recovery_mode=False):
-    """
-    Check config.map_type and decide which creation function to call
-    :param config: Namespace of dataset configurations
-    :param dataset_dir: path to the dataset directory
-    :param file_path_list: list of file path containing environment data to regenerate
-                           Pass this ONLY with recovery_mode = True
-    :param recovery_mode: boolean, True if create_env is used to re-compute bad MAPD instances
-    """
-
-    # check out for environment presence
-    # if keep_environment = True, return, since nothing to do
-    if not recovery_mode and os.path.isdir(dataset_dir) and config.keep_env_data:
-        return
-
-    # create directories, if not there
-    create_dirs([dataset_dir])
-
-    if config.map_type == 'random_grid':
-        __random_grid_environment(config=config, dataset_dir=dataset_dir,
-                                  file_path_list=file_path_list, recovery_mode=recovery_mode)
-    else:
-        raise ValueError('Invalid map type selected')
-
-
-def __random_grid_environment(config, dataset_dir, file_path_list=None, recovery_mode=False):
     """
     Pipeline:
         Create Maps (see map_creator.py for more details):
@@ -72,38 +47,40 @@ def __random_grid_environment(config, dataset_dir, file_path_list=None, recovery
                            Pass this ONLY with recovery_mode = True
     :param recovery_mode: boolean, True if create_env is used to re-compute bad MAPD instances
     """
+    assert config.map_type in ['random_grid']
+
+    # check out for environment presence
+    # if keep_environment = True, return, since nothing to do
+    if not recovery_mode and os.path.isdir(dataset_dir) and config.keep_env_data:
+        return
+
+    # create directories, if not there
+    create_dirs([dataset_dir])
+
     if not recovery_mode:
+        print('Creating Environments')
         # dict to simulate switch case for test/train/valid folders
         folder_switch = FolderSwitch(dataset_dir=dataset_dir, config=config)
 
         # setup multiprocessing
-        worker = __RandomGridWorker(config=config, folder_switch=folder_switch)
+        worker = EnvironmentWorker(config=config, folder_switch=folder_switch)
 
         # run pool of processes over map_id sequence
-        with Pool() as pool:
-            pool.map(func=worker, iterable=range(config.map_number))
-        return
+        p_map(worker, range(config.map_number))
 
     # recovery mode
-    for file_path in file_path_list:
-        # get map
-        random_grid_map = create_random_grid_map(map_shape=config.map_shape,
-                                                 map_density=config.map_density,
-                                                 connected=config.force_conn)
+    else:
+        print('Regenerating failed Environments')
+        # setup multiprocessing
+        worker = RecoveryWorker(config=config)
 
-        # get scenario
-        start_pos_list, parking_spot_list, task_list = create_scenario(config=config,
-                                                                       input_map=random_grid_map)
-
-        # save map image and dump env file
-        save_and_dump(file_path=file_path, input_map=random_grid_map,
-                      start_pos_list=start_pos_list, parking_spot_list=parking_spot_list,
-                      task_list=task_list)
+        # run pool of processes bad file paths
+        p_map(worker, file_path_list)
 
 
-class __RandomGridWorker:
+class EnvironmentWorker:
     """
-    Worker for __random_grid_environment, executed on a thread
+    Worker for creating environment, executed on a thread
     """
 
     def __init__(self, config, folder_switch):
@@ -114,14 +91,18 @@ class __RandomGridWorker:
         self.config = config
         self.folder_switch = folder_switch
 
+        # pick a map creator
+        if self.config.map_type == 'random_grid':
+            self.create_map = create_random_grid_map
+
     def __call__(self, map_id):
         """
         :param map_id: int, id of the map processed
         """
         # get map
-        random_grid_map = create_random_grid_map(map_shape=self.config.map_shape,
-                                                 map_density=self.config.map_density,
-                                                 connected=self.config.force_conn)
+        random_grid_map = self.create_map(map_shape=self.config.map_shape,
+                                          map_density=self.config.map_density,
+                                          connected=self.config.force_conn)
 
         for sc_id in range(self.config.scenario_number):
             # get scenario
@@ -137,7 +118,39 @@ class __RandomGridWorker:
                           start_pos_list=start_pos_list, parking_spot_list=parking_spot_list,
                           task_list=task_list)
 
-            print(f'Created Environment map{map_id:03d}_case{sc_id:02d}')
+
+class RecoveryWorker:
+    """
+    Worker for recovery mode
+    """
+
+    def __init__(self, config):
+        """
+        :param config: Namespace of dataset configurations
+        """
+        self.config = config
+
+        # pick a map creator
+        if self.config.map_type == 'random_grid':
+            self.create_map = create_random_grid_map
+
+    def __call__(self, file_path):
+        """
+        :param file_path: file path of the bad instance to regenerate
+        """
+        # get map
+        random_grid_map = self.create_map(map_shape=self.config.map_shape,
+                                          map_density=self.config.map_density,
+                                          connected=self.config.force_conn)
+
+        # get scenario
+        start_pos_list, parking_spot_list, task_list = create_scenario(config=self.config,
+                                                                       input_map=random_grid_map)
+
+        # save map image and dump env file
+        save_and_dump(file_path=file_path, input_map=random_grid_map,
+                      start_pos_list=start_pos_list, parking_spot_list=parking_spot_list,
+                      task_list=task_list)
 
 
 def save_and_dump(file_path, input_map, start_pos_list, parking_spot_list, task_list):

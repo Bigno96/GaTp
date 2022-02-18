@@ -7,11 +7,10 @@ Functions and methods to create Dataset instance over all solved MAPD instances
 import os
 import logging
 import torch
+from p_tqdm import p_map
 
 from torch.utils.data import Dataset
 from data_loading.transform_data import DataTransformer
-from multiprocessing.pool import Pool
-from itertools import repeat
 
 
 class GaTpDataset(Dataset):
@@ -33,9 +32,10 @@ class GaTpDataset(Dataset):
                                       f'{config.start_position_mode}_start+{config.task_creation_mode}_task'
                                       )
 
-        self.data_transform = DataTransformer(config=config, data_path=self.data_path)      # transforming input data
-        self.data_cache = {}        # dictionary for data caching
+        # transforming input data
+        self.data_transform = DataTransformer(config=config, data_path=self.data_path)
 
+        # start loading message
         self.logger.info('Start loading data')
 
         # train mode
@@ -43,16 +43,12 @@ class GaTpDataset(Dataset):
 
             # list of case files (only names, not full path)
             self.basename_list = self.load_basename_list(mode=mode)
+            self.data_transform.set_mode(mode)
 
-            # load data into cache
-            num_loaded = 0
-            total_cases = len(self.basename_list)
-            for basename in self.basename_list:
-                # nn_data = input tensor, GSO, target
-                nn_data = self.data_transform.get_nn_data(basename=basename, mode=mode)     # get data
-                self.data_cache[basename] = nn_data     # dump into cache
-                num_loaded += 1
-                print(f'Loaded train data {num_loaded}/{total_cases}')
+            result = p_map(self.data_transform.get_nn_data, self.basename_list)
+
+            # dictionary for data caching
+            self.data_cache = dict(zip(self.basename_list, result))
 
             # get a mapping of basename and their makespan
             # when index is given -> return associated basename and timestep

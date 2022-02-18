@@ -39,13 +39,20 @@ class DataTransformer:
 
         # expert used for solving scenarios
         self.expert_type = config.expert_type
+        # mode of usage
+        self.mode = None   # set with set_mode, done in this way for multiprocessing
 
-    def get_nn_data(self, basename, mode):
+    def set_mode(self, mode):
+        """
+        :param mode: str, options: ['test', 'train', 'valid']
+        """
+        self.mode = mode
+
+    def get_nn_data(self, basename):
         """
         Return tuple with all the data necessary for neural network training/testing, appropriately transformed
         NN data = (Input tensor, GSO, Target)
         :param basename: str, 'mapID_caseID'
-        :param mode: str, options: ['test', 'train', 'valid']
         :return: Input data = (Input tensor, GSO, Target)
                  Input tensor -> torch.FloatTensor,
                     shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
@@ -54,8 +61,9 @@ class DataTransformer:
                  Target -> np.ndarray,
                     shape = (makespan, num_agent, 5)
         """
+        assert self.mode is not None
         # get file base name
-        file_basename = os.path.join(self.data_path, mode, basename)
+        file_basename = os.path.join(self.data_path, self.mode, basename)
 
         # get environment
         with open(file_basename, 'rb') as f:
