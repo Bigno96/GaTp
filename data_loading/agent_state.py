@@ -59,6 +59,33 @@ class AgentState:
         self.local_objective_list = None         # local objectives with global coordinates
 
     @staticmethod
+    def simple_pad(input_array, pad_width, fill_value):
+        """
+        Fast version of numpy pad, padding with constant value around
+        Code taken from np.pad implementation
+        Avoid all the np.pad memory copies, necessary for other functionalities, not for constant padding
+        Speed up for larger databases
+        Return a copy of the original array, padded
+        :param input_array: np.ndarray, array to pad
+        :param pad_width: int, value to add to each axis
+        :param fill_value: int, value to pad with
+        :return: np.ndarray, shape = input_array.shape + pad_width (over all axis)
+        """
+        # Allocate grown array
+        new_shape = tuple(pad_width + s + pad_width
+                          for s in input_array.shape)
+        padded = np.empty(new_shape, dtype=input_array.dtype)
+
+        padded.fill(fill_value)
+
+        # Copy old array into correct space
+        original_area_slice = tuple(slice(pad_width, pad_width + s)
+                                    for s in input_array.shape)
+        padded[original_area_slice] = input_array
+
+        return padded
+
+    @staticmethod
     def stack_list(goal_pos_list, agent_pos_list):
         """
         Stacks the two passed matrix over axis 0
@@ -66,7 +93,7 @@ class AgentState:
         :param agent_pos_list: list of agents current position, np.ndarray, shape=(num_agents, 2)
         :return: torch float tensor
         """
-        return torch.FloatTensor(np.stack((goal_pos_list, agent_pos_list), axis=1))
+        return torch.from_numpy(np.stack((goal_pos_list, agent_pos_list), axis=1)).float()
 
     def set_obstacle_map(self, input_map):
         """
@@ -78,8 +105,8 @@ class AgentState:
         self.obstacle_map = np.array(input_map, dtype=np.int8)
         # pad obstacle map with half the FOV all around
         # pad value = 1 -> all obstacles outside
-        self.obstacle_map_pad = np.pad(input_map, pad_width=self.FOV_width,
-                                       mode='constant', constant_values=1).astype(np.int8)
+        self.obstacle_map_pad = self.simple_pad(input_array=input_map, pad_width=self.FOV_width,
+                                                fill_value=1).astype(np.int8)
 
     def get_agent_pos_map(self, agent_pos_list):
         """
@@ -101,7 +128,7 @@ class AgentState:
             agent_pos_map[(pos_x, pos_y)] = 1
 
         # pad with 0, since 1 means that an agent is in that position -> no agents outside
-        agent_pos_map_pad = np.pad(agent_pos_map, pad_width=self.FOV_width, mode='constant', constant_values=0)
+        agent_pos_map_pad = self.simple_pad(input_array=agent_pos_map, pad_width=self.FOV_width, fill_value=0)
 
         return agent_pos_map_pad
 
@@ -120,7 +147,7 @@ class AgentState:
                  np.ndarray, shape=(FOV+border, FOV+border)
         """
         # pad with a border around
-        padded_goal_map_FOV = np.pad(goal_map_FOV, pad_width=self.border, mode='constant', constant_values=0)
+        padded_goal_map_FOV = self.simple_pad(input_array=goal_map_FOV, pad_width=self.border, fill_value=0)
 
         # compute position differentials
         dx = float(goal_pos[0] - agent_pos[0])
@@ -183,26 +210,23 @@ class AgentState:
         # build obstacle 'channel', cut FOV and pad a border around
         # padded with values=0 since it's not used here but all channels needs to have same size
         obstacle_map_FOV = self.obstacle_map_pad[FOV_x[0]:FOV_x[1], FOV_y[0]:FOV_y[1]]  # cut the FOV out
-        obstacle_map_FOV_pad = np.pad(obstacle_map_FOV, pad_width=self.border,  # add border around
-                                      mode='constant', constant_values=0)
+        obstacle_map_FOV_pad = self.simple_pad(input_array=obstacle_map_FOV, pad_width=self.border, fill_value=0)
 
         # build agent position 'channel', cut FOV and pad a border around
         # padded with values=0 since it's not used here but all channels needs to have same size
         agent_pos_map_FOV = agent_pos_map_pad[FOV_x[0]:FOV_x[1], FOV_y[0]:FOV_y[1]]  # cut the FOV out
-        agent_pos_map_FOV_pad = np.pad(agent_pos_map_FOV, pad_width=self.border,  # add border around
-                                       mode='constant', constant_values=0)
+        agent_pos_map_FOV_pad = self.simple_pad(input_array=agent_pos_map_FOV, pad_width=self.border, fill_value=0)
 
         # build goal 'channel', cut FOV and pad a border around
         goal_pos_map = np.zeros_like(self.obstacle_map, dtype=np.int8)  # full map
         goal_pos_map[goal_x_global][goal_y_global] = 1  # set to 1 the agent goal
-        goal_pos_map_pad = np.pad(goal_pos_map, pad_width=self.FOV_width,  # add border around the full map
-                                  mode='constant', constant_values=0)
+        goal_pos_map_pad = self.simple_pad(input_array=goal_pos_map, pad_width=self.FOV_width, fill_value=0)
         goal_pos_map_FOV = goal_pos_map_pad[FOV_x[0]:FOV_x[1], FOV_y[0]:FOV_y[1]]  # cut the FOV out
 
         # if the goal is in the FOV, just pad it with the border set to 0
         if np.any(goal_pos_map_FOV > 0):
-            goal_pos_map_FOV_pad = np.pad(goal_pos_map_FOV, pad_width=self.border,
-                                          mode='constant', constant_values=0)
+            goal_pos_map_FOV_pad = self.simple_pad(input_array=goal_pos_map_FOV, pad_width=self.border,
+                                                   fill_value=0)
         # goal outside the FOV, project it on the border
         else:
             goal_pos_map_FOV_pad = self.project_goal(goal_map_FOV=goal_pos_map_FOV,
@@ -260,7 +284,7 @@ class AgentState:
 
         # transform input state (list of ndarray) into a ndarray,
         # since creating a tensor from a list of ndarray is extremely slow
-        input_tensor = torch.FloatTensor(np.array(input_state))
+        input_tensor = torch.from_numpy(np.array(input_state)).float()
 
         return input_tensor
 
@@ -300,6 +324,6 @@ class AgentState:
 
         # transform input state (list of ndarray) into a ndarray,
         # since creating a tensor from a list of ndarray is extremely slow
-        input_tensor = torch.FloatTensor(np.array(input_step_list))
+        input_tensor = torch.from_numpy(np.array(input_step_list)).float()
 
         return input_tensor
