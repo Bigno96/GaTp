@@ -167,7 +167,7 @@ class TpWorker(ExpertWorker):
                 self.bad_instances_list.append(f'{environment.name}')
 
                 name = basename(normpath(environment.name))
-                print(f'Collision on Environment {name}')
+                print(f'Colcollisionslision on Environment {name}')
 
             else:
                 service_time = statistics.mean(metrics['service_time'])

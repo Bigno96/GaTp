@@ -44,18 +44,6 @@ class MyTestCase(unittest.TestCase):
 
         return agent_pos_list, goal_pos_list
 
-    def test_stack_list(self):
-        ag_state = self.init_ag_state()
-        obs_map = self.get_obstacle_map()
-        agent_pos_list, goal_pos_list = self.get_agent_goal_pos_lists(num_agents=ag_state.agent_number,
-                                                                      input_map=obs_map)
-
-        stack_list = ag_state.stack_list(goal_pos_list=goal_pos_list,
-                                         agent_pos_list=agent_pos_list)
-
-        # verify dimensions, num agent x goal pos (dim=2) x agent pos (dim=2)
-        self.assertEqual(stack_list.shape, (ag_state.agent_number, 2, 2))
-
     def test_set_obstacle_map(self):
         ag_state = self.init_ag_state()
         obs_map = self.get_obstacle_map()

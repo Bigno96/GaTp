@@ -91,7 +91,7 @@ class FolderSwitch:
         valid_split = int(config.valid_split * tot_scenario_number)
 
         # dictionary to emulate a switch case with ranges
-        self.folder_switcher = {
+        self.folder_switch = {
             range(0, train_split): train_dir,
             range(train_split, train_split + valid_split): valid_dir,
             range(train_split + valid_split, tot_scenario_number): test_dir
@@ -105,7 +105,7 @@ class FolderSwitch:
         :return: selected folder
         """
         key_val = int(map_id * self.scenario_number) + sc_id
-        for key_range, value in self.folder_switcher.items():
+        for key_range, value in self.folder_switch.items():
             if key_val in key_range:
                 return value
 

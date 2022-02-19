@@ -1,7 +1,9 @@
 """
 PyTorch Custom Dataset implementation
 
-Functions and methods to create Dataset instance over all solved MAPD instances
+Functions and methods to create torch Dataset over all solved MAPD instances
+
+DataTransformer is used to modify saved data to build tensor to feed to the model
 """
 
 import os
@@ -14,10 +16,26 @@ from data_loading.transform_data import DataTransformer
 
 
 class GaTpDataset(Dataset):
+    """
+    Custom dataset for GaTp model
+    init -> load dataset environments and expert solutions from pickle files
+            transform data in order to feed them to the ML model
+            save transformed data into a data cache
+    getitem -> retrieve correct data to pass to the model, based on current mode (train, test, valid)
+               use 'index' parameter to collect proper case base name
+               basename is used to access data cache
+    """
 
     def __init__(self, config, mode):
+        """
+        :param config: Namespace of dataset configurations
+        :param mode: str, options: ['test', 'train', 'valid']
+        """
         self.config = config
         self.logger = logging.getLogger("Dataset")
+
+        # check mode type
+        assert mode in ['train', 'valid', 'test']
 
         # path to datasets root folder
         self.data_root = self.config.data_root
@@ -33,55 +51,50 @@ class GaTpDataset(Dataset):
                                       )
 
         # transforming input data
-        self.data_transform = DataTransformer(config=config, data_path=self.data_path)
+        self.data_transform = DataTransformer(config=config, data_path=self.data_path, mode=mode)
 
         # start loading message
         self.logger.info('Start loading data')
 
-        # train mode
-        if mode == "train":
+        # list of case files (only names, not full path)
+        self.basename_list = self.load_basename_list(mode=mode)
 
-            # list of case files (only names, not full path)
-            self.basename_list = self.load_basename_list(mode=mode)
-            self.data_transform.set_mode(mode)
+        # get processed data
+        result = p_map(self.data_transform.get_nn_data, self.basename_list)
 
-            result = p_map(self.data_transform.get_nn_data, self.basename_list)
+        # dictionary for data caching
+        self.data_cache = dict(zip(self.basename_list, result))
 
-            # dictionary for data caching
-            self.data_cache = dict(zip(self.basename_list, result))
+        # get a mapping of basename and their makespan
+        # when index is given -> return associated basename and timestep
+        self.basename_switch = BasenameSwitch(basename_list=self.basename_list,
+                                              data_cache=self.data_cache)
+        # data size
+        self.data_size = self.basename_switch.data_size
 
-            # get a mapping of basename and their makespan
-            # when index is given -> return associated basename and timestep
-            self.basename_switch = BasenameSwitch(basename_list=self.basename_list,
-                                                  data_cache=self.data_cache)
-            # data size
-            self.data_size = self.basename_switch.data_size
-
-        else:
-            pass
+        if mode == 'train':
+            self.get_data = self.get_train_data
+        else:   # valid or test
+            self.get_data = self.get_test_data
 
     def __getitem__(self, index):
         """
         :param index: int
         :return: step_input_tensor, step_GSO, step_target
                  step_input_tensor -> FloatTensor,
-                                      shape = (makespan, agent_num, channel_num, FOV+2*border, FOV+2*border)
+                                      shape = (agent_num, channel_num, FOV+2*border, FOV+2*border)
                  step_GSO -> FloatTensor,
-                             shape = (makespan, agent_num, agent_num)
+                             shape = (agent_num, agent_num)
                  step_target -> FloatTensor,
-                                shape = (makespan, num_agent, 5)
+                                shape = (num_agent, 5)
+                 basename -> str
         """
         # obtain corresponding case name and timestep of its solution
         basename, timestep = self.basename_switch.get_item(index)
         # get nn_data
-        input_tensor, GSO, target = self.data_cache[basename]
+        step_input_tensor, step_GSO, step_target = self.get_data(basename=basename, timestep=timestep)
 
-        # slice 1 timestep
-        step_input_tensor = input_tensor[timestep].float()      # already torch tensor, cast to float for good measure
-        step_GSO = torch.from_numpy(GSO[timestep]).float()
-        step_target = torch.from_numpy(target[timestep]).float()
-
-        return step_input_tensor, step_GSO, step_target
+        return step_input_tensor, step_GSO, step_target, basename
 
     def __len__(self):
         return self.data_size
@@ -103,6 +116,56 @@ class GaTpDataset(Dataset):
                 for name in filenames
                 if 'sol' not in name
                 and 'png' not in name]
+
+    def get_train_data(self, **kwargs):
+        """
+        Retrieve training data from data cache
+        :param **kwargs ->
+            basename: str, case file name
+            timestep: int, timestep of the solution associated to the case
+        :return: step_input_tensor, step_GSO, step_target
+                 step_input_tensor -> FloatTensor,
+                                      shape = (agent_num, channel_num, FOV+2*border, FOV+2*border)
+                 step_GSO -> FloatTensor,
+                             shape = (agent_num, agent_num)
+                 step_target -> FloatTensor,
+                                shape = (num_agent, 5)
+        """
+        basename = kwargs.get('basename')
+        timestep = kwargs.get('timestep')
+
+        # get nn_data
+        input_tensor, GSO, target = self.data_cache[basename]
+
+        # slice 1 timestep
+        step_input_tensor = input_tensor[timestep].float()  # already torch tensor, cast to float for good measure
+        step_GSO = torch.from_numpy(GSO[timestep]).float()
+        step_target = torch.from_numpy(target[timestep]).long()
+
+        return step_input_tensor, step_GSO, step_target
+
+    def get_test_data(self, **kwargs):
+        """
+        Retrieve testing data from data cache
+        :param **kwargs ->
+            basename: str, case file name
+        :return: input_tensor, target
+                 input_tensor -> FloatTensor,
+                                 shape = (agent_num, channel_num, FOV+2*border, FOV+2*border)
+                 GSO -> FloatTensor,
+                        shape = (agent_num, agent_num)
+                 target -> FloatTensor,
+                           shape = (makespan, num_agent, 5)
+        """
+        basename = kwargs.get('basename')
+
+        # get nn data
+        input_tensor, GSO, target = self.data_cache[basename]
+
+        # makespan x agent_num x 5
+        target = torch.from_numpy(target).long()    # convert target into tensor
+
+        return input_tensor.float(), GSO.float(), target
 
 
 class BasenameSwitch:
@@ -146,67 +209,3 @@ class BasenameSwitch:
             if idx in key_range:
                 # return basename, timestep
                 return value, idx % key_range[0]
-
-
-'''class GaTpDataset(Dataset):
-    """
-    Custom Dataset for loading MAPD data to feed into GaTp
-    """
-    def __init__(self, data_dir, mode, expert_type):
-        """
-        :param data_dir: path of the directory containing data
-        :param mode: dataset type -> train, valid or test
-        :param expert_type: type of expert to load the data -> tp
-        """
-        # decide which folder to use
-        if mode.upper() == 'TRAIN':
-            self.data_dir = os.path.join(data_dir, 'train')
-        elif mode.upper() == 'TEST':
-            self.data_dir = os.path.join(data_dir, 'test')
-        elif mode.upper() == 'VALID':
-            self.data_dir = os.path.join(data_dir, 'valid')
-        else:
-            raise ValueError('Invalid Dataset mode')
-
-        # select expert
-        if expert_type.upper() == 'TP':
-            self.exp_sol_extension = 'tp_sol'
-        else:
-            raise ValueError('Invalid Expert type')
-
-        # get list of base names
-        self.name_list = [filename
-                          for filename in os.listdir(self.data_dir)
-                          if not filename.endswith('.png')
-                          and not filename.endswith('sol')]
-
-    def __len__(self):
-        """
-        :return: length of the dataset
-        """
-        return len(self.name_list)
-
-    def __getitem__(self, index):
-        """
-        :param index: int
-        :return: image of the environment -> matrix
-                 environment description -> as a Namespace
-                 expert solution -> as a Namespace
-        """
-        base_name = self.name_list[index]
-
-        # load image
-        img_path = os.path.join(self.data_dir, f'{base_name}.png')
-        image = read_image(img_path).T
-
-        # load environment
-        env_path = os.path.join(self.data_dir, base_name)
-        with open(env_path, 'rb') as _data:
-            environment = pickle.load(_data)
-
-        # load expert solution
-        sol_path = os.path.join(self.data_dir, f'{base_name}_{self.exp_sol_extension}')
-        with open(sol_path, 'rb') as _data:
-            expert_sol = pickle.load(_data)
-
-        return image, environment, expert_sol'''

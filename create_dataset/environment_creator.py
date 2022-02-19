@@ -13,6 +13,7 @@ environment = {'name': file path to the env data file,
 After creating a data pool, an expert will be run on it to generate the complete dataset
 """
 import os
+import pickle
 from p_tqdm import p_map
 
 from create_dataset.map_creator import create_random_grid_map
@@ -100,21 +101,21 @@ class EnvironmentWorker:
         :param map_id: int, id of the map processed
         """
         # get map
-        random_grid_map = self.create_map(map_shape=self.config.map_shape,
-                                          map_density=self.config.map_density,
-                                          connected=self.config.force_conn)
+        input_map = self.create_map(map_shape=self.config.map_shape,
+                                    map_density=self.config.map_density,
+                                    connected=self.config.force_conn)
 
         for sc_id in range(self.config.scenario_number):
             # get scenario
             start_pos_list, parking_spot_list, task_list = create_scenario(config=self.config,
-                                                                           input_map=random_grid_map)
+                                                                           input_map=input_map)
 
             # get directory where to save scenario and map data
             save_dir = self.folder_switch.get_folder(map_id=map_id, sc_id=sc_id)
             file_path = os.path.join(save_dir, f'map{map_id:03d}_case{sc_id:02d}')
 
             # save map image and dump env file
-            save_and_dump(file_path=file_path, input_map=random_grid_map,
+            save_and_dump(file_path=file_path, input_map=input_map,
                           start_pos_list=start_pos_list, parking_spot_list=parking_spot_list,
                           task_list=task_list)
 
@@ -139,16 +140,16 @@ class RecoveryWorker:
         :param file_path: file path of the bad instance to regenerate
         """
         # get map
-        random_grid_map = self.create_map(map_shape=self.config.map_shape,
-                                          map_density=self.config.map_density,
-                                          connected=self.config.force_conn)
+        with open(file_path, 'rb') as f:
+            environment = pickle.load(f)
+        input_map = environment['map']
 
-        # get scenario
+        # get new scenario over same map
         start_pos_list, parking_spot_list, task_list = create_scenario(config=self.config,
-                                                                       input_map=random_grid_map)
+                                                                       input_map=input_map)
 
         # save map image and dump env file
-        save_and_dump(file_path=file_path, input_map=random_grid_map,
+        save_and_dump(file_path=file_path, input_map=input_map,
                       start_pos_list=start_pos_list, parking_spot_list=parking_spot_list,
                       task_list=task_list)
 

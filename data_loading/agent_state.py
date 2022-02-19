@@ -85,16 +85,6 @@ class AgentState:
 
         return padded
 
-    @staticmethod
-    def stack_list(goal_pos_list, agent_pos_list):
-        """
-        Stacks the two passed matrix over axis 0
-        :param goal_pos_list: list of agents goal position, np.ndarray, shape=(num_agents, 2)
-        :param agent_pos_list: list of agents current position, np.ndarray, shape=(num_agents, 2)
-        :return: torch float tensor
-        """
-        return torch.from_numpy(np.stack((goal_pos_list, agent_pos_list), axis=1)).float()
-
     def set_obstacle_map(self, input_map):
         """
         Set obstacle maps (padded and not) in the current agent state
