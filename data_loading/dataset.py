@@ -54,7 +54,7 @@ class GaTpDataset(Dataset):
         self.data_transform = DataTransformer(config=config, data_path=self.data_path, mode=mode)
 
         # start loading message
-        self.logger.info('Start loading data')
+        self.logger.info(f'Start loading {mode} data')
 
         # list of case files (only names, not full path)
         self.basename_list = self.load_basename_list(mode=mode)
@@ -92,9 +92,9 @@ class GaTpDataset(Dataset):
         # obtain corresponding case name and timestep of its solution
         basename, timestep = self.basename_switch.get_item(index)
         # get nn_data
-        step_input_tensor, step_GSO, step_target = self.get_data(basename=basename, timestep=timestep)
+        input_tensor, GSO, target = self.get_data(basename=basename, timestep=timestep)
 
-        return step_input_tensor, step_GSO, step_target, basename
+        return input_tensor, GSO, target, basename
 
     def __len__(self):
         return self.data_size
@@ -187,7 +187,9 @@ class BasenameSwitch:
         # for each basename
         cum_makespan = 0        # sum of length up to now
         for basename in basename_list:
-            # look up for makespan in the data cache
+            # look up for makespan in the data cache -> why use GSO?
+            # because in valid and test, GSO is not used -> GSO.shape[0] = 1 for those
+            # which is desirable, because in valid and test you return all goal/schedule at once, no time slicing
             _, GSO, _ = data_cache[basename]
             makespan = GSO.shape[0]        # first dim is the makespan
 
@@ -196,7 +198,7 @@ class BasenameSwitch:
 
             cum_makespan += makespan        # sum up
 
-        self.data_size = cum_makespan
+        self.data_size = cum_makespan       # for valid/test, data size = cases number
 
     def get_item(self, idx):
         """
@@ -207,5 +209,10 @@ class BasenameSwitch:
         """
         for key_range, value in self.switch.items():
             if idx in key_range:
-                # return basename, timestep
-                return value, idx % key_range[0]
+                # avoid modulo by 0
+                if key_range[0] == 0:
+                    # return basename, timestep
+                    return value, idx
+                else:
+                    # return basename, timestep
+                    return value, idx % key_range[0]
