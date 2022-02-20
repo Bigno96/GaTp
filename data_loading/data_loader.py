@@ -2,6 +2,8 @@
 PyTorch Custom Data Loader implementation
 """
 
+import logging
+
 from torch.utils.data import DataLoader
 from data_loading.dataset import GaTpDataset
 
@@ -16,7 +18,7 @@ class GaTpDataLoader:
         :param config: Namespace of dataset configurations
         """
         self.config = config
-        assert self.config.mode in ['train', 'test']
+        self.logger = logging.getLogger("DataLoader")
 
         # data loader for training
         if self.config.mode == 'train':
@@ -37,7 +39,7 @@ class GaTpDataLoader:
                                            pin_memory=self.config.pin_memory)
 
         # data loader for testing
-        else:
+        elif self.config.mode == 'test':
             self.test_dataset = GaTpDataset(self.config, 'test')
 
             self.test_loader = DataLoader(self.test_dataset,
@@ -45,3 +47,6 @@ class GaTpDataLoader:
                                           shuffle=False,                # don't shuffle valid set
                                           num_workers=self.config.data_loader_workers,
                                           pin_memory=self.config.pin_memory)
+
+        else:
+            self.logger.error('Incorrect operating mode was specified')

@@ -63,9 +63,11 @@ def main():
 
     # agent parameters, if omitted -> default values
     arg_parser.add_argument('-FOV', type=__check_odd, default=9,
-                            help='Radius of agents FOV. Has to be odd')     # check FOV size in dataset_creation.yaml
+                            help='Radius of agents FOV. Has to be odd')
     arg_parser.add_argument('-comm_radius', type=int, default=7,
                             help='Maximum communication distance between agents')
+    arg_parser.add_argument('-sim_num_process', type=int, default=4,
+                            help='Number of separate processes for running agent simulation')
 
     # get the argument from the console
     args = arg_parser.parse_args()

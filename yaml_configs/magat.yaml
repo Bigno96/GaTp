@@ -1,6 +1,8 @@
 # Solve Token Passing with Message-Aware Graph Attention model as in MAGAT
 # arXiv:2011.13219v2
-device: 'cuda'
+cuda: True        # device for loading tensors. If True, cuda is used, if False cpu is used instead
+gpu_device: 0     # number of device to use when cuda is enabled
+seed: 1337        # seed for torch
 
 # folder paths
 data_root: "D:\\Uni\\TESI\\GaTp\\datasets"

@@ -116,6 +116,7 @@ def process_config(args):
     # agent configuration
     config.FOV = args.FOV
     config.comm_radius = args.comm_radius
+    config.sim_num_process = args.sim_num_process
 
     # set up experiment name with configuration summary:
     #   environment description, hyper parameters, timestamp
@@ -127,6 +128,7 @@ def process_config(args):
     config.exp_hyper_para = f'{config.attention_heads}heads+{config.attention_concat}_concat' \
                             f'+{config.comm_radius}comm_radius+{config.FOV}FOV'
     config.exp_time = str(int(mktime(datetime.now().timetuple())))
+
     config.exp_name = os.path.join(f'{config.agent_type.upper()}_{config.env_setup}',
                                    config.exp_hyper_para,
                                    config.task_setup,
@@ -139,7 +141,11 @@ def process_config(args):
     config.out_dir = os.path.join(config.exp_folder,
                                   config.exp_name,
                                   'out')            # experiment outputs
-    create_dirs([config.log_dir, config.out_dir])
+    config.checkpoint_dir = os.path.join(config.exp_folder,
+                                         config.exp_name,
+                                         "checkpoints")         # checkpoint folder
+
+    create_dirs([config.log_dir, config.out_dir, config.checkpoint_dir])
 
     # setup logging in the project
     setup_logging(config.log_dir)
