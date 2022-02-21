@@ -51,7 +51,7 @@ class MagatAgent(Agent):
         if self.cuda and not self.config.cuda:      # user has cuda available, but not enabled
             self.logger.info('WARNING: You have a CUDA device, you should probably enable CUDA')
 
-        self.cuda = self.cuda & self.config.cuda    # prevent setting cuda True if not available
+        self.cuda = self.cuda and self.config.cuda    # prevent setting cuda True if not available
 
         # set the manual seed for torch
         self.manual_seed = self.config.seed
@@ -80,7 +80,13 @@ class MagatAgent(Agent):
                   f'Thread num: {self.config.sim_num_process}')
             self.simulate_agent_exec = self.sim_agent_exec_multi
 
-    def save_checkpoint(self, epoch, is_best=False, latest=True):
+        # load checkpoint if necessary
+        if config.load_checkpoint:
+            self.load_checkpoint(epoch=config.load_epoch,
+                                 best=config.load_ckp_mode == 'best',
+                                 latest=config.load_ckp_mode == 'latest')
+
+    def save_checkpoint(self, epoch=0, is_best=False, latest=True):
         """
         Checkpoint saver
         :param epoch: int, current epoch being saved
@@ -107,7 +113,7 @@ class MagatAgent(Agent):
             shutil.copyfile(os.path.join(self.config.checkpoint_dir, file_name),
                             os.path.join(self.config.checkpoint_dir, 'model_best.pth.tar'))
 
-    def load_checkpoint(self, epoch, best=False, latest=True):
+    def load_checkpoint(self, epoch=0, best=False, latest=True):
         """
         Checkpoint loader
         Priority: latest -> best -> epoch
@@ -117,11 +123,11 @@ class MagatAgent(Agent):
         """
         # order of priority: latest -> best -> specific epoch
         if latest:
-            file_name = "checkpoint.pth.tar"
+            file_name = 'checkpoint.pth.tar'
         elif best:
-            file_name = "model_best.pth.tar"
+            file_name = 'model_best.pth.tar'
         else:
-            file_name = "checkpoint_{:03d}.pth.tar".format(epoch)
+            file_name = f'checkpoint_{epoch:03d}.pth.tar'
 
         file_path = os.path.join(self.config.checkpoint_dir, file_name)
         try:

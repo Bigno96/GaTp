@@ -117,6 +117,10 @@ def process_config(args):
     config.FOV = args.FOV
     config.comm_radius = args.comm_radius
     config.sim_num_process = args.sim_num_process
+    config.load_checkpoint = args.load_checkpoint
+    config.load_ckp_mode = args.load_ckp_mode
+    config.load_epoch = args.load_epoch
+    config.checkpoint_timestamp = args.checkpoint_timestamp
 
     # set up experiment name with configuration summary:
     #   environment description, hyper parameters, timestamp
@@ -127,14 +131,34 @@ def process_config(args):
                         f'_every{config.step_between_insertion}'
     config.exp_hyper_para = f'{config.attention_heads}heads+{config.attention_concat}_concat' \
                             f'+{config.comm_radius}comm_radius+{config.FOV}FOV'
-    config.exp_time = str(int(mktime(datetime.now().timetuple())))
 
+    # testing always load a trained checkpoint
+    config.load_checkpoint = config.load_checkpoint or config.mode == 'test'
+
+    # if loading an existing checkpoint
+    if config.load_checkpoint:
+        # checkpoint to load not specified
+        if not config.checkpoint_timestamp:
+            print('Error: No checkpoint to load!')
+            exit(-1)
+        # check that if load_mode == 'epoch', an epoch is specified
+        if config.load_ckp_mode == 'epoch' and not config.load_epoch:
+            print('Error: No epoch specified when trying to load checkpoint!')
+            exit(-1)
+
+        config.exp_time = config.checkpoint_timestamp
+
+    # not loading a pre-existing checkpoint
+    else:
+        config.exp_time = str(int(mktime(datetime.now().timetuple())))
+
+    # exp folder path
     config.exp_name = os.path.join(f'{config.agent_type.upper()}_{config.env_setup}',
                                    config.exp_hyper_para,
                                    config.task_setup,
                                    config.exp_time)
 
-    # setup and create useful directories
+    # setup useful directories
     config.log_dir = os.path.join(config.exp_folder,
                                   config.exp_name,
                                   'logs')           # logging outputs
@@ -144,7 +168,7 @@ def process_config(args):
     config.checkpoint_dir = os.path.join(config.exp_folder,
                                          config.exp_name,
                                          "checkpoints")         # checkpoint folder
-
+    # create, if they don't exist
     create_dirs([config.log_dir, config.out_dir, config.checkpoint_dir])
 
     # setup logging in the project
