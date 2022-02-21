@@ -71,14 +71,14 @@ class AgentState:
         :param fill_value: int, value to pad with
         :return: np.ndarray, shape = input_array.shape + pad_width (over all axis)
         """
-        # Allocate grown array
+        # allocate grown array
         new_shape = tuple(pad_width + s + pad_width
                           for s in input_array.shape)
         padded = np.empty(new_shape, dtype=input_array.dtype)
 
         padded.fill(fill_value)
 
-        # Copy old array into correct space
+        # copy old array into correct space
         original_area_slice = tuple(slice(pad_width, pad_width + s)
                                     for s in input_array.shape)
         padded[original_area_slice] = input_array
@@ -253,7 +253,7 @@ class AgentState:
         Update local objective list with the global coordinates of the local objective of each agent
         :param goal_pos_list: list of agents goal position, np.ndarray, shape=(num_agents, 2)
         :param agent_pos_list: list of agents current position, np.ndarray, shape=(num_agents, 2)
-        :return: torch Float Tensor of the input configuration
+        :return: torch Int Tensor of the input configuration
                  input_tensor.shape = (num_agents, 3 (channels), FOV+2*border, FOV+2*border)
         """
         # get map with agents positions, padded in the outside
@@ -274,7 +274,7 @@ class AgentState:
 
         # transform input state (list of ndarray) into a ndarray,
         # since creating a tensor from a list of ndarray is extremely slow
-        input_tensor = torch.from_numpy(np.array(input_state)).float()
+        input_tensor = torch.from_numpy(np.array(input_state)).int()
 
         return input_tensor
 
@@ -287,7 +287,7 @@ class AgentState:
         :param agent_pos_schedule: schedule (sequence) of agents positions
                                    np.ndarray, shape = (makespan, num_agents, 2)
         :param makespan: length of the agents schedule
-        :return: torch Float Tensor of the input configuration
+        :return: torch Int Tensor of the input configuration
                  input state = makespan x num_agents x input state of agent
         """
         input_step_list = []
@@ -314,6 +314,6 @@ class AgentState:
 
         # transform input state (list of ndarray) into a ndarray,
         # since creating a tensor from a list of ndarray is extremely slow
-        input_tensor = torch.from_numpy(np.array(input_step_list)).float()
+        input_tensor = torch.from_numpy(np.array(input_step_list)).int()
 
         return input_tensor

@@ -1,8 +1,8 @@
 """
 Utilities for transforming environment data and expert solutions into neural network compatible data
 
-NN data:
-    1- Input tensor -> torch.FloatTensor,
+Train data:
+    1- Input tensor -> torch.IntTensor,
                        shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
             See GaTp/data_loading/agent_state.py for more information about input tensor composition
     2- GSO -> np.ndarray, shape = (makespan, num_agent, num_agent)
@@ -15,7 +15,6 @@ NN data:
 
 import os
 import pickle
-import torch
 import numpy as np
 
 from operator import sub
@@ -47,15 +46,16 @@ class DataTransformer:
         # mode of usage
         self.mode = mode
 
+        # data retrieving function
         if self.mode == 'train':
-            self.build_input_tensor = self.build_train_input_tensor
+            self.get_data = self.get_train_data
         else:
-            self.build_input_tensor = self.build_test_input_tensor
+            self.get_data = self.get_test_data
 
-    def get_nn_data(self, basename):
+    def get_train_data(self, basename):
         """
-        Return tuple with all the data necessary for neural network training/testing, appropriately transformed
-        NN data = (Input tensor, GSO, Target)
+        Return tuple with all the data necessary for neural network training, appropriately transformed
+        train data = (Input tensor, GSO, Target)
         :param basename: str, 'mapID_caseID'
         :return: (Input tensor, GSO, Target)
                  Input tensor -> torch.FloatTensor,
@@ -64,6 +64,71 @@ class DataTransformer:
                     shape = (makespan, num_agent, num_agent)
                  Target -> np.ndarray,
                     shape = (makespan, num_agent, 5)
+        """
+        environment, expert_sol = self.load_from_pickle(basename=basename)
+
+        # 1) input tensor
+        input_tensor = self.build_train_input_tensor(input_map=environment['map'],
+                                                     agent_schedule=expert_sol['agent_schedule'],
+                                                     goal_schedule=expert_sol['goal_schedule'])
+
+        # 2) GSO
+        GSO = self.compute_gso(agent_schedule=expert_sol['agent_schedule'])
+
+        # 3) target
+        target = self.transform_agent_schedule(agent_schedule=expert_sol['agent_schedule'])
+
+        return input_tensor, GSO, target
+
+    def get_test_data(self, basename):
+        """
+        Return tuple with all the data necessary for neural network testing/validation, appropriately transformed
+        test data = (Start_pos_list, Task_list, Makespan, Service_time)
+        :param basename: str, 'mapID_caseID'
+        :return: (Start_pos_list, Task_list, Makespan, Service_time)
+                  Start_pos_list -> FloatTensor,
+                                    shape = (agent_num, 2)
+                  Task_list -> FloatTensor,
+                               shape = (task_num, 2, 2)
+                  Makespan -> int
+                  Service_time -> float
+        """
+        environment, expert_sol = self.load_from_pickle(basename=basename)
+
+        # 1) start_pos_list
+        start_pos_list = np.array(environment['start_pos_list'], dtype=np.int8)
+
+        # 2) task_list
+        task_list = np.array(environment['task_list'], dtype=np.int8)
+
+        # 3) makespan
+        makespan = expert_sol['makespan']
+
+        # 4) service_time
+        service_time = expert_sol['service_time']
+
+        return start_pos_list, task_list, makespan, service_time
+
+    def load_from_pickle(self, basename):
+        """
+        Return environment dict, expert solution dict loaded from pickled file
+        :param basename: str, 'mapID_caseID'
+        :return: environment = {
+                    'name': file path to the env data file,
+                    'map': created map,
+                    'start_pos_list': agents starting positions,
+                    'parking_spot_list': extra non task related endpoints (excluding agents starting points),
+                    'task_list': task list built over the map
+                    }
+                 expert_data = {
+                    'name': file path to the expert data file,
+                    'makespan': length of the solution,
+                    'service_time': average timesteps required to complete a task,
+                    'runtime_per_timestep': ms required to execute a timestep of the expert algorithm,
+                    'collisions': number of collision occurred,
+                    'agent_schedule': agent action schedule,
+                    'goal_schedule': schedule of objectives (goal positions) pursued by agents
+                    }
         """
         # get file base name
         file_basename = os.path.join(self.data_path, self.mode, basename)
@@ -77,21 +142,7 @@ class DataTransformer:
         with open(expert_sol_path, 'rb') as f:
             expert_sol = pickle.load(f)
 
-        # 1) input tensor
-        input_tensor = self.build_input_tensor(input_map=environment['map'],
-                                               agent_schedule=expert_sol['agent_schedule'],
-                                               goal_schedule=expert_sol['goal_schedule'])
-
-        # 2) GSO
-        if self.mode == 'train':
-            GSO = self.compute_gso(agent_schedule=expert_sol['agent_schedule'])
-        else:
-            GSO = torch.zeros(1)        # not used in valid or test
-
-        # 3) target
-        target = self.transform_agent_schedule(agent_schedule=expert_sol['agent_schedule'])
-
-        return input_tensor, GSO, target
+        return environment, expert_sol
 
     @staticmethod
     def schedule_to_numpy(schedule):
@@ -112,24 +163,19 @@ class DataTransformer:
         # reshape: num_agents x makespan x 2 -> makespan x num_agents x 2
         return np.swapaxes(pos_schedule, axis1=0, axis2=1)
 
-    def build_train_input_tensor(self, **kwargs):
+    def build_train_input_tensor(self, input_map, agent_schedule, goal_schedule):
         """
         Build input tensor for training input data
         Check data_loading/agent_state -> get_sequence_input_tensor for more information
-        :param **kwargs
-            input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
-            agent_schedule: dict -> {agent_id : schedule}
+        :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
+        :param agent_schedule: dict -> {agent_id : schedule}
                                  with schedule = deque([(x_0, y_0, 0), (x_1, y_1, 1), ...])
-            goal_schedule: dict -> {agent_id : schedule}
+        :param goal_schedule: dict -> {agent_id : schedule}
                                 with schedule = deque([(current_goal, 0), (curr_goal, 1), ...])
                                 curr_goal -> position the agent is trying to reach
-        :return: torch Float Tensor of the input configuration
+        :return: torch Int Tensor of the input configuration
                  input state = makespan x num_agents x input state of agent
         """
-        input_map = kwargs.get('input_map')
-        agent_schedule = kwargs.get('agent_schedule')
-        goal_schedule = kwargs.get('goal_schedule')
-
         # set obstacle map in agent state
         self.agent_state.set_obstacle_map(input_map=input_map)
 
@@ -142,31 +188,6 @@ class DataTransformer:
         return self.agent_state.get_sequence_input_tensor(goal_pos_schedule=goal_pos_schedule,
                                                           agent_pos_schedule=agent_pos_schedule,
                                                           makespan=len(agent_schedule[0]))
-
-    def build_test_input_tensor(self, **kwargs):
-        """
-        Build input tensor for validation input data
-        Validation input state -> agent schedule, goal schedule
-        :param **kwargs
-            agent_schedule: dict -> {agent_id : schedule}
-                                 with schedule = deque([(x_0, y_0, 0), (x_1, y_1, 1), ...])
-            goal_schedule: dict -> {agent_id : schedule}
-                                with schedule = deque([(current_goal, 0), (curr_goal, 1), ...])
-                                curr_goal -> position the agent is trying to reach
-        :return: torch Float Tensor of the input configuration
-                 input tensor = agent_schedule (makespan x agent_num x 2),
-                                goal_schedule (makespan x agent_num x 2)
-        """
-        agent_schedule = kwargs.get('agent_schedule')
-        goal_schedule = kwargs.get('goal_schedule')
-
-        # prepare agent schedule, makespan x num_agents x 2
-        agent_pos_schedule = self.schedule_to_numpy(schedule=agent_schedule)
-        # prepare goal schedule, makespan x num_agents x 2
-        goal_pos_schedule = self.schedule_to_numpy(schedule=goal_schedule)
-
-        input_state = [agent_pos_schedule, goal_pos_schedule]
-        return torch.from_numpy(np.array(input_state)).float()
 
     def compute_gso(self, agent_schedule):
         """

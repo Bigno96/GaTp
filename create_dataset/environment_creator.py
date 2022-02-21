@@ -6,7 +6,7 @@ Functions to create a data pool of environments, meaning different maps and all 
 
 environment = {'name': file path to the env data file,
                'map': created map,
-               'start_pos_list: agents starting positions,
+               'start_pos_list': agents starting positions,
                'parking_spot_list': extra non task related endpoints (excluding agents starting points),
                'task_list': task list built over the map}
 

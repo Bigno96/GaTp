@@ -4,9 +4,14 @@
 
 Functions to run an expert over different existing environments
 Results are dumped into a pickle file
-A matrix-form notation is used to represent produced agent schedule:
-    matrix -> 5 (5 actions, z-axis) x num_agent (x-axis) x makespan (max path length, y-axis)
-    5 actions order: go_up, go_left, go_down, go_right, stay_still
+
+expert_data = {'name': file path to the expert data file,
+               'makespan': length of the solution,
+               'service_time': average timesteps required to complete a task,
+               'runtime_per_timestep': ms required to execute a timestep of the expert algorithm,
+               'collisions': number of collision occurred,
+               'agent_schedule': agent action schedule,
+               'goal_schedule': schedule of objectives (goal positions) pursued by agents}
 """
 
 import pickle
