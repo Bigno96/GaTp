@@ -27,10 +27,13 @@ training item -> (step_input_tensor, step_GSO, step_target, basename)
 import os
 import logging
 import torch
+import pickle
+from tqdm import tqdm
 from p_tqdm import p_map
 
 from torch.utils.data import Dataset
-from data_loading.transform_data import DataTransformer
+from utils.transform_data import DataTransformer
+from utils.file_utils import load_basename_list
 
 
 class GaTpDataset(Dataset):
@@ -74,10 +77,21 @@ class GaTpDataset(Dataset):
 
         self.logger.info(f'Start loading {self.mode} data')
         # list of case files (only names, not full path)
-        self.basename_list = self.load_basename_list()
+        self.basename_list = load_basename_list(data_path=self.data_path, mode=self.mode)
 
-        # get processed data
-        result = p_map(self.data_transform.get_data, self.basename_list)
+        # if input data have to be generated at data loading
+        if self.config.transform_runtime_data:
+            # get processed data
+            result = p_map(self.data_transform.get_data, self.basename_list)
+        # read input data from datasets file
+        else:
+            result = []
+            for basename in tqdm(self.basename_list):
+                # get 'data' file path
+                data_path = os.path.join(self.data_path, self.mode, f'{basename}_data')
+                # extract with pickle
+                with open(data_path, 'rb') as f:
+                    result.append(pickle.load(f))
 
         # dictionary for data caching
         self.data_cache = dict(zip(self.basename_list, result))
@@ -128,23 +142,6 @@ class GaTpDataset(Dataset):
 
     def __len__(self):
         return self.data_size
-
-    def load_basename_list(self):
-        """
-        Load a file basename list
-        File basename -> 'mapID_caseID'
-        :return: List of str
-        """
-        # test, train or valid folder
-        data_dir = os.path.join(self.data_path, self.mode)
-        # get all and only filenames
-        (_, _, filenames) = next(os.walk(data_dir))
-
-        # filter out 'sol' and 'png' -> only basename
-        return [name
-                for name in filenames
-                if 'sol' not in name
-                and 'png' not in name]
 
     def get_train_data(self, basename, timestep):
         """

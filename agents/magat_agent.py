@@ -10,6 +10,7 @@ in IEEE Robotics and Automation Letters, vol. 6, no. 3, pp. 5533-5540, July 2021
 import shutil
 import torch
 import os
+import timeit
 
 import torch.nn as nn
 import torch.optim as optim
@@ -45,6 +46,8 @@ class MagatAgent(Agent):
         # initialize counters
         self.current_epoch = 0
         self.current_iteration = 0
+        self.performance = []
+        self.time_record = 0.0
 
         # set cuda flag
         self.cuda = torch.cuda.is_available()       # check availability
@@ -151,10 +154,54 @@ class MagatAgent(Agent):
             self.logger.info(f'No checkpoint exists from "{self.config.checkpoint_dir}". Skipping.')
 
     def run(self):
-        pass
+        """
+        The main operator
+        """
+        try:
+            # testing mode
+            if self.config.mode == 'test':
+                start_time = timeit.default_timer()
+                self.test()
+                self.time_record = timeit.default_timer() - start_time
+            # training mode
+            else:
+                self.train()
+
+        # interrupting training or testing by keyboard
+        except KeyboardInterrupt:
+            self.logger.info("Entered CTRL+C. Wait to finalize")
 
     def train(self):
-        pass
+        """
+        Main training loop
+        """
+        # loop over epochs 
+        # start from current_epoch -> in case of loaded checkpoint
+        for epoch in range(self.current_epoch, self.config.max_epoch+1):
+            self.current_epoch = epoch      # update epoch
+            self.train_one_epoch()          # train the epoch
+            
+            self.logger.info(f'Epoch {self.current_epoch} - Learning Rate: {self.scheduler.get_lr()}')
+            print(f'Epoch {self.current_epoch} - Learning Rate: {self.scheduler.get_lr()}')
+
+            validate_performance = []
+
+            # always validate first epochs
+            if epoch <= 4:
+                validate_performance = self.validate()
+                self.save_checkpoint(epoch, is_best=False, latest=False)
+            # else validate only every n epochs
+            elif epoch % self.config.validate_every == 0:
+                validate_performance = self.validate()
+                self.save_checkpoint(epoch, is_best=False, latest=False)
+
+            # is_best = better validate_performance
+            # if is_best:
+                # self.validate_performance = validate_performance
+
+            # self.save_checkpoint(epoch=epoch, is_best=is_best, latest=True)
+
+            self.scheduler.step()
 
     def validate(self):
         pass
@@ -164,9 +211,14 @@ class MagatAgent(Agent):
 
     def finalize(self):
         pass
+    
+    def train_one_epoch(self):
+        pass
 
     def sim_agent_exec_single(self):
         pass
 
     def sim_agent_exec_multi(self):
         pass
+
+

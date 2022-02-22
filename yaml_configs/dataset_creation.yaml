@@ -1,5 +1,10 @@
-# datasets root folder
+# Datasets root folder
 data_root: "D:\\Uni\\TESI\\GaTp\\datasets"
+
+# Agent config
+FOV: 9              # agents Field of View, has to be an ODD number
+comm_radius: 7      # communication radius of the agents
+
 # do not generate again environment if ones with same parameters are found
 keep_env_data: True
 # do not generate again expert solutions for the same envs if ones with same parameters are found

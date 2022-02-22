@@ -3,7 +3,7 @@ import random
 import numpy as np
 import torch
 
-from data_loading.agent_state import AgentState
+from utils.agent_state import AgentState
 from easydict import EasyDict
 
 

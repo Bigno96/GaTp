@@ -55,4 +55,6 @@ pin_memory: True            # if True, data loader will copy Tensors into CUDA p
 label_smoothing: 0.0        # amount of smoothing when computing the loss, where 0.0 means no smoothing
 learning_rate: 0.001        # learning rate of optimizer
 weight_decay: 0.00001       # weight decay of optimizer (implemented as L2 penalty)
-max_epoch: 300              # maximum number of iterations for learning rate scheduler
+max_epoch: 300              # maximum number of epochs of training
+
+validate_every: 4           # how many epochs between each validation

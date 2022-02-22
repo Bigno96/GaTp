@@ -4,13 +4,27 @@ Utilities for transforming environment data and expert solutions into neural net
 Train data:
     1- Input tensor -> torch.IntTensor,
                        shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
-            See GaTp/data_loading/agent_state.py for more information about input tensor composition
-    2- GSO -> np.ndarray, shape = (makespan, num_agent, num_agent)
-            Adjacency matrix at each timestep
-    3- Target -> np.ndarray, shape = (makespan, num_agent, 5)
-                 matrix representation of agent schedule
+                       See GaTp/data_loading/agent_state.py for more information about input tensor composition
+    2- GSO -> np.ndarray,
+              shape = (makespan, num_agent, num_agent)
+              Adjacency matrix at each timestep
+    3- Target -> np.ndarray,
+                 shape = (makespan, num_agent, 5)
+                 Matrix representation of agent schedule
                  5 actions: up, down, left, right, wait
                  sequence of moves that describes the policy to learn
+
+Test data:
+    1- Start_pos_list -> torch.IntTensor,
+                         shape = (agent_num, 2)
+                         Agents starting positions
+    2- Task_list -> torch.IntTensor,
+                    shape = (task_num, 2, 2)
+                    Task list, each task has 2 tuple of coordinates, (pickup, delivery)
+    3- Makespan -> int
+                   Length of the expert solution
+    4- Service_time -> float
+                       Average timesteps needed for an agent to complete a task
 """
 
 import os
@@ -18,7 +32,7 @@ import pickle
 import numpy as np
 
 from operator import sub
-from data_loading.agent_state import AgentState
+from utils.agent_state import AgentState
 from utils.expert_utils import MOVE_LIST
 from utils.graph_utils import compute_adj_matrix
 
@@ -58,7 +72,7 @@ class DataTransformer:
         train data = (Input tensor, GSO, Target)
         :param basename: str, 'mapID_caseID'
         :return: (Input tensor, GSO, Target)
-                 Input tensor -> torch.FloatTensor,
+                 Input tensor -> torch.IntTensor,
                     shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
                  GSO -> np.ndarray,
                     shape = (makespan, num_agent, num_agent)
@@ -86,9 +100,9 @@ class DataTransformer:
         test data = (Start_pos_list, Task_list, Makespan, Service_time)
         :param basename: str, 'mapID_caseID'
         :return: (Start_pos_list, Task_list, Makespan, Service_time)
-                  Start_pos_list -> FloatTensor,
+                  Start_pos_list -> torch.IntTensor,
                                     shape = (agent_num, 2)
-                  Task_list -> FloatTensor,
+                  Task_list -> torch.IntTensor,
                                shape = (task_num, 2, 2)
                   Makespan -> int
                   Service_time -> float

@@ -5,7 +5,6 @@ import sys
 import numpy as np
 import matplotlib.pyplot as plt
 
-from pprint import pprint
 from torchvision.io import read_image
 from torch.utils.data import DataLoader, Dataset
 
@@ -32,7 +31,7 @@ def display(dataset_path):
 
 def iterate_data(dataloader):
 
-    for image, environment, expert_sol in dataloader:
+    for image, environment, expert_sol, nn_data in dataloader:
 
         plt.imshow(image.squeeze())
         plt.show()
@@ -136,7 +135,12 @@ class VisualDataset(Dataset):
         with open(sol_path, 'rb') as _data:
             expert_sol = pickle.load(_data)
 
-        return image, environment, expert_sol
+        # load nn data
+        nn_path = os.path.join(self.data_dir, f'{base_name}_data')
+        with open(nn_path, 'rb') as _data:
+            nn_data = pickle.load(_data)
+
+        return image, environment, expert_sol, nn_data
 
 
 if __name__ == '__main__':

@@ -29,6 +29,7 @@ import os
 
 from create_dataset.environment_creator import create_environment
 from create_dataset.run_expert import run_expert
+from create_dataset.nn_data_generator import get_nn_data
 from utils.config import get_config_from_yaml
 
 
@@ -56,16 +57,21 @@ def create_dataset():
         create_environment(config=config, dataset_dir=dataset_dir)
         # run expert over those environments
         bad_instances_list = run_expert(config=config, dataset_dir=dataset_dir)
+        # transform data for NN
+        get_nn_data(config=config, dataset_dir=dataset_dir, bad_instances_list=bad_instances_list)
 
         bad_instances_count = 0
         # until no bad MAPD instances are left, repeat their generation
         while bad_instances_list:
             print(f'\n\nFound bad MAPD instances')
             bad_instances_count += len(bad_instances_list)
+            old_bad_instances = bad_instances_list.copy()      # to pass to get_nn_data
             create_environment(config=config, dataset_dir=dataset_dir,
                                recovery_mode=True, file_path_list=bad_instances_list)
             bad_instances_list = run_expert(config=config, dataset_dir=dataset_dir,
                                             recovery_mode=True, file_path_list=bad_instances_list)
+            get_nn_data(config=config, dataset_dir=dataset_dir, bad_instances_list=bad_instances_list,
+                        recovery_mode=True, file_path_list=old_bad_instances)
 
         print(f'\n\nRegenerated {bad_instances_count} bad MAPD instances')
 

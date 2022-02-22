@@ -1,5 +1,5 @@
 """
-### If you are searching for main of dataset creation, look for GaTp/create_dataset/dataset_creator ###
+### If you are searching for main of dataset creation, look for GaTp/create_dataset/dataset_creator.py ###
 ### Parameters for environment and dataset creation are specified in GaTp/yaml_configs/dataset_creation.yaml ###
 
 Functions to run an expert over different existing environments
@@ -38,7 +38,7 @@ def run_expert(config, dataset_dir, file_path_list=None, recovery_mode=False):
     :param file_path_list: list of file path containing environment data to run expert over
                            Pass this ONLY with recovery_mode = True
     :param recovery_mode: boolean, True if run_expert is used to re-compute bad MAPD instances
-    :return bad_instances_list, list with the name (map_id + scenario_id) of bad MAPD instance files
+    :return bad_instances_list, list with the file path of bad MAPD instance files
     """
     # get path of all file in the dataset dir, if not in recovery mode
     if not recovery_mode:
@@ -172,7 +172,7 @@ class TpWorker(ExpertWorker):
                 self.bad_instances_list.append(f'{environment.name}')
 
                 name = basename(normpath(environment.name))
-                print(f'Colcollisionslision on Environment {name}')
+                print(f'Collision on Environment {name}')
 
             else:
                 service_time = statistics.mean(metrics['service_time'])

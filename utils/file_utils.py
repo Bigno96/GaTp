@@ -67,6 +67,27 @@ def get_all_files(directory):
             for filename in files]  # get all filenames
 
 
+def load_basename_list(data_path, mode):
+    """
+    Load a file basename list
+    File basename -> 'mapID_caseID'
+    :param data_path: path to the base dataset folder
+    :param mode: 'train', 'valid', 'test', select mode dataset folder
+    :return: List of str
+    """
+    # test, train or valid folder
+    data_dir = os.path.join(data_path, mode)
+    # get all and only filenames
+    (_, _, filenames) = next(os.walk(data_dir))
+
+    # filter out 'sol', 'png' and 'data' -> only basename
+    return [name
+            for name in filenames
+            if 'sol' not in name
+            and 'png' not in name
+            and 'data' not in name]
+
+
 class FolderSwitch:
     """
     Create train, valid and test folders

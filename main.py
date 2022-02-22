@@ -62,6 +62,10 @@ def main():
                             help='Expert used for solving cases')
 
     # agent parameters, if omitted -> default values
+    arg_parser.add_argument('-transform_runtime_data', action='store_true',
+                            help='If present, this flag allows to transform input data for the ML model with different'
+                                 'FOV and comm_radius. Input tensors are generated at Dataset loading.'
+                                 'If not present, input data are taken from "data" dataset files')
     arg_parser.add_argument('-FOV', type=__check_odd, default=9,
                             help='Radius of agents FOV. Has to be odd')
     arg_parser.add_argument('-comm_radius', type=int, default=7,
@@ -75,7 +79,6 @@ def main():
                             help='Mode of loading checkpoint: latest, best or specific epoch')
     arg_parser.add_argument('-load_epoch', type=int, default=None,
                             help='Number of epoch to load if load_ckp_mode = epoch')
-
     # MANDATORY if config.mode == 'test' or -load_checkpoint
     arg_parser.add_argument('-checkpoint_timestamp', type=str,  default=None,
                             help='Timestamp (folder name) of the checkpoint to load')

@@ -114,6 +114,7 @@ def process_config(args):
     config.expert_type = args.expert_type
 
     # agent configuration
+    config.transform_runtime_data = args.transform_runtime_data
     config.FOV = args.FOV
     config.comm_radius = args.comm_radius
     config.sim_num_process = args.sim_num_process
