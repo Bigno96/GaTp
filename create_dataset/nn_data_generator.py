@@ -37,21 +37,16 @@ def get_nn_data(config, dataset_dir, bad_instances_list=(), recovery_mode=False,
 
     mode_list = ['train', 'valid', 'test']
 
+    # get bad instances basename (mapID_caseID)
+    bad_instances_basename = {os.path.basename(os.path.normpath(file_path))
+                              for file_path in bad_instances_list
+                              }
+
     # for each folder in the dataset
     for mode in mode_list:
-        data_transform = DataTransformer(config=config,
-                                         data_path=dataset_dir,
-                                         mode=mode)
-
-        # get bad instances basename (mapID_caseID)
-        bad_instances_basename = {os.path.basename(os.path.normpath(file_path))
-                                  for file_path in bad_instances_list
-                                  if mode in file_path             # only 'mode' folder
-                                  }
 
         # regenerating bad instances of MAPD
         if recovery_mode:
-
             # no file paths given while recovery mode
             if file_path_list is None:
                 raise ValueError('Experts launched in recovery mode with no file paths')
@@ -60,6 +55,7 @@ def get_nn_data(config, dataset_dir, bad_instances_list=(), recovery_mode=False,
                              for file_path in file_path_list
                              if mode in file_path             # only 'mode' folder
                              }
+
             # discard bad instances, even in recovery mode, since no expert solution for them
             basename_list = list(basename_list - bad_instances_basename)
 
@@ -70,12 +66,38 @@ def get_nn_data(config, dataset_dir, bad_instances_list=(), recovery_mode=False,
 
         # if there are files to transform
         if basename_list:
+            # launch multiprocessing data transformation
+            worker = DataTransformerWorker(config=config, mode=mode, dataset_dir=dataset_dir)
             print(f'Transforming {mode} data')
-            # apply multiprocess transformation
-            result = p_map(data_transform.get_data, basename_list)
+            p_map(worker, basename_list)
 
-            print('Saving transformed data into files')
-            file_path_list = [os.path.join(dataset_dir, mode, f'{basename}_data')
-                              for basename in basename_list]        # get complete file path for dumping
-            # data are saved as they come from data_transform.get_data
-            p_map(dump_data, file_path_list, result)        # multiprocess saving
+
+class DataTransformerWorker:
+    """
+    Class for multiprocess data transformation
+    """
+
+    def __init__(self, config, mode, dataset_dir):
+        """
+        :param config: Namespace of dataset configurations
+        :param mode: 'train', 'valid', 'test'
+        :param dataset_dir: path to the dataset directory
+        """
+        self.config = config
+        self.mode = mode
+        self.dataset_dir = dataset_dir
+
+        self.data_transform = DataTransformer(config=config,
+                                              data_path=dataset_dir,
+                                              mode=mode)
+
+    def __call__(self, basename):
+        """
+        :param basename: file basename (mapID_caseID)
+        """
+        # apply data transformation
+        data = self.data_transform.get_data(basename=basename)
+        # get complete file path for dumping
+        file_path = os.path.join(self.dataset_dir, self.mode, f'{basename}_data')
+        # data are saved as they come from data_transform.get_data
+        dump_data(file_path=file_path, data=data)
