@@ -1,16 +1,14 @@
 """
-2018/12/03~2018/07/12
-Fernando Gama, fgama@seas.upenn.edu.
-Luana Ruiz, rubruiz@seas.upenn.edu.
+Graph utilities functions
 
-Taken from graphTools.py: Tools for handling graphs
-
-Functions:
-    - normalize_adjacency
+Compute adjacency matrix, normalized, to use as GSO for Graph Neural Network
+The Adjacency Matrix is normalized using node degree and max eigenvalue
 """
 
 import numpy as np
 import scipy.spatial as sc
+
+ZERO_TOLERANCE = 1e-9
 
 
 def compute_adj_matrix(agent_pos_list, comm_radius=7, edge_weight=1):
@@ -41,25 +39,53 @@ def compute_adj_matrix(agent_pos_list, comm_radius=7, edge_weight=1):
 def normalize_adjacency(W):
     """
     Compute the degree-normalized adjacency matrix
-
-    Input:
-        W (np.array): adjacency matrix
-
-    Output:
-        A (np.array): degree-normalized adjacency matrix
+    Normalize also with max Eigenvalue
+    :param W: np.ndarray, adjacency matrix
+    :return np.ndarray, degree-normalized adjacency matrix
     """
     # check that the matrix is square
     assert W.shape[0] == W.shape[1]
 
-    with np.errstate(divide='ignore', invalid='ignore'):
+    # if W is not an all-zero matrix
+    if np.any(W):
         # compute the degree vector
         d = np.sum(W, axis=1)
+        # get where d is zero
+        zero_d = np.nonzero(np.abs(d) < ZERO_TOLERANCE)
+        # change 0 -> 1
+        d[zero_d] = 1.
         # invert the square root of the degree
         d = 1/np.sqrt(d)
-        # change nan and inf values
-        np.nan_to_num(d, copy=False)
+        # change back 1-> 0
+        d[zero_d] = 0.
         # build the square root inverse degree matrix
         D = np.diag(d)
 
-    # return the Normalized Adjacency
-    return D @ W @ D
+        # degree normalized adjacency
+        W = D @ W @ D
+
+        # get maximum eigenvalue
+        max_eig = max_eigenvalue(matrix=W)
+
+        # return normalized adjacency
+        return W / max_eig
+
+    # all zero matrix -> do nothing
+    else:
+        return W
+
+
+def max_eigenvalue(matrix):
+    """
+    :param matrix: np.ndarray
+    :return: float, maximum eigenvalue of the matrix
+    """
+    # check symmetry
+    is_symmetric = np.allclose(matrix, np.transpose(matrix, axes=[1, 0]))
+    if is_symmetric:
+        W = np.linalg.eigvalsh(matrix)
+    else:
+        W = np.linalg.eigvals(matrix)
+
+    # get real part and compute max
+    return np.max(np.real(W), axis=0)
