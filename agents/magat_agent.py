@@ -18,6 +18,7 @@ import torch.optim as optim
 from agents.base_agent import Agent
 from data_loading.data_loader import GaTpDataLoader
 from models.magat_net import MAGATNet
+from utils.multi_agent_simulator import MultiAgentSimulator
 
 
 class MagatAgent(Agent):
@@ -88,6 +89,9 @@ class MagatAgent(Agent):
             self.load_checkpoint(epoch=config.load_epoch,
                                  best=config.load_ckp_mode == 'best',
                                  latest=config.load_ckp_mode == 'latest')
+
+        # simulation handling classes
+        self.simulator = MultiAgentSimulator(config=self.config)
 
     def save_checkpoint(self, epoch=0, is_best=False, latest=True):
         """

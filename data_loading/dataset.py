@@ -14,7 +14,9 @@ training item -> (step_input_tensor, step_GSO, step_target, basename)
                                shape = (num_agent, 5)
                 basename -> name of the dataset environment file
 
- valid/testing item -> (start_pos_list, task_list, makespan, service_time, basename)
+ valid/testing item -> (obstacle_map, start_pos_list, task_list, makespan, service_time, basename)
+                    obstacle_map -> map of obstacles,
+                                    shape = (H, W)
                     start_pos_list -> starting positions of the agents
                                       shape = (agent_num, 2)
                     task_list -> task list, each task identified by 2 positions (pickup, delivery)
@@ -104,6 +106,12 @@ class GaTpDataset(Dataset):
         # data size
         self.data_size = self.basename_switch.data_size
 
+        # item getter
+        if self.mode == 'train':
+            self.get_data = self.get_train_data
+        else:
+            self.get_data = self.get_test_data
+
     def __getitem__(self, index):
         """
         :param index: int
@@ -112,11 +120,13 @@ class GaTpDataset(Dataset):
                                              shape = (agent_num, channel_num, FOV+2*border, FOV+2*border)
                         step_GSO -> FloatTensor,
                                     shape = (agent_num, agent_num)
-                        step_target -> FloatTensor,
+                        step_target -> IntTensor,
                                        shape = (num_agent, 5)
                         basename -> str
 
-                 valid/testing -> (start_pos_list, task_list, makespan, service_time, basename)
+                 valid/testing -> (obstacle_map, start_pos_list, task_list, makespan, service_time, basename)
+                        obstacle_map -> IntTensor,
+                                        shape = (H, W)
                         start_pos_list -> IntTensor,
                                           shape = (agent_num, 2)
                         task_list -> IntTensor,
@@ -127,50 +137,47 @@ class GaTpDataset(Dataset):
         """
         # obtain corresponding case name and timestep of its solution
         basename, timestep = self.basename_switch.get_item(index)
-
-        # get train data
-        if self.mode == 'train':
-            step_input_tensor, step_GSO, step_target = self.get_train_data(basename=basename, timestep=timestep)
-            item = (step_input_tensor, step_GSO, step_target, basename)
-
-        # get test/valid data
-        else:
-            start_pos_list, task_list, makespan, service_time = self.get_test_data(basename=basename)
-            item = (start_pos_list, task_list, makespan, service_time, basename)
-
-        return item
+        # get data
+        return self.get_data(basename=basename, timestep=timestep)
 
     def __len__(self):
         return self.data_size
 
-    def get_train_data(self, basename, timestep):
+    def get_train_data(self, **kwargs):
         """
         Retrieve training data from data cache
-        :param basename: str, case file name
-        :param timestep: int, timestep of the solution associated to the case
+        :param **kwargs
+                basename str, case file name
+                timestep int, timestep of the solution associated to the case
         :return: step_input_tensor, step_GSO, step_target
                  step_input_tensor -> IntTensor,
                                       shape = (agent_num, channel_num, FOV+2*border, FOV+2*border)
                  step_GSO -> FloatTensor,
                              shape = (agent_num, agent_num)
-                 step_target -> FloatTensor,
+                 step_target -> IntTensor,
                                 shape = (num_agent, 5)
         """
+        basename = kwargs.get('basename')
+        timestep = kwargs.get('timestep')
+
         # get train_data
         input_tensor, GSO, target = self.data_cache[basename]
 
         # slice 1 timestep
         step_input_tensor = input_tensor[timestep].int()  # already torch tensor, cast to int for good measure
         step_GSO = torch.from_numpy(GSO[timestep]).float()
-        step_target = torch.from_numpy(target[timestep]).long()
+        step_target = torch.from_numpy(target[timestep]).int()
 
         return step_input_tensor, step_GSO, step_target
 
-    def get_test_data(self, basename):
+    def get_test_data(self, **kwargs):
         """
         Retrieve testing data from data cache
-        :param basename: str, case file name
-        :return: start_pos_list, task_list, makespan, service_time
+        :param **kwargs
+                basename str, case file name
+        :return: obstacle_map, start_pos_list, task_list, makespan, service_time
+                 obstacle_map -> IntTensor,
+                                 shape = (H, W)
                  start_pos_list -> IntTensor,
                                    shape = (agent_num, 2)
                  task_list -> IntTensor,
@@ -178,14 +185,17 @@ class GaTpDataset(Dataset):
                  makespan -> int
                  service_time -> float
         """
+        basename = kwargs.get('basename')
+
         # get test_data
-        start_pos_list, task_list, makespan, service_time = self.data_cache[basename]
+        obstacle_map, start_pos_list, task_list, makespan, service_time = self.data_cache[basename]
 
         # convert to tensor
+        obstacle_map = torch.from_numpy(obstacle_map).int()
         start_pos_list = torch.from_numpy(start_pos_list).int()
         task_list = torch.from_numpy(task_list).int()
 
-        return start_pos_list, task_list, makespan, service_time
+        return obstacle_map, start_pos_list, task_list, makespan, service_time
 
 
 class BasenameSwitch:

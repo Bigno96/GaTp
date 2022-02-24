@@ -11,26 +11,21 @@ import scipy.spatial as sc
 ZERO_TOLERANCE = 1e-9
 
 
-def compute_adj_matrix(agent_pos_list, comm_radius=7, edge_weight=1):
+def compute_adj_matrix(agent_pos_list, comm_radius=7):
     """
     Compute adjacency matrix of agents
     An edge e_ij between agents a_i and a_j is present iff dist(loc(a_i), loc(a_j)) <= comm_radius
     :param agent_pos_list: np.ndarray, shape = (agent_num, 2), list of agent positions
     :param comm_radius: int, maximum distance for communication between agents
                         (default: 7)
-    :param edge_weight: int, weight of each edge
-                        (default: 1)
     :return: Normalized adjacency matrix
              shape = (agent_num, agent_num)
     """
     # compute pair-wise Euclidean distance of agents position
     dist_matrix = sc.distance_matrix(x=agent_pos_list, y=agent_pos_list, p=2)
 
-    # init adj matrix, shape = (agent_num, agent_num)
-    W = np.zeros_like(dist_matrix)
-    # set W = edge_weight if corresponding dist_matrix element d_ij is s.t. 0 < d_ij <= comm_radius
-    # is strictly greater than 0 to avoid self loops (agent can be at distance 0 only with himself)
-    W[np.nonzero((0 < dist_matrix) & (dist_matrix <= comm_radius))] = edge_weight
+    # set W = d_ij if corresponding dist_matrix element d_ij is s.t. d_ij < comm_radius
+    W = dist_matrix < comm_radius
 
     # return the normalized adj matrix
     return normalize_adjacency(W=W)

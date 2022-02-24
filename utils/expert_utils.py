@@ -32,23 +32,6 @@ class StopToken:
         self.is_cancelled = True
 
 
-def compute_manhattan_heuristic(input_map, goal):
-    """
-    Create a matrix the same shape of the input map
-    Calculate the cost from the goal node to every other node on the map using MANHATTAN heuristic
-    Return the heuristic matrix
-    :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
-    :param goal: (x, y), tuple of int with goal cartesian coordinates
-    :return: heuristic, np.ndarray, heuristic.shape = input_map.shape
-    """
-    # abs(current_cell.x – goal.x) + abs(current_cell.y – goal.y)
-    heuristic = [(abs(row - goal[0]) + abs(col - goal[1]))
-                 for row in range(input_map.shape[0])
-                 for col in range(input_map.shape[1])
-                 ]
-    return np.array(heuristic, dtype=int).reshape(input_map.shape)
-
-
 def is_valid_expansion(next_node, input_map, closed_list):
     """
     Check if is possible for A* to expand the new cell
@@ -166,6 +149,23 @@ def get_next_node_list(curr_node, max_depth, starting_t, input_map, closed_list,
             ]
 
 
+def compute_manhattan_heuristic(input_map, goal):
+    """
+    Create a matrix the same shape of the input map
+    Calculate the cost from the goal node to every other node on the map using MANHATTAN heuristic
+    Return the heuristic matrix
+    :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
+    :param goal: (x, y), tuple of int with goal cartesian coordinates
+    :return: heuristic, np.ndarray, heuristic.shape = input_map.shape
+    """
+    # abs(current_cell.x – goal.x) + abs(current_cell.y – goal.y)
+    heuristic = [(abs(row - goal[0]) + abs(col - goal[1]))
+                 for row in range(input_map.shape[0])
+                 for col in range(input_map.shape[1])
+                 ]
+    return np.array(heuristic, dtype=int).reshape(input_map.shape)
+
+
 def preprocess_heuristics(input_map, task_list, non_task_ep_list):
     """
     Since cost-minimal paths need to be found only to endpoints, the path costs from all locations to all endpoints
@@ -187,6 +187,8 @@ def preprocess_heuristics(input_map, task_list, non_task_ep_list):
                for ep in task]
     # add non task related endpoints
     ep_list.extend(non_task_ep_list)
+    # tuple conversion (for hashing safeness)
+    ep_list = [tuple(ep) for ep in ep_list]
 
     # compute h_map list
     h_map_list = [compute_manhattan_heuristic(input_map=input_map, goal=ep)

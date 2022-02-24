@@ -15,15 +15,18 @@ Train data:
                  sequence of moves that describes the policy to learn
 
 Test data:
-    1- Start_pos_list -> torch.IntTensor,
+    1- Obstacle_map -> np.ndarray,
+                       shape = (H, W)
+                       Obstacle map, 1s for obstacles, 0s elsewhere
+    2- Start_pos_list -> np.ndarray,
                          shape = (agent_num, 2)
                          Agents starting positions
-    2- Task_list -> torch.IntTensor,
+    3- Task_list -> np.ndarray,
                     shape = (task_num, 2, 2)
                     Task list, each task has 2 tuple of coordinates, (pickup, delivery)
-    3- Makespan -> int
+    4- Makespan -> int
                    Length of the expert solution
-    4- Service_time -> float
+    5- Service_time -> float
                        Average timesteps needed for an agent to complete a task
 """
 
@@ -99,29 +102,34 @@ class DataTransformer:
         Return tuple with all the data necessary for neural network testing/validation, appropriately transformed
         test data = (Start_pos_list, Task_list, Makespan, Service_time)
         :param basename: str, 'mapID_caseID'
-        :return: (Start_pos_list, Task_list, Makespan, Service_time)
-                  Start_pos_list -> torch.IntTensor,
+        :return: (Obstacle_map, Start_pos_list, Task_list, Makespan, Service_time)
+                  Obstacle_map -> np.ndarray,
+                                  shape = (H, W)
+                  Start_pos_list -> np.ndarray,
                                     shape = (agent_num, 2)
-                  Task_list -> torch.IntTensor,
+                  Task_list -> np.ndarray,
                                shape = (task_num, 2, 2)
                   Makespan -> int
                   Service_time -> float
         """
         environment, expert_sol = self.load_from_pickle(basename=basename)
 
-        # 1) start_pos_list
+        # 1) obstacle_map
+        obstacle_map = environment['map']   # already np.array, dtype=np.int8
+
+        # 2) start_pos_list
         start_pos_list = np.array(environment['start_pos_list'], dtype=np.int8)
 
-        # 2) task_list
+        # 3) task_list
         task_list = np.array(environment['task_list'], dtype=np.int8)
 
-        # 3) makespan
+        # 4) makespan
         makespan = expert_sol['makespan']
 
-        # 4) service_time
+        # 5) service_time
         service_time = expert_sol['service_time']
 
-        return start_pos_list, task_list, makespan, service_time
+        return obstacle_map, start_pos_list, task_list, makespan, service_time
 
     def load_from_pickle(self, basename):
         """
