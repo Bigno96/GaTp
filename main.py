@@ -9,6 +9,7 @@ Main execution file
 import argparse
 from argparse import ArgumentParser
 
+from agents.magat_agent import MagatAgent
 from utils.config import process_config
 
 
@@ -89,8 +90,7 @@ def main():
     # parse the config json file
     config = process_config(args)
 
-    from agents.magat_agent import MagatAgent
-
+    # run the agent
     agent = MagatAgent(config)
     agent.run()
 

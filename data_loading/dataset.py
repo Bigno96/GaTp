@@ -160,7 +160,7 @@ class GaTpDataset(Dataset):
         input_tensor, GSO, target = self.data_cache[basename]
 
         # slice 1 timestep
-        step_input_tensor = input_tensor[timestep].float()  # already torch tensor, cast to float for good measure
+        step_input_tensor = torch.from_numpy(input_tensor[timestep]).float()
         step_GSO = torch.from_numpy(GSO[timestep]).float()
         step_target = torch.from_numpy(target[timestep]).float()
 

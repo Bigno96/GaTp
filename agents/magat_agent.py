@@ -46,7 +46,6 @@ class MagatAgent(Agent):
 
         # initialize counters
         self.current_epoch = 0
-        self.current_iteration = 0
         self.performance = []
         self.time_record = 0.0
 
@@ -104,7 +103,6 @@ class MagatAgent(Agent):
 
         state = {
             'epoch': self.current_epoch + 1,    # next epoch is saved, since this one is finished
-            'iteration': self.current_iteration,
             'state_dict': self.model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict(),
@@ -142,7 +140,6 @@ class MagatAgent(Agent):
 
             # load back parameters
             self.current_epoch = checkpoint['epoch']
-            self.current_iteration = checkpoint['iteration']
 
             self.model.load_state_dict(checkpoint['state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer'])
@@ -221,6 +218,9 @@ class MagatAgent(Agent):
         # set the model to be in training mode
         self.model.train()
 
+        # reference this for warning on final print outside the loop
+        loss = 0
+
         # loop over various batches of training data
         for batch_idx, (batch_input, batch_GSO, batch_target) \
                 in enumerate(self.data_loader.train_loader):
@@ -262,10 +262,14 @@ class MagatAgent(Agent):
             # log progress
             if batch_idx % self.config.log_interval == 0:
                 self.logger.info(f'Epoch {self.current_epoch}:'
-                                 f'[{(batch_idx+1) * len(batch_input)}/{len(self.data_loader.train_loader.dataset)}'
-                                 f'({100. * (batch_idx+1) / len(self.data_loader.train_loader):.0f}%)]\t'
+                                 f'[{batch_idx * len(batch_input)}/{len(self.data_loader.train_loader.dataset)}'
+                                 f'({100 * batch_idx / len(self.data_loader.train_loader):.0f}%)]\t'
                                  f'Loss: {loss.item():.6f}')
-            self.current_iteration += 1
+        # always last batch logged
+        self.logger.info(f'Epoch {self.current_epoch}:'
+                         f'[{len(self.data_loader.train_loader.dataset)}/{len(self.data_loader.train_loader.dataset)}'
+                         f'({100.:.0f}%)]\t'
+                         f'Loss: {loss.item():.6f}')
 
     def sim_agent_exec_single(self):
         pass

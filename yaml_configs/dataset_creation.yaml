@@ -13,7 +13,7 @@ keep_expert_solutions: True
 
 # Map specifications
 map_type: 'random_grid'   # supported values: random_grid
-map_number: 20       # how many unique maps
+map_number: 50       # how many unique maps
 map_shape: [20, 20]     # (H, W)
 map_density: 0.1       # % of obstacles in the map
 # whether to generate only fully connected maps or not
@@ -21,7 +21,7 @@ force_conn: True
 
 
 # Scenario specifications
-scenario_number: 50                # how many unique scenarios for each map
+scenario_number: 20                # how many unique scenarios for each map
 agent_number: 20                   # how many agents in each scenario
 task_number: 500                   # how many tasks in each scenario
 # how to create starting positions for agents -> 'random' or 'fixed'

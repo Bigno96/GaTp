@@ -163,14 +163,11 @@ def process_config(args):
     config.log_dir = os.path.join(config.exp_folder,
                                   config.exp_name,
                                   'logs')           # logging outputs
-    config.out_dir = os.path.join(config.exp_folder,
-                                  config.exp_name,
-                                  'out')            # experiment outputs
     config.checkpoint_dir = os.path.join(config.exp_folder,
                                          config.exp_name,
                                          "checkpoints")         # checkpoint folder
     # create, if they don't exist
-    create_dirs([config.log_dir, config.out_dir, config.checkpoint_dir])
+    create_dirs([config.log_dir, config.checkpoint_dir])
 
     # setup logging in the project
     setup_logging(config.log_dir)

@@ -2,7 +2,7 @@
 Utilities for transforming environment data and expert solutions into neural network compatible data
 
 Train data:
-    1- Input tensor -> torch.FloatTensor,
+    1- Input tensor -> np.ndarray,
                        shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
                        See GaTp/data_loading/agent_state.py for more information about input tensor composition
     2- GSO -> np.ndarray,
@@ -75,7 +75,7 @@ class DataTransformer:
         train data = (Input tensor, GSO, Target)
         :param basename: str, 'mapID_caseID'
         :return: (Input tensor, GSO, Target)
-                 Input tensor -> torch.FloatTensor,
+                 Input tensor -> np.ndarray,
                     shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
                  GSO -> np.ndarray,
                     shape = (makespan, num_agent, num_agent)
