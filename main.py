@@ -89,6 +89,11 @@ def main():
     # parse the config json file
     config = process_config(args)
 
+    from agents.magat_agent import MagatAgent
+
+    agent = MagatAgent(config)
+    agent.run()
+
 
 def __check_odd(v):
     if int(v) % 2 == 0:

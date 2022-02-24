@@ -81,9 +81,9 @@ class MultiAgentSimulator:
     def set_up_simulation(self, obstacle_map, ag_start_pos, task_list, model):
         """
         Set up variables for the simulation
-        :param obstacle_map: IntTensor, shape = (H, W)
-        :param ag_start_pos: IntTensor, shape = (agent_num, 2)
-        :param task_list: IntTensor, shape = (task_num, 2, 2)
+        :param obstacle_map: FloatTensor, shape = (H, W)
+        :param ag_start_pos: FloatTensor, shape = (agent_num, 2)
+        :param task_list: FloatTensor, shape = (task_num, 2, 2)
         :param model: torch.nn.Module, trained model
         """
         # fix model for evaluation mode
@@ -91,7 +91,7 @@ class MultiAgentSimulator:
         self.model.eval()
 
         # init map and set it for agent state
-        self.map = obstacle_map.detach().cpu().numpy()  # convert it to numpy
+        self.map = obstacle_map.detach().cpu().numpy().astype(np.int8)  # convert it to numpy
         self.agent_state.set_obstacle_map(input_map=self.map)
 
         # scalar variables init
@@ -100,7 +100,7 @@ class MultiAgentSimulator:
         self.activated_task_count = self.split_idx  # update activated count with immediate tasks
 
         # agent start and current position
-        self.agent_start_pos = ag_start_pos.detach().cpu().numpy()  # convert it to numpy
+        self.agent_start_pos = ag_start_pos.detach().cpu().numpy().astype(np.int8)  # convert it to numpy
         self.curr_agent_pos = self.agent_start_pos.copy()  # copy to avoid memory interference
 
         # agent schedule init with agent start pos
@@ -112,7 +112,7 @@ class MultiAgentSimulator:
         self.task_register = dict(zip(range(self.agent_num), repeat(np.array(()))))
 
         # task init
-        self.task_list = task_list.detach().cpu().numpy()  # convert it to numpy
+        self.task_list = task_list.detach().cpu().numpy().astype(np.int8)  # convert it to numpy
         self.active_task_list = list(self.task_list[:self.split_idx])  # activate first n tasks
         self.new_task_pool = deque(self.task_list[self.split_idx:])  # put the rest in the waiting pool
 

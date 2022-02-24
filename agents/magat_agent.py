@@ -39,7 +39,7 @@ class MagatAgent(Agent):
         # define optimizers
         self.optimizer = optim.Adam(params=self.model.parameters(),
                                     lr=self.config.learning_rate,
-                                    weight_decay=self.config.weight_decay)      # L2 regularize
+                                    weight_decay=self.config.weight_decay)  # L2 regularize
         self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer,
                                                               T_max=self.config.max_epoch,  # max number of iteration
                                                               eta_min=1e-6)     # min learning rate
@@ -51,11 +51,11 @@ class MagatAgent(Agent):
         self.time_record = 0.0
 
         # set cuda flag
-        self.cuda = torch.cuda.is_available()       # check availability
-        if self.cuda and not self.config.cuda:      # user has cuda available, but not enabled
+        self.cuda = torch.cuda.is_available()   # check availability
+        if self.cuda and not self.config.cuda:  # user has cuda available, but not enabled
             self.logger.info('WARNING: You have a CUDA device, you should probably enable CUDA')
 
-        self.cuda = self.cuda and self.config.cuda    # prevent setting cuda True if not available
+        self.cuda = self.cuda and self.config.cuda  # prevent setting cuda True if not available
 
         # set the manual seed for torch
         self.manual_seed = self.config.seed
@@ -76,12 +76,9 @@ class MagatAgent(Agent):
             self.logger.info('Program will run on ***CPU***\n')
 
         # set agent simulation function
-        if self.config.sim_num_process == 0:        # single process
-            print('Using single thread for agent simulation')
+        if self.config.sim_num_process == 0:    # single process
             self.simulate_agent_exec = self.sim_agent_exec_single
         else:
-            print(f'Using multi threads for agent simulation'
-                  f'Thread num: {self.config.sim_num_process}')
             self.simulate_agent_exec = self.sim_agent_exec_multi
 
         # load checkpoint if necessary
@@ -101,12 +98,12 @@ class MagatAgent(Agent):
         :param latest: bool, flag to indicate the checkpoint is the latest one trained
         """
         if latest:
-            file_name = 'checkpoint.pth.tar'        # latest checkpoint -> unnamed
+            file_name = 'checkpoint.pth.tar'    # latest checkpoint -> unnamed
         else:
             file_name = f'checkpoint_{epoch:03d}.pth.tar'   # name checkpoint
 
         state = {
-            'epoch': self.current_epoch + 1,        # next epoch is saved, since this one is finished
+            'epoch': self.current_epoch + 1,    # next epoch is saved, since this one is finished
             'iteration': self.current_iteration,
             'state_dict': self.model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
@@ -179,16 +176,16 @@ class MagatAgent(Agent):
         """
         Main training loop
         """
+        self.logger.info('Start training')
         # loop over epochs 
         # start from current_epoch -> in case of loaded checkpoint
         for epoch in range(self.current_epoch, self.config.max_epoch+1):
             self.current_epoch = epoch      # update epoch
-            self.train_one_epoch()          # train the epoch
-            
-            self.logger.info(f'Epoch {self.current_epoch} - Learning Rate: {self.scheduler.get_lr()}')
-            print(f'Epoch {self.current_epoch} - Learning Rate: {self.scheduler.get_lr()}')
+            self.logger.info(f'Begin Epoch {self.current_epoch} - Learning Rate: {self.scheduler.get_last_lr()}')
 
-            validate_performance = []
+            self.train_one_epoch()          # train the epoch
+
+            '''validate_performance = []
 
             # always validate first epochs
             if epoch <= 4:
@@ -203,7 +200,7 @@ class MagatAgent(Agent):
             # if is_best:
                 # self.validate_performance = validate_performance
 
-            # self.save_checkpoint(epoch=epoch, is_best=is_best, latest=True)
+            # self.save_checkpoint(epoch=epoch, is_best=is_best, latest=True)'''
 
             self.scheduler.step()
 
@@ -217,12 +214,61 @@ class MagatAgent(Agent):
         pass
     
     def train_one_epoch(self):
-        pass
+        """
+        One epoch of training
+        """
+
+        # set the model to be in training mode
+        self.model.train()
+
+        # loop over various batches of training data
+        for batch_idx, (batch_input, batch_GSO, batch_target) \
+                in enumerate(self.data_loader.train_loader):
+
+            # move all tensors to the correct device
+            # batch x agent_num x channel_num x FOV+2*border x FOV+2*border
+            batch_input = batch_input.to(self.config.device)
+            # batch x agent_num x agent_num
+            batch_GSO = batch_GSO.to(self.config.device)
+            # batch x agent_num x 5
+            batch_target = batch_target.to(self.config.device)
+
+            # B -> batch size
+            # N -> agent number
+            # C -> input channels
+            # H, W -> height and width of the input channels
+            B, N, _, _, _ = batch_input.shape
+
+            # reshape for compatibility with model output
+            batch_target = batch_target.reshape(B * N, 5)
+
+            # init model, optimizer and loss
+            self.model.set_gso(batch_GSO)
+            self.optimizer.zero_grad()
+            loss = 0
+
+            # get model prediction, B*N x 5
+            predict = self.model(batch_input)
+
+            # compute loss
+            # torch.max returns both values and indices
+            # torch.max axis = 1 -> find the index of the chosen action for each agent
+            loss = loss + self.loss(predict, torch.max(batch_target, 1)[1])     # [1] to unpack indices
+
+            # update gradient with backward pass
+            loss.backward()
+            self.optimizer.step()
+
+            # log progress
+            if batch_idx % self.config.log_interval == 0:
+                self.logger.info(f'Epoch {self.current_epoch}:'
+                                 f'[{(batch_idx+1) * len(batch_input)}/{len(self.data_loader.train_loader.dataset)}'
+                                 f'({100. * (batch_idx+1) / len(self.data_loader.train_loader):.0f}%)]\t'
+                                 f'Loss: {loss.item():.6f}')
+            self.current_iteration += 1
 
     def sim_agent_exec_single(self):
         pass
 
     def sim_agent_exec_multi(self):
         pass
-
-

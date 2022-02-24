@@ -2,7 +2,7 @@
 Utilities for transforming environment data and expert solutions into neural network compatible data
 
 Train data:
-    1- Input tensor -> torch.IntTensor,
+    1- Input tensor -> torch.FloatTensor,
                        shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
                        See GaTp/data_loading/agent_state.py for more information about input tensor composition
     2- GSO -> np.ndarray,
@@ -75,7 +75,7 @@ class DataTransformer:
         train data = (Input tensor, GSO, Target)
         :param basename: str, 'mapID_caseID'
         :return: (Input tensor, GSO, Target)
-                 Input tensor -> torch.IntTensor,
+                 Input tensor -> torch.FloatTensor,
                     shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
                  GSO -> np.ndarray,
                     shape = (makespan, num_agent, num_agent)
@@ -195,7 +195,7 @@ class DataTransformer:
         :param goal_schedule: dict -> {agent_id : schedule}
                                 with schedule = deque([(current_goal, 0), (curr_goal, 1), ...])
                                 curr_goal -> position the agent is trying to reach
-        :return: torch Int Tensor of the input configuration
+        :return: torch Float Tensor of the input configuration
                  input state = makespan x num_agents x input state of agent
         """
         # set obstacle map in agent state

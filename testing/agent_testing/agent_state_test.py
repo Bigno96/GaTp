@@ -229,7 +229,7 @@ class MyTestCase(unittest.TestCase):
                                                  agent_pos_list=agent_pos_list)
 
         # check execution, returned type and size of tensor
-        self.assertIsInstance(input_tensor, torch.IntTensor)
+        self.assertIsInstance(input_tensor, torch.FloatTensor)
         channel_num = 3
         # shape = (num_agents, channels, FOV_H+2*border, FOV_W+2*border)
         self.assertEqual((ag_state.agent_number, channel_num, ag_state.H, ag_state.W),
@@ -259,7 +259,7 @@ class MyTestCase(unittest.TestCase):
                                                           makespan=makespan)
 
         # check execution, returned type and size of tensor
-        self.assertIsInstance(input_tensor, torch.IntTensor)
+        self.assertIsInstance(input_tensor, torch.FloatTensor)
         channel_num = 3
         # shape = (makespan, num_agents, channels, FOV_H+2*border, FOV_W+2*border)
         self.assertEqual((makespan, ag_state.agent_number, channel_num, ag_state.H, ag_state.W),

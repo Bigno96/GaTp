@@ -32,14 +32,14 @@ class MAGATNet(nn.Module):
     Check yaml_configs\\magat.yaml for further model and parameter specification
     GSO needs to be externally set with method 'set_gso' before calling 'forward'
 
-    Input Tensor shape = (B, N, C, W, H)
+    Input Tensor shape = (B, N, C, H, W)
         B = batch size
         N = agents number
         C = channels of the input image
-        W, H = width, height of the input image
+        H, W = height, width of the input image
 
-    Output Tensor shape = (B, 5)
-        B = batch size
+    Output Tensor shape = (B*N, 5)
+        B*N = batch size * agents number
         5 = actions
 
     CNN:
@@ -199,10 +199,10 @@ class MAGATNet(nn.Module):
         # B = batch size
         # N = agents number
         # C = input channels
-        # W, H = width, height of the input
-        B, N, C, W, H = input_tensor.shape
+        # H, W = height, width of the input
+        B, N, C, H, W = input_tensor.shape
         # reshape for current agent
-        input_current_agent = input_tensor.reshape(B * N, C, W, H).to(self.config.device)
+        input_current_agent = input_tensor.reshape(B * N, C, H, W).to(self.config.device)
 
         # extract feature through cnn,
         # B*N x F (cnn_out_feature)
