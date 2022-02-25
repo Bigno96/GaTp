@@ -7,14 +7,17 @@ import os
 import pickle
 
 import numpy as np
+
 from PIL import Image
 from PIL.ImageOps import invert, colorize
+from easydict import EasyDict
+from typing import Any
 
 
-def create_dirs(dirs):
+def create_dirs(dirs: list[str]) -> None:
     """
     Create directories in the system if not found
-    :param: a list of directories to create
+    :param: directory paths to create
     """
     try:
         for dir_ in dirs:
@@ -25,12 +28,15 @@ def create_dirs(dirs):
         exit(-1)
 
 
-def save_image(file_path, input_map, start_pos_list):
+def save_image(file_path: str,
+               input_map: np.array,
+               start_pos_list: list[tuple[int, int]]
+               ) -> None:
     """
     Save image of the map (black and white) with agent starting positions (red)
     :param file_path: path to the specific file in the dataset directory
-    :param input_map: np.ndarray, size: H*W, matrix of '0' and '1'
-    :param start_pos_list: list of tuples, (x,y) -> coordinates over the map
+    :param input_map: shape=(H, W), matrix of '0' and '1'
+    :param start_pos_list: starting positions coordinates over the map
     """
     img_path = f'{file_path}.png'
     # input map with float values
@@ -39,10 +45,13 @@ def save_image(file_path, input_map, start_pos_list):
         f_map[pos] = 0.5
     # white -> background | black -> obstacles | red -> agents starting positions
     colorize(invert(Image.fromarray(obj=np.uint8(f_map * 255))),
-             black='black', white='white', mid='red').resize((256, 256), resample=Image.BOX).save(img_path)
+             black='black', white='white', mid='red').resize((256, 256),
+                                                             resample=Image.BOX).save(img_path)
 
 
-def dump_data(file_path, data):
+def dump_data(file_path: str,
+              data: Any
+              ) -> None:
     """
     Write date with pickle into specified file
     If the file already exists, overwrites it, else create it
@@ -51,11 +60,12 @@ def dump_data(file_path, data):
                  has to be serializable with pickle
     """
     with open(file_path, 'wb') as f:
-        pickle.dump(obj=data, file=f,
+        pickle.dump(obj=data,
+                    file=f,
                     protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def get_all_files(directory):
+def get_all_files(directory: str) -> list[str]:
     """
     Collect and return the list of all files in a directory and its subdirectories
     :param directory: path to the dataset directory
@@ -67,13 +77,15 @@ def get_all_files(directory):
             for filename in files]  # get all filenames
 
 
-def load_basename_list(data_path, mode):
+def load_basename_list(data_path: str,
+                       mode: str
+                       ) -> list[str]:
     """
     Load a file basename list
     File basename -> 'mapID_caseID'
     :param data_path: path to the base dataset folder
     :param mode: 'train', 'valid', 'test', select mode dataset folder
-    :return: List of str
+    :return: list of str
     """
     # test, train or valid folder
     data_dir = os.path.join(data_path, mode)
@@ -94,7 +106,9 @@ class FolderSwitch:
     Simulate a switch case with ranges to use during dataset splitting
     """
 
-    def __init__(self, dataset_dir, config):
+    def __init__(self,
+                 dataset_dir: str,
+                 config: EasyDict):
         """
         :param dataset_dir: directory of the dataset where to set up train, valid and test folders
         :param config: Namespace of dataset creation configurations
@@ -118,7 +132,10 @@ class FolderSwitch:
             range(train_split + valid_split, tot_scenario_number): test_dir
         }
 
-    def get_folder(self, map_id, sc_id):
+    def get_folder(self,
+                   map_id: int,
+                   sc_id: int
+                   ) -> str:
         """
         Simulate a switch-case to decide which folder to use when splitting into train, valid and test
         :param map_id: id of the map on which scenarios are being created

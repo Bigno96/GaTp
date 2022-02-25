@@ -6,11 +6,13 @@ Main execution file
 -Create agents instances
 -Run agents
 """
-import argparse
-from argparse import ArgumentParser
 
-from agents.magat_agent import MagatAgent
-from utils.config import process_config
+import argparse
+
+import agents.magat_agent as ag
+import utils.config as cfg
+
+from argparse import ArgumentParser
 
 
 def main():
@@ -88,10 +90,10 @@ def main():
     args = arg_parser.parse_args()
 
     # parse the config json file
-    config = process_config(args)
+    config = cfg.process_config(args)
 
     # run the agent
-    agent = MagatAgent(config)
+    agent = ag.MagatAgent(config)
     agent.run()
 
 

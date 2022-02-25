@@ -8,14 +8,15 @@ Supported ops:
 """
 
 import torch
+
 import numpy as np
+import utils.agent_state as ag_state
+import utils.graph_utils as g_utils
+import utils.expert_utils as exp_utils
 
 from itertools import repeat
 from collections import deque
-
-from utils.agent_state import AgentState
-from utils.graph_utils import compute_adj_matrix
-from utils.expert_utils import preprocess_heuristics
+from easydict import EasyDict
 
 
 class MultiAgentSimulator:
@@ -27,7 +28,8 @@ class MultiAgentSimulator:
     Task assignment is centralized
     """
 
-    def __init__(self, config):
+    def __init__(self,
+                 config: EasyDict):
         """
         :param config: configuration Namespace
         """
@@ -36,39 +38,41 @@ class MultiAgentSimulator:
         '''basic'''
         self.agent_num = self.config.agent_number
         # NN trained model
-        self.model: torch.nn.Module = torch.nn.Module()
+        self.model = torch.nn.Module()
         # agent state representation
-        self.agent_state: AgentState = AgentState(config=self.config)
+        self.agent_state = ag_state.AgentState(config=self.config)
         # obstacle map
-        self.map: np.array = np.array(())   # H x W
+        self.map = np.array(())     # H x W
 
         '''simulation data structures'''
-        self.agent_start_pos: np.array = np.array(())   # agent_num x 2
-        self.curr_agent_pos: np.array = np.array(())    # agent_num x 2
+        self.agent_start_pos = np.array(())     # agent_num x 2
+        self.curr_agent_pos = np.array(())  # agent_num x 2
 
-        self.task_register: dict[int, np.array] = {}  # keeping track of task assignment, id : (2x2 or 1x2 or ())
-        self.task_list: np.array = np.array(())     # task_num x 2 x 2
+        # keeping track of task assignment, { id : shape = (2x2 or 1x2 or ()) }
+        self.task_register: dict[int, np.array] = {}
+        self.task_list = np.array(())   # task_num x 2 x 2
         self.active_task_list: list[np.array] = []  # tracking active tasks
         self.new_task_pool: deque[np.array] = deque()  # new tasks still to activate
 
-        self.agent_schedule: dict[int, list[tuple]] = {}  # keeping track of agent movements
-
-        self.h_coll: dict[tuple, np.array] = {}  # precomputed distance heuristics
+        # keeping track of agent movements
+        self.agent_schedule: dict[int, deque[tuple[int, int, int]]] = {}
+        # precomputed distance heuristics
+        self.h_coll: dict[tuple, np.array] = {}
 
         '''simulation parameters'''
         self.timestep = 0  # timestep counter
         self.terminate = False  # terminate boolean
-        self.max_step_factor = self.config.max_step_factor  # maximum step factor allowed in the simulation
+        self.max_step_factor: int = self.config.max_step_factor  # maximum step factor allowed in the simulation
 
-        self.task_number = self.config.task_number  # total number of tasks
+        self.task_number: int = self.config.task_number  # total number of tasks
         self.activated_task_count = 0  # number of tasks activated
 
         self.split_idx = int(self.config.imm_task_split * self.task_number)  # % of task to immediately activate
-        self.new_task_per_timestep = self.config.new_task_per_timestep  # how many tasks to add at each timestep
-        self.step_between_insertion = self.config.step_between_insertion  # how many timestep between each insertion
+        self.new_task_per_timestep: int = self.config.new_task_per_timestep  # tasks to add at each timestep
+        self.step_between_insertion: int = self.config.step_between_insertion  # timestep between each insertion
 
         '''pre-define directions'''
-        self.up = np.array([-1, 0], dtype=np.int8)  # int arrays
+        self.up = np.array([-1, 0], dtype=np.int8)
         self.down = np.array([1, 0], dtype=np.int8)
         self.left = np.array([0, -1], dtype=np.int8)
         self.right = np.array([0, 1], dtype=np.int8)
@@ -79,13 +83,19 @@ class MultiAgentSimulator:
         self.right_idx = 3
         self.stop_idx = 4
 
-    def simulate(self, obstacle_map, start_pos_list, task_list, model, target_makespan):
+    def simulate(self,
+                 obstacle_map: torch.FloatTensor,
+                 start_pos_list: torch.FloatTensor,
+                 task_list: torch.FloatTensor,
+                 model: torch.nn.Module,
+                 target_makespan: int
+                 ) -> None:
         """
-        :param obstacle_map: FloatTensor, shape = (H, W)
-        :param start_pos_list: FloatTensor, shape = (agent_num, 2)
-        :param task_list: FloatTensor, shape = (task_num, 2, 2)
-        :param model: torch.nn.Module, trained model
-        :param target_makespan: int, makespan of the expert solution
+        :param obstacle_map: shape = (H, W)
+        :param start_pos_list: shape = (agent_num, 2)
+        :param task_list: shape = (task_num, 2, 2)
+        :param model: trained model
+        :param target_makespan: makespan of the expert solution
         """
         # maximum step allowed for the simulation
         max_step = int(target_makespan * self.max_step_factor)
@@ -99,13 +109,18 @@ class MultiAgentSimulator:
         while not self.terminate or self.timestep < (max_step-1):   # -1 since timestep update is at the start
             self.execute_one_timestep()
 
-    def set_up_simulation(self, obstacle_map, ag_start_pos, task_list, model):
+    def set_up_simulation(self,
+                          obstacle_map: torch.FloatTensor,
+                          ag_start_pos: torch.FloatTensor,
+                          task_list: torch.FloatTensor,
+                          model: torch.nn.Module
+                          ) -> None:
         """
         Set up variables for the simulation
-        :param obstacle_map: FloatTensor, shape = (H, W)
-        :param ag_start_pos: FloatTensor, shape = (agent_num, 2)
-        :param task_list: FloatTensor, shape = (task_num, 2, 2)
-        :param model: torch.nn.Module, trained model
+        :param obstacle_map: shape = (H, W)
+        :param ag_start_pos: shape = (agent_num, 2)
+        :param task_list: shape = (task_num, 2, 2)
+        :param model: trained model
         """
         # fix model for evaluation mode
         self.model = model
@@ -126,9 +141,9 @@ class MultiAgentSimulator:
 
         # agent schedule init with agent start pos
         for i in range(self.agent_num):
-            self.agent_schedule[i] = [(self.agent_start_pos[i, 0],
-                                       self.agent_start_pos[i, 1],
-                                       0)]  # timestep
+            self.agent_schedule[i] = deque([(self.agent_start_pos[i, 0],
+                                             self.agent_start_pos[i, 1],
+                                             0)])  # timestep
         # init goal register as empty
         self.task_register = dict(zip(range(self.agent_num), repeat(np.array(()))))
 
@@ -138,11 +153,12 @@ class MultiAgentSimulator:
         self.new_task_pool = deque(self.task_list[self.split_idx:])  # put the rest in the waiting pool
 
         # precompute distance heuristics towards all possible endpoints
-        self.h_coll = preprocess_heuristics(input_map=self.map,
-                                            task_list=self.task_list,
-                                            non_task_ep_list=[])  # agents don't use parking positions
+        self.h_coll = exp_utils.preprocess_heuristics(input_map=self.map,
+                                                      task_list=self.task_list,
+                                                      # agents don't use parking positions
+                                                      non_task_ep_list=[])
 
-    def execute_one_timestep(self):
+    def execute_one_timestep(self) -> None:
         """
         Execute one timestep of the simulation
         """
@@ -164,14 +180,14 @@ class MultiAgentSimulator:
 
         # get an input for the model
         # intTensor -> (num_agents, 3 (channels), FOV+2*border, FOV+2*border)
-        input_tensor = self.agent_state.get_input_tensor(goal_pos_list=goal_list,
-                                                         agent_pos_list=self.curr_agent_pos)
+        input_tensor = self.agent_state.get_input_state(goal_pos_list=goal_list,
+                                                        agent_pos_list=self.curr_agent_pos)
         # shape = 1 x N x 3 x F_H x F_W
         input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).to(self.config.device)
 
         # obtain and set gso
-        GSO = compute_adj_matrix(agent_pos_list=self.curr_agent_pos,
-                                 comm_radius=self.config.comm_radius)
+        GSO = g_utils.compute_adj_matrix(agent_pos_list=self.curr_agent_pos,
+                                         comm_radius=self.config.comm_radius)
         GSO = torch.from_numpy(GSO).to(self.config.device)
         self.model.set_gso(GSO)
 
@@ -190,7 +206,7 @@ class MultiAgentSimulator:
                 and not any(arr.size for arr in self.task_register.values())):  # all agents have finished their task
             self.terminate = True
 
-    def update_task_register(self):
+    def update_task_register(self) -> None:
         """
         Check how agents are doing with their tasks
         1) If an agent has no task -> assign a new one, if possible
@@ -223,13 +239,15 @@ class MultiAgentSimulator:
             # update the register with curr task
             self.task_register[i] = curr_task.copy()
 
-    def assign_closest_task(self, agent_pos):
+    def assign_closest_task(self,
+                            agent_pos: np.array
+                            ) -> np.array:
         """
         Find and assign the available task closest to the agent position
         If a task is found, remove it from active list
-        :param agent_pos: np.ndarray, shape = (2), agent position in the map
-        :return: np.ndarray, shape = (2, 2), if assigned task
-                 np.ndarray of None, shape = (), if no tasks are available
+        :param agent_pos: shape = (2), agent position in the map
+        :return: task with shape = (2, 2), if assigned task
+                 array of None, shape = (), if no tasks are available
         """
         # if at least one task is available
         if self.active_task_list:
@@ -246,12 +264,12 @@ class MultiAgentSimulator:
         else:
             return np.array(())
 
-    def get_goal_list(self):
+    def get_goal_list(self) -> np.array:
         """
         Get a list of all agents goals
         A goal is either taken from an assigned task (pickup pos or delivery pos) or from current position,
         which correspond to standing still
-        :return: np.ndarray, shape = (agent_num, 2)
+        :return: goal list, shape = (agent_num, 2)
                  list in array form for agent_state compatibility
         """
         goal_list = []
@@ -268,13 +286,15 @@ class MultiAgentSimulator:
 
         return np.array(goal_list, dtype=np.int8)
 
-    def move_agents(self, action_idx_predict):
+    def move_agents(self,
+                    action_idx_predict: np.array
+                    ) -> None:
         """
         Get index of action for each agent
         Move the agent, if move is allowed
         If the move is not allowed, change the suggested move to a 'wait'
         Update agent schedule and current agent positions
-        :param action_idx_predict: np.ndarray, shape = (B*N)
+        :param action_idx_predict: shape = (B*N)
                                    list of action index predicted by the model
         """
         # get predicted actions, agent_num x 2
@@ -308,13 +328,13 @@ class MultiAgentSimulator:
                                            self.timestep))  # timestep
 
     @staticmethod
-    def exp_multinorm(action_vector):
+    def exp_multinorm(action_vector: torch.FloatTensor) -> np.array:
         """
         Get action index prediction
         Use action vector as weights for exponential multinomial distribution
         Action key is sampled from the distribution
-        :param action_vector: FloatTensor, shape = (Batch_size*Agent_num, 5)
-        :return: np.ndarray, shape = (B*N)
+        :param action_vector: vector with actions probs, shape = (Batch_size*Agent_num, 5)
+        :return: array of selected action indexes, shape = (B*N)
         """
         # get exponential
         exp_action_vector = torch.exp(action_vector)

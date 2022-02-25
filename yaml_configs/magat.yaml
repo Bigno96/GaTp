@@ -1,8 +1,8 @@
 # Solve Token Passing with Message-Aware Graph Attention model as in MAGAT
 # arXiv:2011.13219v2
-cuda: True        # device for loading tensors. If True, cuda is used, if False cpu is used instead
-gpu_device: 0     # number of device to use when cuda is enabled
-seed: 1337        # seed for torch
+cuda: True  # device for loading tensors. If True, cuda is used, if False cpu is used instead
+gpu_device: 0   # number of device to use when cuda is enabled
+seed: 1337  # seed for torch
 
 # folder paths
 data_root: "D:\\Uni\\TESI\\GaTp\\datasets"
@@ -11,52 +11,52 @@ exp_folder: "D:\\Uni\\TESI\\GaTp\\experiments"
 
 # model hyper parameters
 # 1) CNN, feature extractor
-cnn_model: 'res'            # type of cnn: residual (network)
-cnn_in_channels: 3          # number of input channels
-cnn_out_features: 128       # number of 'extracted' features from the input FOV by the CNN
-cnn_blocks_size: [32, 64, 128]    # number of channels for cnn blocks
-cnn_depths: [1, 1, 1]       # number of blocks that compose each layer of the cnn
-                            # blocks in the i-th layer all have channels num = cnn_blocks_size[i]
+cnn_model: 'res'  # type of cnn: residual (network)
+cnn_in_channels: 3  # number of input channels
+cnn_out_features: 128   # number of 'extracted' features from the input FOV by the CNN
+cnn_blocks_size: [32, 64, 128]  # number of channels for cnn blocks
+cnn_depths: [1, 1, 1]   # number of blocks that compose each layer of the cnn
+                        # blocks in the i-th layer all have channels num = cnn_blocks_size[i]
 feature_compression: True   # if True, an additional MLP layer is placed at the end of the CNN
-feature_compr_out: 32       # output from features compression. These coincide with skip connection features
+feature_compr_out: 32   # output from features compression. These coincide with skip connection features
 feature_compr_hidden_feat: [64]   # number of features of the hidden layers in the MLP
-feature_compr_dropout: True       # if True, add dropout to MLP
+feature_compr_dropout: True   # if True, add dropout to MLP
 feature_compr_dropout_rate: 0.2   # ratio of dropout, if used
 
 # if True, a skip connection is added before and after the GNN
 skip_connection: True
 
 # 2) GNN -> GAT with GSO
-gnn_model: 'gat_gso'      # type of gnn: graph convolution attentional network
-gnn_hidden_features: []      # tuple of int, e.g. (32, 64, 128), vector of INPUT features of hidden layers
-                             # should be same size of feature_compr_out if used, else cnn_out_features
-                             # len = number of desired graph filtering layers - 1
-graph_filter_taps: [2]    # tuple of int, 'power' of the GSO. Vector with number of filter taps for each layer
-                          # len = number of graph filtering layers
-attention_heads: [1]      # tuple of int, vector with number of attention heads for each layer
-                          # len = number of graph filtering layers
-attention_concat: True    # if True, concatenate the output of the attention heads. False, average the output
+gnn_model: 'gat_gso'  # type of gnn: graph convolution attentional network
+gnn_hidden_features: []   # tuple of int, e.g. (32, 64, 128), vector of INPUT features of hidden layers
+                          # should be same size of feature_compr_out if used, else cnn_out_features
+                          # len = number of desired graph filtering layers - 1
+graph_filter_taps: [2]  # tuple of int, 'power' of the GSO. Vector with number of filter taps for each layer
+                        # len = number of graph filtering layers
+attention_heads: [1]  # tuple of int, vector with number of attention heads for each layer
+                      # len = number of graph filtering layers
+attention_concat: True  # if True, concatenate the output of the attention heads. False, average the output
 
 # 3) MLP, map features to actions
 mlp_hidden_features: [32]   # tuple of int, vector of INPUT features of hidden layers
                             # len = number of layers - 1
-mlp_dropout: True         # if True, add dropout to MLP
-mlp_dropout_rate: 0.2     # ratio of dropout, if used
+mlp_dropout: True   # if True, add dropout to MLP
+mlp_dropout_rate: 0.2   # ratio of dropout, if used
 
 
 # training parameters
-batch_size: 64              # batch size for training
-valid_batch_size: 1         # batch size for validation (simulation)
-test_batch_size: 1          # batch size for testing (simulation)
+batch_size: 64  # batch size for training
+valid_batch_size: 1   # batch size for validation (simulation)
+test_batch_size: 1  # batch size for testing (simulation)
 
-data_loader_workers: 8      # num of processes for data loading
-pin_memory: True            # if True, data loader will copy Tensors into CUDA pinned memory before returning them
+data_loader_workers: 8  # num of processes for data loading
+pin_memory: True  # if True, data loader will copy Tensors into CUDA pinned memory before returning them
 
-label_smoothing: 0.0        # amount of smoothing when computing the loss, where 0.0 means no smoothing
-learning_rate: 0.001        # learning rate of optimizer
-weight_decay: 0.00001       # weight decay of optimizer (implemented as L2 penalty)
-max_epoch: 300              # maximum number of epochs of training
+label_smoothing: 0.0  # amount of smoothing when computing the loss, where 0.0 means no smoothing
+learning_rate: 0.001  # learning rate of optimizer
+weight_decay: 0.00001   # weight decay of optimizer (implemented as L2 penalty)
+max_epoch: 300  # maximum number of epochs of training
 
-validate_every: 4           # how many epochs between each validation
-log_interval: 100           # how many batches passes between screen updates
-max_step_factor: 2          # multiplicative factor for simulation max step (target makespan * max_step_factor)
+validate_every: 4   # how many epochs between each validation
+log_interval: 100   # how many batches passes between screen updates
+max_step_factor: 2  # multiplicative factor for simulation max step (target makespan * max_step_factor)

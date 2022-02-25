@@ -9,8 +9,8 @@ from collections import deque
 
 import numpy as np
 
-from experts.a_star import a_star
-from utils.expert_utils import NEIGHBOUR_LIST, free_cell_heuristic, drop_idle, NoPathError
+import experts.a_star as a_s
+import utils.expert_utils as exp_utils
 
 
 class TpAgent:
@@ -109,19 +109,19 @@ class TpAgent:
             try:
                 # first, from curr_pos to pickup_pos
                 pickup_pos, delivery_pos = best_task
-                pickup_path, pick_len = a_star(input_map=self.map,
-                                               start=self.pos, goal=pickup_pos,
-                                               token=token,
-                                               h_map=self.h_coll[pickup_pos],
-                                               starting_t=sys_timestep,
-                                               include_start_node=False)
+                pickup_path, pick_len = a_s.a_star(input_map=self.map,
+                                                   start=self.pos, goal=pickup_pos,
+                                                   token=token,
+                                                   h_map=self.h_coll[pickup_pos],
+                                                   starting_t=sys_timestep,
+                                                   include_start_node=False)
                 # second, from pickup_pos to delivery_pos
-                delivery_path, _ = a_star(input_map=self.map,
-                                          start=pickup_pos, goal=delivery_pos,
-                                          token=token,
-                                          h_map=self.h_coll[delivery_pos],
-                                          starting_t=sys_timestep+pick_len,
-                                          include_start_node=False)
+                delivery_path, _ = a_s.a_star(input_map=self.map,
+                                              start=pickup_pos, goal=delivery_pos,
+                                              token=token,
+                                              h_map=self.h_coll[delivery_pos],
+                                              starting_t=sys_timestep+pick_len,
+                                              include_start_node=False)
                 # merge paths and update
                 self.path = pickup_path + delivery_path
                 # update goal
@@ -138,7 +138,7 @@ class TpAgent:
                 return best_task
 
             # since MAPD can be not well-formed, it can happen to not find a path
-            except NoPathError:
+            except exp_utils.NoPathError:
                 token[self.name] = {'pos': self.pos,
                                     'path': self.path}   # try another timestep
                 return None
@@ -199,9 +199,9 @@ class TpAgent:
 
             try:
                 # collision free path, if endpoint is reachable
-                self.path, _ = a_star(input_map=self.map, start=self.pos, goal=best_ep,
-                                      token=token, h_map=self.h_coll[best_ep], starting_t=sys_timestep,
-                                      include_start_node=False)
+                self.path, _ = a_s.a_star(input_map=self.map, start=self.pos, goal=best_ep,
+                                          token=token, h_map=self.h_coll[best_ep], starting_t=sys_timestep,
+                                          include_start_node=False)
                 token[self.name] = {'pos': self.pos,
                                     'path': self.path}
                 self.goal = best_ep
@@ -210,7 +210,7 @@ class TpAgent:
 
                 return
 
-            except NoPathError:
+            except exp_utils.NoPathError:
                 pass  # keep going and try another endpoint
 
         # no endpoint was reachable -> keep current path
@@ -256,25 +256,26 @@ class TpAgent:
             # some other agent is coming into agent end path position on this timestep -> conflict
 
             # don't consider idle agents -> make them re-plan after
-            idle_token = drop_idle(agent_pool=agent_pool, curr_agent=self, token=token)
+            idle_token = exp_utils.drop_idle(agent_pool=agent_pool, curr_agent=self, token=token)
 
             # try to move the agent towards a non-conflicting cell around him
             d1_cell_list = [(idle_pos[0]+move[0], idle_pos[1]+move[1])  # distance 1
-                            for move in NEIGHBOUR_LIST]
+                            for move in exp_utils.NEIGHBOUR_LIST]
             # reverse order, higher number of free cells first
             # count free cell at sys_timestep when the agent will be in target
             d1_cell_list = sorted(d1_cell_list, reverse=True,
-                                  key=lambda c: free_cell_heuristic(target=c, input_map=self.map,
-                                                                    token=token,
-                                                                    target_timestep=sys_timestep))
+                                  key=lambda c: exp_utils.free_cell_heuristic(target=c,
+                                                                              input_map=self.map,
+                                                                              token=token,
+                                                                              target_timestep=sys_timestep))
 
             # loop over d1 cells
             for cell in d1_cell_list:
                 try:
-                    self.path, _ = a_star(input_map=self.map, start=idle_pos, goal=cell,
-                                          token=token, h_map=None,     # cell is not always an endpoint
-                                          starting_t=sys_timestep,
-                                          include_start_node=False)
+                    self.path, _ = a_s.a_star(input_map=self.map, start=idle_pos, goal=cell,
+                                              token=token, h_map=None,     # cell is not always an endpoint
+                                              starting_t=sys_timestep,
+                                              include_start_node=False)
 
                     # re add removed idle
                     token.update(idle_token)
@@ -308,7 +309,7 @@ class TpAgent:
                     return
 
                 # no path, try another cell
-                except NoPathError:
+                except exp_utils.NoPathError:
                     pass
 
             # impossible to avoid collision

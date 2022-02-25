@@ -4,9 +4,10 @@ FIle for computing metrics and evaluating quality of solutions
 
 import sys
 
-from dataclasses import dataclass
+import utils.multi_agent_simulator as ma_sim
 
-from utils.multi_agent_simulator import MultiAgentSimulator
+from dataclasses import dataclass
+from collections import deque
 
 
 @dataclass(order=True)
@@ -29,17 +30,20 @@ class PerformanceRecorder:
     Class for computing performances of ML model during testing/validation simulations
     """
 
-    def __init__(self, simulator):
+    def __init__(self,
+                 simulator: ma_sim.MultiAgentSimulator):
         """
-        :param simulator: MultiAgentSimulator instance, from utils.multi_agent_simulator.py
+        :param simulator: from utils.multi_agent_simulator.py
         """
-        self.simulator: MultiAgentSimulator = simulator
+        self.simulator = simulator
 
-    def evaluate_performance(self, target_makespan) -> Performance:
+    def evaluate_performance(self,
+                             target_makespan: int
+                             ) -> Performance:
         """
         Compute metrics using information from current state of the simulator
-        :param target_makespan: int, expert's solution makespan
-        :return: Performance instance
+        :param target_makespan: expert's solution makespan
+        :return: computed performance
         """
         # obtain percentage of tasks completed
         task_percentage = len(self.simulator.active_task_list) / self.simulator.task_number
@@ -53,14 +57,15 @@ class PerformanceRecorder:
                            makespan_difference=makespan_diff)
 
 
-def count_collision(agent_schedule) -> (int, list[int]):
+def count_collision(agent_schedule: dict[int, deque[tuple[int, int, int]]]
+                    ) -> tuple[int, list[int]]:
     """
     Get all agent's path for a MAPD instance solution and count collisions
     Collision is caused by either node or swap constraint violations
     :param agent_schedule: {agent_id : schedule}
                             with schedule = deque([(x_0, y_0, 0), (x_1, y_1, t_1), ...])
-    :return: int, number of collision detected
-             list of timesteps when collision happens
+    :return: (number of collision detected,
+              list of timesteps when collision happens)
     """
     coll_count = 0
 
@@ -98,7 +103,13 @@ def count_collision(agent_schedule) -> (int, list[int]):
     return coll_count, collision_time_list
 
 
-def __drop_ts(input_list):
+def __drop_ts(input_list: list[tuple[int, int, int]]
+              ) -> list[tuple[int, int]]:
+    """
+    Drop timesteps from passed list of steps
+    :param input_list: list of steps, (x, y, t)
+    :return: list of only positions, (x, y)
+    """
     ret_l = []
     for el in input_list:
         ret_l.append(el[:-1])

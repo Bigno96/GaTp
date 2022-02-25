@@ -2,8 +2,8 @@
 data_root: "D:\\Uni\\TESI\\GaTp\\datasets"
 
 # Agent config
-FOV: 9              # agents Field of View, has to be an ODD number
-comm_radius: 7      # communication radius of the agents
+FOV: 9  # agents Field of View, has to be an ODD number
+comm_radius: 7  # communication radius of the agents
 
 # do not generate again environment if ones with same parameters are found
 keep_env_data: True
@@ -13,17 +13,16 @@ keep_expert_solutions: True
 
 # Map specifications
 map_type: 'random_grid'   # supported values: random_grid
-map_number: 50       # how many unique maps
-map_shape: [20, 20]     # (H, W)
-map_density: 0.1       # % of obstacles in the map
-# whether to generate only fully connected maps or not
-force_conn: True
+map_number: 50    # how many unique maps
+map_shape: [20, 20]   # (H, W)
+map_density: 0.1  # % of obstacles in the map
+force_conn: True  # whether to generate only fully connected maps or not
 
 
 # Scenario specifications
-scenario_number: 20                # how many unique scenarios for each map
-agent_number: 20                   # how many agents in each scenario
-task_number: 500                   # how many tasks in each scenario
+scenario_number: 20   # how many unique scenarios for each map
+agent_number: 20  # how many agents in each scenario
+task_number: 500  # how many tasks in each scenario
 # how to create starting positions for agents -> 'random' or 'fixed'
 start_position_mode: 'random'
 # if 'fixed', give list len([(x,y)]) >= num_agents of starting pos to choose from

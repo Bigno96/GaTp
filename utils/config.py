@@ -1,5 +1,6 @@
 """
-Utility file
+General utility file for configurations
+
 Parse file configuration and add them to the input configuration, creating a config Namespace
 Set up all the logging for the project
 """
@@ -7,20 +8,21 @@ Set up all the logging for the project
 import logging
 import os
 import pprint
+import argparse
+
+import utils.file_utils as f_utils
+
 from datetime import datetime
 from logging import Formatter
 from logging.handlers import RotatingFileHandler
 from time import mktime
-
 from easydict import EasyDict
 from yaml import safe_load
-
-from utils.file_utils import create_dirs
 
 CONFIG_FOLDER_PATH = 'D:\\Uni\\TESI\\GaTp\\yaml_configs'
 
 
-def setup_logging(log_dir):
+def setup_logging(log_dir: str) -> None:
     """
     Set up main logger and handlers for outputting information during execution
     :param log_dir: directory where to create dump file for experiments handlers
@@ -57,11 +59,11 @@ def setup_logging(log_dir):
         main_logger.addHandler(exp_errors_file_handler)
 
 
-def get_config_from_yaml(config_name):
+def get_config_from_yaml(config_name: str) -> EasyDict:
     """
     Get the config from a yaml file and return as namespace
     :param config_name: the name of the config file
-    :return: config(namespace)
+    :return: namespace of the config written in the file
     """
 
     # extend name with .yaml and the correct folder
@@ -79,14 +81,14 @@ def get_config_from_yaml(config_name):
 
 
 # noinspection DuplicatedCode
-def process_config(args):
+def process_config(args: argparse.Namespace) -> EasyDict:
     """
     Get the yaml file
     Processing it with EasyDict to be accessible as attributes
     Set up the logging in the whole program
     Then return the config
-    :param args: argument parser output
-    :return: config object(namespace)
+    :param args: argument parser output (Namespace)
+    :return: config object (Namespace)
     """
 
     # load yaml with the selected configuration into a Namespace
@@ -162,12 +164,12 @@ def process_config(args):
     # setup useful directories
     config.log_dir = os.path.join(config.exp_folder,
                                   config.exp_name,
-                                  'logs')           # logging outputs
+                                  'logs')   # logging outputs
     config.checkpoint_dir = os.path.join(config.exp_folder,
                                          config.exp_name,
-                                         "checkpoints")         # checkpoint folder
+                                         'checkpoints')     # checkpoint folder
     # create, if they don't exist
-    create_dirs([config.log_dir, config.checkpoint_dir])
+    f_utils.create_dirs([config.log_dir, config.checkpoint_dir])
 
     # setup logging in the project
     setup_logging(config.log_dir)

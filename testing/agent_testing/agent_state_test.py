@@ -143,7 +143,7 @@ class MyTestCase(unittest.TestCase):
 
             # input_state -> 3 input channels (maps): obstacle map, goal map, agents pos map
             # all map are FOV cut and padded with border
-            input_state_curr_agent, local_objective = ag_state.build_input_state(load_state=load_state)
+            input_state_curr_agent, local_objective = ag_state.build_agent_input_state(load_state=load_state)
             obs_map_FOV_pad, goal_map_FOV_pad, agent_map_FOV_pad = input_state_curr_agent
 
             '''check sizes'''
@@ -225,8 +225,8 @@ class MyTestCase(unittest.TestCase):
                                                                       input_map=obs_map)
         ag_state.set_obstacle_map(input_map=obs_map)
 
-        input_tensor = ag_state.get_input_tensor(goal_pos_list=goal_pos_list,
-                                                 agent_pos_list=agent_pos_list)
+        input_tensor = ag_state.get_input_state(goal_pos_list=goal_pos_list,
+                                                agent_pos_list=agent_pos_list)
 
         # check execution, returned type and size of tensor
         self.assertIsInstance(input_tensor, torch.FloatTensor)
@@ -254,9 +254,9 @@ class MyTestCase(unittest.TestCase):
         # set up goal schedule, shape = (makespan, num_agents, 2)
         goal_schedule = np.tile(goal_pos_list, reps=(makespan, 1, 1))
 
-        input_tensor = ag_state.get_sequence_input_tensor(goal_pos_schedule=goal_schedule,
-                                                          agent_pos_schedule=ag_schedule,
-                                                          makespan=makespan)
+        input_tensor = ag_state.get_sequence_input_state(goal_pos_schedule=goal_schedule,
+                                                         agent_pos_schedule=ag_schedule,
+                                                         makespan=makespan)
 
         # check execution, returned type and size of tensor
         self.assertIsInstance(input_tensor, torch.FloatTensor)

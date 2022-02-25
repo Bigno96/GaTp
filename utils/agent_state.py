@@ -7,7 +7,7 @@ Class for Agent State representation utilities
 - FOV map -> shape = (FOV, FOV), cut from padded map around agent position
 - padded FOV map -> shape = (FOV + 2*border, FOV + 2*border), FOV map padded with a border around
 
-Input tensor to feed to each agent -> 3 channels
+Input state to feed to each agent -> 3 channels
 Each channel -> padded FOV map with different information
 Respectively:
 
@@ -29,52 +29,62 @@ Respectively:
 
 import numpy as np
 
+from easydict import EasyDict
+
 
 class AgentState:
     """
     Allow representing agent's state
     Keep tracks of obstacle map and 'local' objective (in the FOV) of each agent
-    Allow retrieving input tensor to feed to an agent
+    Allow retrieving input state to feed to an agent
     """
 
-    def __init__(self, config):
+    def __init__(self,
+                 config: EasyDict):
+        """
+        :param config: configuration namespace
+        """
         self.config = config
 
-        self.agent_number = self.config.agent_number
-        self.FOV = self.config.FOV                  # Field Of View radius
-        self.FOV_width = int(self.FOV/2)            # half radius, used for padding
-        self.border = 1                             # size of the border outside FOV, to project goal
-        self.H = self.FOV + int(2*self.border)      # height of agents available map
-        self.W = self.FOV + int(2*self.border)      # width of agents available map
-        self.dist = int(np.floor(self.W/2))         # distance of agents from the outside of the available map
-        self.center_x = self.dist                   # map center position, coinciding with agent relative pos
+        self.agent_number: int = self.config.agent_number
+        self.FOV = self.config.FOV  # Field Of View radius
+        self.FOV_width = int(self.FOV/2)    # half radius, used for padding
+        self.border = 1     # size of the border outside FOV, to project goal
+        self.H = self.FOV + int(2*self.border)   # height of agents available map
+        self.W = self.FOV + int(2*self.border)  # width of agents available map
+        self.dist = int(np.floor(self.W/2))     # distance of agents from the outside of the available map
+        self.center_x = self.dist   # map center position, coinciding with agent relative pos
         self.center_y = self.dist
 
-        self.obstacle_map: np.array = None               # map of the obstacles, shape=(H, W)
-        self.obstacle_map_pad: np.array = None        # padded obstacles map, shape=(H+FOV_width, W+FOV_width)
+        self.obstacle_map: np.array = np.array(())  # map of the obstacles, shape=(H, W)
+        self.obstacle_map_pad: np.array = np.array(())  # padded obstacles map, shape=(H+FOV_width, W+FOV_width)
 
         # objectives of all the agents within their FOV (either goal projection or curr pos)
         # shape = (num_agents, 2)
-        self.local_objective_list: np.array = None         # local objectives with global coordinates
+        self.local_objective_list: np.array = np.array(())  # local objectives with global coordinates
 
     @staticmethod
-    def simple_pad(input_array, pad_width, fill_value):
+    def simple_pad(input_array: np.array,
+                   pad_width: int,
+                   fill_value: int
+                   ) -> np.array:
         """
         Fast version of numpy pad, padding with constant value around
         Code taken from np.pad implementation
         Avoid all the np.pad memory copies, necessary for other functionalities, not for constant padding
         Speed up for larger databases
         Return a copy of the original array, padded
-        :param input_array: np.ndarray, array to pad
-        :param pad_width: int, value to add to each axis
-        :param fill_value: int, value to pad with
-        :return: np.ndarray, shape = input_array.shape + pad_width (over all axis)
+        :param input_array: array to pad
+        :param pad_width: value to add to each axis
+        :param fill_value: value to pad with
+        :return: padded array, shape = input_array.shape + 2*pad_width (over all axis)
         """
         # allocate grown array
         new_shape = tuple(pad_width + s + pad_width
                           for s in input_array.shape)
         padded = np.empty(new_shape, dtype=input_array.dtype)
 
+        # fill all with new value
         padded.fill(fill_value)
 
         # copy old array into correct space
@@ -84,29 +94,36 @@ class AgentState:
 
         return padded
 
-    def set_obstacle_map(self, input_map):
+    def set_obstacle_map(self,
+                         input_map: np.array
+                         ) -> None:
         """
         Set obstacle maps (padded and not) in the current agent state
         Padding is added outside the map, with value = 1, to simulate obstacles and force the agent to stay inside
-        :param input_map: np.ndarray, shape=(H, W)
+        :param input_map: map of obstacle positions, shape=(H, W)
         """
         # map of all the obstacles for the agent
-        self.obstacle_map = input_map.copy()
+        self.obstacle_map = input_map.astype(np.int8)
         # pad obstacle map with half the FOV all around
         # pad value = 1 -> all obstacles outside
-        self.obstacle_map_pad = self.simple_pad(input_array=input_map, pad_width=self.FOV_width,
+        self.obstacle_map_pad = self.simple_pad(input_array=input_map,
+                                                pad_width=self.FOV_width,
                                                 fill_value=1).astype(np.int8)
 
-    def get_agent_pos_map(self, agent_pos_list):
+    def get_agent_pos_map(self,
+                          agent_pos_list: np.array
+                          ) -> np.array:
         """
         Compute and return a map with marked ONLY agents position
         Map is padded in the outside
         Obstacle map is assumed to be set
-        :param agent_pos_list: list of agents current position, np.ndarray, shape=(num_agents, 2)
-        :return: np.ndarray, shape=(H+FOV_width, W+FOV_width), 1s in each agent position, 0s else
+        :param agent_pos_list: list of agents current position, shape=(num_agents, 2)
+        :return: padded agent position map,
+                 shape=(H+FOV_width, W+FOV_width),
+                 1s in each agent position, 0s else
         """
         # verify that obstacle map is assigned
-        assert self.obstacle_map is not None
+        assert self.obstacle_map.size > 0
         # agent_pos_map = np.zeros([self.W, self.H], dtype=np.int8)
         agent_pos_map = np.zeros_like(self.obstacle_map, dtype=np.int8)
 
@@ -121,19 +138,22 @@ class AgentState:
 
         return agent_pos_map_pad
 
-    def project_goal(self, goal_map_FOV, agent_pos, goal_pos):
+    def project_goal(self,
+                     goal_map_FOV: np.array,
+                     agent_pos: tuple[int, int],
+                     goal_pos: tuple[int, int]
+                     ) -> np.array:
         """
         Add goal projection to the goal FOV map of the agent, centered around its current position
         First, pad with border, than look for global goal position and add its projection to the border
         Assume goal_pos is outside the FOV
-        :param goal_map_FOV: map with all agents' goals
+        :param goal_map_FOV: map with all agents' goals, shape=(FOV, FOV)
                              trimmed within FOV radius around current agent position
-                             np.ndarray, shape=(FOV, FOV)
-        :param agent_pos: int tuple, current position of agent
-        :param goal_pos: int tuple, position of goal for the agent
-                         assumed outside FOV
+        :param agent_pos: current position of agent
+        :param goal_pos: position of goal for the agent
+                         ASSUMED outside FOV
         :return: padded goal_map_FOV with projected goal
-                 np.ndarray, shape=(FOV+border, FOV+border)
+                 shape=(FOV+border, FOV+border)
         """
         # pad with a border around
         padded_goal_map_FOV = self.simple_pad(input_array=goal_map_FOV, pad_width=self.border, fill_value=0)
@@ -163,19 +183,21 @@ class AgentState:
 
         return padded_goal_map_FOV
 
-    def build_input_state(self, load_state):
+    def build_agent_input_state(self,
+                                load_state: tuple[np.array, np.array, np.array, int]
+                                ) -> tuple[tuple[np.array, np.array, np.array], np.array]:
         """
         Build a padded, FOV version of the 3 input channels (maps): obstacle map, goal map, agents pos map
         Update local objective list with global coordinates of each agent goal
         An agent is always assumed to have a goal!!
         For IDLE agents, goal coincide with current position
-        :param load_state: tuple, agent state summary
-                           goal positions: np.ndarray, shape=(num_agents, 2)
-                           agent positions: np.ndarray, shape=(num_agents, 2)
-                           padded map of agent positions: np.ndarray, shape=(H+FOV_width, W+FOV_width)
-                           id_agent: int, id of the agent
+        :param load_state: agent state summary
+                            - goal positions: shape=(num_agents, 2)
+                            - agent positions: shape=(num_agents, 2)
+                            - padded map of agent positions: shape=(H+FOV_width, W+FOV_width)
+                            - id_agent: id of the agent
         :return: input state for the current agent, local objective of the current agent
-                 input state: [obstacle_map, goal_map, agent_pos_map]
+                 input state: (obstacle_map, goal_map, agent_pos_map)
                  map shape -> (FOV+border, FOV+border)
                  local_objective -> coord of the FOV goal, using original non-padded map coordinates reference
         """
@@ -219,13 +241,13 @@ class AgentState:
         # goal outside the FOV, project it on the border
         else:
             goal_pos_map_FOV_pad = self.project_goal(goal_map_FOV=goal_pos_map_FOV,
-                                                     agent_pos=[agent_x_global, agent_y_global],
-                                                     goal_pos=[goal_x_global, goal_y_global])
+                                                     agent_pos=(agent_x_global, agent_y_global),
+                                                     goal_pos=(goal_x_global, goal_y_global))
 
         # get position of the only goal
         # goal_x, goal_y = [x], [y] -> unpack array
         goal_x_FOV, goal_y_FOV = np.nonzero(goal_pos_map_FOV_pad)
-        goal_x_FOV, goal_y_FOV = goal_x_FOV[0], goal_y_FOV[0]       # unpack
+        goal_x_FOV, goal_y_FOV = goal_x_FOV[0], goal_y_FOV[0]   # unpack
 
         # local objective setup, with global coordinates on non-padded coordinates
         # if it's in the fov -> local_obj = (goal_x_global, goal_y_global)
@@ -235,25 +257,28 @@ class AgentState:
                                    dtype=np.int8)
 
         # build input state and return it, with local objective (non-padded coords)
-        input_state_current_agent = [obstacle_map_FOV_pad, goal_pos_map_FOV_pad, agent_pos_map_FOV_pad]
+        input_state_current_agent = (obstacle_map_FOV_pad, goal_pos_map_FOV_pad, agent_pos_map_FOV_pad)
 
         return input_state_current_agent, local_objective
 
-    def get_local_obj_list(self):
+    def get_local_obj_list(self) -> np.array:
         """
         :return: shape = (num_agents, 2)
         """
         return self.local_objective_list
 
-    def get_input_tensor(self, goal_pos_list, agent_pos_list):
+    def get_input_state(self,
+                        goal_pos_list: np.array,
+                        agent_pos_list: np.array
+                        ) -> np.array:
         """
-        Build input state of all the agents in tensor form
+        Build input state of all the agents
         Input state of one agent -> 3 'channels' (maps): obstacle map, agent pos map, goal map
         Update local objective list with the global coordinates of the local objective of each agent
-        :param goal_pos_list: list of agents goal position, np.ndarray, shape=(num_agents, 2)
-        :param agent_pos_list: list of agents current position, np.ndarray, shape=(num_agents, 2)
+        :param goal_pos_list: list of agents goal position, shape=(num_agents, 2)
+        :param agent_pos_list: list of agents current position, shape=(num_agents, 2)
         :return: np.ndarray of the input configuration
-                 input_tensor.shape = (num_agents, 3 (channels), FOV+2*border, FOV+2*border)
+                 input_array.shape = (num_agents, 3 (channels), FOV+2*border, FOV+2*border)
         """
         # get map with agents positions, padded in the outside
         agent_pos_map_pad = self.get_agent_pos_map(agent_pos_list)
@@ -265,7 +290,7 @@ class AgentState:
             # agent state summary
             load_state = (goal_pos_list, agent_pos_list, agent_pos_map_pad, id_agent)
             # build agent state stacking the 3 maps and get local objective of the agent
-            input_state_current_agent, local_objective = self.build_input_state(load_state)
+            input_state_current_agent, local_objective = self.build_agent_input_state(load_state)
             # collect all the input states
             input_state.append(input_state_current_agent)
             # updates local paths
@@ -273,20 +298,24 @@ class AgentState:
 
         # transform input state (list of ndarray) into a ndarray,
         # since creating a tensor from a list of ndarray is extremely slow
-        input_tensor = np.array(input_state, dtype=np.int8)
+        input_array = np.array(input_state, dtype=np.int8)
 
-        return input_tensor
+        return input_array
 
-    def get_sequence_input_tensor(self, goal_pos_schedule, agent_pos_schedule, makespan):
+    def get_sequence_input_state(self,
+                                 goal_pos_schedule: np.array,
+                                 agent_pos_schedule: np.array,
+                                 makespan: int
+                                 ) -> np.array:
         """
-        Build one input state of all the agents in tensor form for each timestep in the schedule
+        Build one input state of all the agents for each timestep in the schedule
         Input state of one agent -> 3 'channels' (maps): obstacle map, agent pos map, goal map
         :param goal_pos_schedule: schedule (sequence) of agent's goal positions
-                                  np.ndarray, shape = (makespan, num_agents, 2)
+                                  shape = (makespan, num_agents, 2)
         :param agent_pos_schedule: schedule (sequence) of agents positions
-                                   np.ndarray, shape = (makespan, num_agents, 2)
+                                   shape = (makespan, num_agents, 2)
         :param makespan: length of the agents schedule
-        :return: np.ndarray of the input configuration
+        :return: sequence of input configuration
                  input state = makespan x num_agents x input state of agent
         """
         input_step_list = []
@@ -304,7 +333,7 @@ class AgentState:
                 # agent state summary
                 load_state = (goal_pos_list, agent_pos_list, agent_pos_map_pad, id_agent)
                 # build agent state stacking the 3 maps and get local objective of the agent
-                input_step_current_agent, _ = self.build_input_state(load_state)
+                input_step_current_agent, _ = self.build_agent_input_state(load_state)
                 # collect all the input states for each agent
                 input_step.append(input_step_current_agent)
 
@@ -313,6 +342,6 @@ class AgentState:
 
         # transform input state (list of ndarray) into a ndarray,
         # since creating a tensor from a list of ndarray is extremely slow
-        input_tensor = np.array(input_step_list, dtype=np.int8)
+        input_array = np.array(input_step_list, dtype=np.int8)
 
-        return input_tensor
+        return input_array

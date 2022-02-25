@@ -11,12 +11,14 @@ import scipy.spatial as sc
 ZERO_TOLERANCE = 1e-9
 
 
-def compute_adj_matrix(agent_pos_list, comm_radius=7):
+def compute_adj_matrix(agent_pos_list: np.array,
+                       comm_radius: int = 7
+                       ) -> np.array:
     """
     Compute adjacency matrix of agents
     An edge e_ij between agents a_i and a_j is present iff dist(loc(a_i), loc(a_j)) <= comm_radius
-    :param agent_pos_list: np.ndarray, shape = (agent_num, 2), list of agent positions
-    :param comm_radius: int, maximum distance for communication between agents
+    :param agent_pos_list: shape = (agent_num, 2), all agent positions
+    :param comm_radius: maximum distance for communication between agents
                         (default: 7)
     :return: Normalized adjacency matrix
              shape = (agent_num, agent_num)
@@ -31,12 +33,12 @@ def compute_adj_matrix(agent_pos_list, comm_radius=7):
     return normalize_adjacency(W=W)
 
 
-def normalize_adjacency(W):
+def normalize_adjacency(W: np.array) -> np.array:
     """
     Compute the degree-normalized adjacency matrix
     Normalize also with max Eigenvalue
-    :param W: np.ndarray, adjacency matrix
-    :return np.ndarray, degree-normalized adjacency matrix
+    :param W: adjacency matrix
+    :return Degree-normalized adjacency matrix
     """
     # check that the matrix is square
     assert W.shape[0] == W.shape[1]
@@ -70,10 +72,10 @@ def normalize_adjacency(W):
         return W
 
 
-def max_eigenvalue(matrix):
+def max_eigenvalue(matrix: np.array) -> float:
     """
-    :param matrix: np.ndarray
-    :return: float, maximum eigenvalue of the matrix
+    :param matrix: array to compute eigenvalues
+    :return: maximum eigenvalue of the matrix
     """
     # check symmetry
     is_symmetric = np.allclose(matrix, np.transpose(matrix, axes=[1, 0]))

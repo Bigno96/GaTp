@@ -3,6 +3,10 @@ Utility functions for experts algorithms
 """
 
 import numpy as np
+import experts.tp_agent as tp_ag
+
+from collections import deque
+
 
 # delta dictionary
 MOVE_LIST = [(-1, 0),  # go up
@@ -11,12 +15,11 @@ MOVE_LIST = [(-1, 0),  # go up
              (0, 1),  # go right
              (0, 0)]  # stay still
 
-NEIGHBOUR_LIST = [(-1, 0),  # go up
-                  (0, -1),  # go left
-                  (1, 0),  # go down
-                  (0, 1)]  # go right
+# list of neighbours
+NEIGHBOUR_LIST = MOVE_LIST[:-1]
 
 
+# custom error for Path not Found
 class NoPathError(Exception):
     pass
 
@@ -32,14 +35,17 @@ class StopToken:
         self.is_cancelled = True
 
 
-def is_valid_expansion(next_node, input_map, closed_list):
+def is_valid_expansion(next_node: tuple[int, int, int],
+                       input_map: np.array,
+                       closed_list: set[tuple[int, int, int]]
+                       ) -> bool:
     """
     Check if is possible for A* to expand the new cell
     1) Check if the cell is inside map boundaries
     2) Check if the cell has already been expanded
     3) Check if the cell has an obstacle inside
-    :param next_node: (x, y, t), int tuple of new node
-    :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
+    :param next_node: (x, y, t), new node
+    :param input_map: shape=(H, W),matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
     :param closed_list: implemented as a set of nodes
     :return: True if all 3 checks are passed, False else
     """
@@ -53,25 +59,30 @@ def is_valid_expansion(next_node, input_map, closed_list):
     if next_node in closed_list:
         return False
 
-    # check 3), the current cell is not an obstacle (not 1)
+    # check 3), the current cell is not an obstacle (not == 1)
     if input_map[(x, y)] == 1:
         return False
 
     return True
 
 
-def check_token_conflicts(token, next_node, curr_node, starting_t=0):
+def check_token_conflicts(token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]],
+                          next_node: tuple[int, int, int],
+                          curr_node: tuple[int, int, int],
+                          starting_t: int = 0
+                          ) -> bool:
     """
     Check that at new_pos there are no conflicts in token
     Assumes its own path is not in the token
     :param token: summary of other agents planned paths
-                  dict -> {agent_name : {'pos': (x,y), ''path': path}}
+                  dict -> {agent_name : {'pos': (x,y), 'path': path}}
                   with pos = current agent pos
                   with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...]), future steps
                   x, y -> cartesian coords, t -> timestep
-    :param curr_node: (x, y, t), int tuple of curr node
-    :param next_node: (x, y, t), int tuple of new node
+    :param curr_node: (x, y, t), current parent node
+    :param next_node: (x, y, t), new node being expanded
     :param starting_t: starting timestep of the search
+                       (default: 0)
     :return: True if no conflicts are found, False else
     """
     # if something is not specified, defaults to True
@@ -103,7 +114,7 @@ def check_token_conflicts(token, next_node, curr_node, starting_t=0):
     # bad_moves_list still allows next_pos == loc(a_i) -> swap conflict
     if curr_timestep == starting_t:
         # only possible at first depth expansions
-        bad_moves_list.extend([val['pos']       # don't go into his current position
+        bad_moves_list.extend([val['pos']   # don't go into his current position
                                for val in token.values()
                                # if that agent is going into my current position
                                if val['path'][0][:-1] == curr_pos
@@ -113,13 +124,19 @@ def check_token_conflicts(token, next_node, curr_node, starting_t=0):
     return next_pos not in bad_moves_list
 
 
-def get_next_node_list(curr_node, max_depth, starting_t, input_map, closed_list, token):
+def get_next_node_list(curr_node: tuple[int, int, int],
+                       max_depth: int,
+                       starting_t: int,
+                       input_map: np.array,
+                       closed_list: set[tuple[int, int, int]],
+                       token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]]
+                       ) -> list[tuple[int, int, int]]:
     """
     Get list of nodes available for A* expansion
-    :param curr_node: (x, y, t), int tuple of curr node
-    :param max_depth: int, maximum path depth
+    :param curr_node: (x, y, t), current parent node
+    :param max_depth: maximum path depth
     :param starting_t: starting timestep for the search
-    :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
+    :param input_map: shape=(H, W), matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
     :param closed_list: implemented as a set of nodes
     :param token: summary of other agents planned paths
                   dict -> {agent_name : {'pos': (x,y), ''path': path}}
@@ -149,14 +166,16 @@ def get_next_node_list(curr_node, max_depth, starting_t, input_map, closed_list,
             ]
 
 
-def compute_manhattan_heuristic(input_map, goal):
+def compute_manhattan_heuristic(input_map: np.array,
+                                goal: tuple[int, int]
+                                ) -> np.array:
     """
     Create a matrix the same shape of the input map
     Calculate the cost from the goal node to every other node on the map using MANHATTAN heuristic
     Return the heuristic matrix
-    :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
-    :param goal: (x, y), tuple of int with goal cartesian coordinates
-    :return: heuristic, np.ndarray, heuristic.shape = input_map.shape
+    :param input_map: shape=(H, W), matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
+    :param goal: (x, y), goal cartesian coordinates
+    :return: computed heuristic, shape=input_map.shape
     """
     # abs(current_cell.x – goal.x) + abs(current_cell.y – goal.y)
     heuristic = [(abs(row - goal[0]) + abs(col - goal[1]))
@@ -166,20 +185,23 @@ def compute_manhattan_heuristic(input_map, goal):
     return np.array(heuristic, dtype=int).reshape(input_map.shape)
 
 
-def preprocess_heuristics(input_map, task_list, non_task_ep_list):
+def preprocess_heuristics(input_map: np.ndarray,
+                          task_list: list[tuple[tuple[int, int], tuple[int, int]]],
+                          non_task_ep_list: list[tuple[int, int]]
+                          ) -> dict[tuple[int, int], np.array]:
     """
     Since cost-minimal paths need to be found only to endpoints, the path costs from all locations to all endpoints
     are computed in a preprocessing phase
     Manhattan Heuristic is used to estimate path costs
-    :param input_map: np.ndarray, type=int, size:H*W, matrix of 0 and 1
+    :param input_map: shape=(H, W), matrix of 0 and 1
     :param task_list: list of tasks -> [(task1), (task2), ...]
-                      task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
+                      task: ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
     :param non_task_ep_list: list of endpoints not belonging to a task -> [(ep1), (ep2), ...]
-                             endpoint: tuple (x,y) of int coordinates
-    :return: heuristic_collection
+                             endpoint: (x,y), endpoint coordinates
+    :return: heuristic collection
              dict -> {endpoint : h_map}
-             endpoint: tuple (x,y) of int coordinates
-             h_map: np.ndarray, type=int, shape=input_map.shape, heuristic matrices with goal = endpoint
+             endpoint: (x,y), endpoint coordinates
+             h_map: shape=input_map.shape, heuristic matrices with goal = endpoint
     """
     # task related endpoints
     ep_list = [ep
@@ -198,18 +220,22 @@ def preprocess_heuristics(input_map, task_list, non_task_ep_list):
     return dict(zip(iter(ep_list), iter(h_map_list)))
 
 
-def free_cell_heuristic(target, input_map, token, target_timestep):
+def free_cell_heuristic(target: tuple[int, int],
+                        input_map: np.array,
+                        token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]],
+                        target_timestep: int
+                        ) -> int:
     """
     Get how many cells are free around target at specified timestep
-    :param target: int tuple (x,y)
-    :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
+    :param target: (x,y), cartesian coords of the target
+    :param input_map: matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
     :param token: summary of other agents planned paths
                   dict -> {agent_name : {'pos': (x,y), ''path': path}}
                   with pos = current agent pos
                   with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...]), future steps
                   x, y -> cartesian coords, t -> timestep
     :param target_timestep: global timestep of the execution
-    :return: int, value of free cells around
+    :return: value of free cells around
     """
     # get agent adjacent cells
     target_neighbours = [(target[0]+move[0], target[1]+move[1])
@@ -228,7 +254,10 @@ def free_cell_heuristic(target, input_map, token, target_timestep):
                 and pos not in token_pos_list])
 
 
-def drop_idle(agent_pool, curr_agent, token):
+def drop_idle(agent_pool: set[tp_ag.TpAgent],
+              curr_agent: tp_ag.TpAgent,
+              token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]]
+              ) -> dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]]:
     """
     Drop idle agents' path from the token, excluding calling agent
     :param agent_pool: set of Agent instances

@@ -324,10 +324,10 @@ class MagatAgent(Agent):
                                         start_pos_list=start_pos_list,
                                         task_list=task_list,
                                         model=self.model,
-                                        target_makespan=makespan)
+                                        target_makespan=makespan.item())
 
                 # collect metrics
-                performance = self.recorder.evaluate_performance(target_makespan=makespan)
+                performance = self.recorder.evaluate_performance(target_makespan=makespan.item())
                 performance_list.append(performance)
 
                 # if testing, update at each simulation

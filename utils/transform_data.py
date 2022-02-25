@@ -2,9 +2,9 @@
 Utilities for transforming environment data and expert solutions into neural network compatible data
 
 Train data:
-    1- Input tensor -> np.ndarray,
-                       shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
-                       See GaTp/data_loading/agent_state.py for more information about input tensor composition
+    1- Input_state -> np.ndarray,
+                      shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
+                      See GaTp/data_loading/agent_state.py for more information about input tensor composition
     2- GSO -> np.ndarray,
               shape = (makespan, num_agent, num_agent)
               Adjacency matrix at each timestep
@@ -32,12 +32,15 @@ Test data:
 
 import os
 import pickle
+
 import numpy as np
+import utils.agent_state as ag_state
+import utils.expert_utils as exp_utils
+import utils.graph_utils as g_utils
 
 from operator import sub
-from utils.agent_state import AgentState
-from utils.expert_utils import MOVE_LIST
-from utils.graph_utils import compute_adj_matrix
+from easydict import EasyDict
+from collections import deque
 
 
 class DataTransformer:
@@ -46,14 +49,17 @@ class DataTransformer:
     Transform parsed data to prepare for ML Model input
     """
 
-    def __init__(self, config, data_path, mode):
+    def __init__(self,
+                 config: EasyDict,
+                 data_path: str,
+                 mode: str):
         """
         :param config: configuration Namespace
         :param data_path: path to data folder
-        :param mode: str, options: ['test', 'train', 'valid']
+        :param mode: 'test', 'train' or 'valid'
         """
         self.config = config
-        self.agent_state: AgentState = AgentState(config=config)
+        self.agent_state = ag_state.AgentState(config=config)
         self.data_path = data_path
 
         # expert used for solving scenarios
@@ -69,25 +75,24 @@ class DataTransformer:
         else:
             self.get_data = self.get_test_data
 
-    def get_train_data(self, basename):
+    def get_train_data(self,
+                       basename: str
+                       ) -> tuple[np.array, np.array, np.array]:
         """
         Return tuple with all the data necessary for neural network training, appropriately transformed
-        train data = (Input tensor, GSO, Target)
-        :param basename: str, 'mapID_caseID'
-        :return: (Input tensor, GSO, Target)
-                 Input tensor -> np.ndarray,
-                    shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
-                 GSO -> np.ndarray,
-                    shape = (makespan, num_agent, num_agent)
-                 Target -> np.ndarray,
-                    shape = (makespan, num_agent, 5)
+        Train data = (Input state, GSO, Target)
+        :param basename: 'mapID_caseID'
+        :return: (Input state, GSO, Target)
+                 Input state -> shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
+                 GSO -> shape = (makespan, num_agent, num_agent)
+                 Target -> shape = (makespan, num_agent, 5)
         """
         environment, expert_sol = self.load_from_pickle(basename=basename)
 
         # 1) input tensor
-        input_tensor = self.build_train_input_tensor(input_map=environment['map'],
-                                                     agent_schedule=expert_sol['agent_schedule'],
-                                                     goal_schedule=expert_sol['goal_schedule'])
+        input_state = self.build_train_input_state(input_map=environment['map'],
+                                                   agent_schedule=expert_sol['agent_schedule'],
+                                                   goal_schedule=expert_sol['goal_schedule'])
 
         # 2) GSO
         GSO = self.compute_gso(agent_schedule=expert_sol['agent_schedule'])
@@ -95,12 +100,14 @@ class DataTransformer:
         # 3) target
         target = self.transform_agent_schedule(agent_schedule=expert_sol['agent_schedule'])
 
-        return input_tensor, GSO, target
+        return input_state, GSO, target
 
-    def get_test_data(self, basename):
+    def get_test_data(self,
+                      basename: str
+                      ) -> tuple[np.array, np.array, np.array, int, float]:
         """
         Return tuple with all the data necessary for neural network testing/validation, appropriately transformed
-        test data = (Start_pos_list, Task_list, Makespan, Service_time)
+        Test data = (Start_pos_list, Task_list, Makespan, Service_time)
         :param basename: str, 'mapID_caseID'
         :return: (Obstacle_map, Start_pos_list, Task_list, Makespan, Service_time)
                   Obstacle_map -> np.ndarray,
@@ -131,10 +138,12 @@ class DataTransformer:
 
         return obstacle_map, start_pos_list, task_list, makespan, service_time
 
-    def load_from_pickle(self, basename):
+    def load_from_pickle(self,
+                         basename: str
+                         ) -> tuple[EasyDict, EasyDict]:
         """
         Return environment dict, expert solution dict loaded from pickled file
-        :param basename: str, 'mapID_caseID'
+        :param basename: 'mapID_caseID'
         :return: environment = {
                     'name': file path to the env data file,
                     'map': created map,
@@ -167,12 +176,14 @@ class DataTransformer:
         return environment, expert_sol
 
     @staticmethod
-    def schedule_to_numpy(schedule):
+    def schedule_to_numpy(schedule: dict[int, deque[tuple[int, int, int]]]
+                          ) -> np.array:
         """
         Transform given schedule from dict to numpy array
         :param schedule: dict -> {agent_id : schedule}
-                                 with schedule = deque([(pos, 0), (pos, 1), ...])
-        :return: np.ndarray, shape = (makespan, num_agents, 2)
+                                 with schedule = deque([(x, y, 0), (x, y, 1), ...])
+        :return: converted schedule to numpy array,
+                 shape = (makespan, num_agents, 2)
         """
         # strip timesteps from agent schedule and convert to ndarray
         pos_schedule = [[step[:-1]  # remove timestep at each step
@@ -185,18 +196,21 @@ class DataTransformer:
         # reshape: num_agents x makespan x 2 -> makespan x num_agents x 2
         return np.swapaxes(pos_schedule, axis1=0, axis2=1)
 
-    def build_train_input_tensor(self, input_map, agent_schedule, goal_schedule):
+    def build_train_input_state(self,
+                                input_map: np.array,
+                                agent_schedule: dict[int, deque[tuple[int, int, int]]],
+                                goal_schedule: dict[int, deque[tuple[int, int, int]]]
+                                ) -> np.array:
         """
         Build input tensor for training input data
-        Check data_loading/agent_state -> get_sequence_input_tensor for more information
-        :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
+        Check data_loading/agent_state -> get_sequence_input_state for more information
+        :param input_map: matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
         :param agent_schedule: dict -> {agent_id : schedule}
                                  with schedule = deque([(x_0, y_0, 0), (x_1, y_1, 1), ...])
         :param goal_schedule: dict -> {agent_id : schedule}
                                 with schedule = deque([(current_goal, 0), (curr_goal, 1), ...])
                                 curr_goal -> position the agent is trying to reach
-        :return: np.ndarray of the input configuration
-                 input state = makespan x num_agents x input state of agent
+        :return: input_state shape = makespan x num_agents x input state of agent
         """
         # set obstacle map in agent state
         self.agent_state.set_obstacle_map(input_map=input_map)
@@ -207,18 +221,19 @@ class DataTransformer:
         # prepare goal schedule, makespan x num_agents x 2
         goal_pos_schedule = self.schedule_to_numpy(schedule=goal_schedule)
 
-        return self.agent_state.get_sequence_input_tensor(goal_pos_schedule=goal_pos_schedule,
-                                                          agent_pos_schedule=agent_pos_schedule,
-                                                          makespan=len(agent_schedule[0]))
+        return self.agent_state.get_sequence_input_state(goal_pos_schedule=goal_pos_schedule,
+                                                         agent_pos_schedule=agent_pos_schedule,
+                                                         makespan=len(agent_schedule[0]))
 
-    def compute_gso(self, agent_schedule):
+    def compute_gso(self,
+                    agent_schedule: dict[int, deque[tuple[int, int, int]]]
+                    ) -> np.array:
         """
         Compute GSO for each timestep
         GSO -> degree normalized adjacency matrix
         :param agent_schedule: {agent_id : schedule}
                                 with schedule = deque([(x_0, y_0, 0), (x_1, y_1, t_1), ...])
-        :return: GSO: np.ndarray,
-                      shape = (makespan, num_agent, num_agent)
+        :return: GSO, shape = (makespan, num_agent, num_agent)
         """
         # init, shape = (makespan, num_agent, num_agent)
         makespan = len(agent_schedule[0])
@@ -230,19 +245,21 @@ class DataTransformer:
 
         # compute gso for each timestep
         for t in range(makespan):
-            gso[t] = compute_adj_matrix(agent_pos_list=agent_pos_schedule[t],
-                                        comm_radius=self.config.comm_radius)
+            gso[t] = g_utils.compute_adj_matrix(agent_pos_list=agent_pos_schedule[t],
+                                                comm_radius=self.config.comm_radius)
 
         return gso
 
     @staticmethod
-    def transform_agent_schedule(agent_schedule):
+    def transform_agent_schedule(agent_schedule: dict[int, deque[tuple[int, int, int]]]
+                                 ) -> np.array:
         """
         A matrix-form notation is used to represent produced agent schedule
         This is done in order to feed the neural network of the GaTp agent
         :param agent_schedule: {agent_id : schedule}
                                 with schedule = deque([(x_0, y_0, 0), (x_1, y_1, t_1), ...])
-        :return: np.ndarray, shape = (makespan, num_agent, 5)
+        :return: matrix form agent schedule,
+                 shape = (makespan, num_agent, 5)
         """
         num_agent = len(agent_schedule)
         # get makespan (all paths are the same length, since everyone waits standing still the ending)
@@ -266,7 +283,7 @@ class DataTransformer:
 
             # get corresponding index in moves dictionary
             diff: tuple[int, int]
-            move_idx_list = [MOVE_LIST.index(diff)
+            move_idx_list = [exp_utils.MOVE_LIST.index(diff)
                              for diff in diff_list]
 
             # update matrix: actions x num_agent x makespan

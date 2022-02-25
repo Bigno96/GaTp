@@ -20,8 +20,8 @@ The following implementation is based on:
 import timeit
 from collections import deque
 
-from experts.tp_agent import TpAgent
-from utils.expert_utils import preprocess_heuristics
+import experts.tp_agent as tp_ag
+import utils.expert_utils as exp_utils
 
 
 def tp(input_map, start_pos_list, task_list, parking_spot_list,
@@ -55,12 +55,15 @@ def tp(input_map, start_pos_list, task_list, parking_spot_list,
     non_task_ep_list = start_pos_list + parking_spot_list
 
     # precompute heuristics maps towards all endpoints
-    h_coll = preprocess_heuristics(input_map=input_map,
-                                   task_list=task_list, non_task_ep_list=non_task_ep_list)
+    h_coll = exp_utils.preprocess_heuristics(input_map=input_map,
+                                             task_list=task_list,
+                                             non_task_ep_list=non_task_ep_list)
 
     # instantiate agents and free agent queue
-    agent_pool = {TpAgent(name=idx, input_map=input_map,
-                          start_pos=start_pos_list[idx], h_coll=h_coll)
+    agent_pool = {tp_ag.TpAgent(name=idx,
+                                input_map=input_map,
+                                start_pos=start_pos_list[idx],
+                                h_coll=h_coll)
                   for idx in range(len(start_pos_list))
                   }
     free_agent_queue = deque()
