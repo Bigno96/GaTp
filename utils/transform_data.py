@@ -53,11 +53,11 @@ class DataTransformer:
         :param mode: str, options: ['test', 'train', 'valid']
         """
         self.config = config
-        self.agent_state = AgentState(config=config)
+        self.agent_state: AgentState = AgentState(config=config)
         self.data_path = data_path
 
         # expert used for solving scenarios
-        self.expert_type = config.expert_type
+        self.expert_type: str = config.expert_type
 
         assert mode in ['test', 'train', 'valid']
         # mode of usage
@@ -195,7 +195,7 @@ class DataTransformer:
         :param goal_schedule: dict -> {agent_id : schedule}
                                 with schedule = deque([(current_goal, 0), (curr_goal, 1), ...])
                                 curr_goal -> position the agent is trying to reach
-        :return: torch Float Tensor of the input configuration
+        :return: np.ndarray of the input configuration
                  input state = makespan x num_agents x input state of agent
         """
         # set obstacle map in agent state

@@ -85,6 +85,7 @@ class GaTpDataset(Dataset):
             result = p_map(self.data_transform.get_data, self.basename_list)
         # read input data from datasets file
         else:
+            # TODO: multithreading
             result = []
             for basename in tqdm(self.basename_list):
                 # get 'data' file path

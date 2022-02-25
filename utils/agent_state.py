@@ -50,12 +50,12 @@ class AgentState:
         self.center_x = self.dist                   # map center position, coinciding with agent relative pos
         self.center_y = self.dist
 
-        self.obstacle_map = None               # map of the obstacles, shape=(H, W)
-        self.obstacle_map_pad = None        # padded obstacles map, shape=(H+FOV_width, W+FOV_width)
+        self.obstacle_map: np.array = None               # map of the obstacles, shape=(H, W)
+        self.obstacle_map_pad: np.array = None        # padded obstacles map, shape=(H+FOV_width, W+FOV_width)
 
         # objectives of all the agents within their FOV (either goal projection or curr pos)
         # shape = (num_agents, 2)
-        self.local_objective_list = None         # local objectives with global coordinates
+        self.local_objective_list: np.array = None         # local objectives with global coordinates
 
     @staticmethod
     def simple_pad(input_array, pad_width, fill_value):

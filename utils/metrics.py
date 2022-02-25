@@ -2,8 +2,58 @@
 FIle for computing metrics and evaluating quality of solutions
 """
 
+import sys
 
-def count_collision(agent_schedule):
+from dataclasses import dataclass
+
+from utils.multi_agent_simulator import MultiAgentSimulator
+
+
+@dataclass(order=True)
+class Performance:
+    """
+    Data class for evaluating testing performances
+    3 criteria: % of completed tasks, collision number and makespan
+    """
+    completed_task: float = 0.  # % of tasks completed
+    # 0 - number of agents collisions
+    # negative for comparisons: smaller neg value > higher neg value -> small collision count > high coll count
+    collisions_difference: float = -sys.maxsize
+    # expert makespan - model makespan
+    # higher the value, shorter the model solution is -> better
+    makespan_difference: float = sys.maxsize
+
+
+class PerformanceRecorder:
+    """
+    Class for computing performances of ML model during testing/validation simulations
+    """
+
+    def __init__(self, simulator):
+        """
+        :param simulator: MultiAgentSimulator instance, from utils.multi_agent_simulator.py
+        """
+        self.simulator: MultiAgentSimulator = simulator
+
+    def evaluate_performance(self, target_makespan) -> Performance:
+        """
+        Compute metrics using information from current state of the simulator
+        :param target_makespan: int, expert's solution makespan
+        :return: Performance instance
+        """
+        # obtain percentage of tasks completed
+        task_percentage = len(self.simulator.active_task_list) / self.simulator.task_number
+        # count collisions
+        collisions, _ = count_collision(agent_schedule=self.simulator.agent_schedule)
+        # get makespan difference
+        makespan_diff = target_makespan - len(self.simulator.agent_schedule[0])
+
+        return Performance(completed_task=task_percentage,
+                           collisions_difference=-collisions,   # negative, check explanation in Performance
+                           makespan_difference=makespan_diff)
+
+
+def count_collision(agent_schedule) -> (int, list[int]):
     """
     Get all agent's path for a MAPD instance solution and count collisions
     Collision is caused by either node or swap constraint violations

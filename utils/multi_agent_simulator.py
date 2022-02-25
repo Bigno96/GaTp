@@ -36,28 +36,29 @@ class MultiAgentSimulator:
         '''basic'''
         self.agent_num = self.config.agent_number
         # NN trained model
-        self.model = None
+        self.model: torch.nn.Module = torch.nn.Module()
         # agent state representation
-        self.agent_state = AgentState(config=self.config)
+        self.agent_state: AgentState = AgentState(config=self.config)
         # obstacle map
-        self.map = None  # ndarray, H x W
+        self.map: np.array = np.array(())   # H x W
 
         '''simulation data structures'''
-        self.agent_start_pos = None  # ndarray, agent_num x 2
-        self.curr_agent_pos = None  # ndarray, agent_num x 2
+        self.agent_start_pos: np.array = np.array(())   # agent_num x 2
+        self.curr_agent_pos: np.array = np.array(())    # agent_num x 2
 
-        self.task_register = {}  # dictionary for keeping track of task assignment, id : ndarray (2x2 or 1x2 or ())
-        self.task_list = None  # ndarray, task_num x 2 x 2
-        self.active_task_list = []  # list of arrays for tracking active tasks
-        self.new_task_pool = deque()  # deque of arrays for new tasks
+        self.task_register: dict[int, np.array] = {}  # keeping track of task assignment, id : (2x2 or 1x2 or ())
+        self.task_list: np.array = np.array(())     # task_num x 2 x 2
+        self.active_task_list: list[np.array] = []  # tracking active tasks
+        self.new_task_pool: deque[np.array] = deque()  # new tasks still to activate
 
-        self.agent_schedule = {}  # dictionary for keeping track of agent movements
+        self.agent_schedule: dict[int, list[tuple]] = {}  # keeping track of agent movements
 
-        self.h_coll = {}  # dictionary of precomputed distance heuristics
+        self.h_coll: dict[tuple, np.array] = {}  # precomputed distance heuristics
 
         '''simulation parameters'''
         self.timestep = 0  # timestep counter
         self.terminate = False  # terminate boolean
+        self.max_step_factor = self.config.max_step_factor  # maximum step factor allowed in the simulation
 
         self.task_number = self.config.task_number  # total number of tasks
         self.activated_task_count = 0  # number of tasks activated
@@ -77,6 +78,26 @@ class MultiAgentSimulator:
         self.down_idx = 2
         self.right_idx = 3
         self.stop_idx = 4
+
+    def simulate(self, obstacle_map, start_pos_list, task_list, model, target_makespan):
+        """
+        :param obstacle_map: FloatTensor, shape = (H, W)
+        :param start_pos_list: FloatTensor, shape = (agent_num, 2)
+        :param task_list: FloatTensor, shape = (task_num, 2, 2)
+        :param model: torch.nn.Module, trained model
+        :param target_makespan: int, makespan of the expert solution
+        """
+        # maximum step allowed for the simulation
+        max_step = int(target_makespan * self.max_step_factor)
+        # set up simulator
+        self.set_up_simulation(obstacle_map=obstacle_map,
+                               ag_start_pos=start_pos_list,
+                               task_list=task_list,
+                               model=model)
+
+        # loop until termination or max step is reached
+        while not self.terminate or self.timestep < (max_step-1):   # -1 since timestep update is at the start
+            self.execute_one_timestep()
 
     def set_up_simulation(self, obstacle_map, ag_start_pos, task_list, model):
         """
@@ -145,7 +166,8 @@ class MultiAgentSimulator:
         # intTensor -> (num_agents, 3 (channels), FOV+2*border, FOV+2*border)
         input_tensor = self.agent_state.get_input_tensor(goal_pos_list=goal_list,
                                                          agent_pos_list=self.curr_agent_pos)
-        input_tensor = input_tensor.unsqueeze().to(self.config.device)  # shape = 1 x N x 3 x F_H x F_W
+        # shape = 1 x N x 3 x F_H x F_W
+        input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).to(self.config.device)
 
         # obtain and set gso
         GSO = compute_adj_matrix(agent_pos_list=self.curr_agent_pos,
