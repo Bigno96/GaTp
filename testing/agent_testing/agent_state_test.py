@@ -1,21 +1,20 @@
 import unittest
 import random
 import numpy as np
-import torch
+import utils.agent_state as ag_st
 
-from utils.agent_state import AgentState
 from easydict import EasyDict
 
 
-class MyTestCase(unittest.TestCase):
+class AgentStateTest(unittest.TestCase):
 
     @staticmethod
     def init_ag_state():
         # init agent state instance
         agent_num = 10
         FOV = 9
-        return AgentState(EasyDict({'agent_number': agent_num,
-                                    'FOV': FOV}))
+        return ag_st.AgentState(EasyDict({'agent_number': agent_num,
+                                             'FOV': FOV}))
 
     @staticmethod
     def get_obstacle_map():
@@ -217,7 +216,7 @@ class MyTestCase(unittest.TestCase):
                                 or loc_y == fov_y[0]-ag_state.border
                                 or loc_y == fov_y[-1]+ag_state.border)
 
-    def test_get_input_tensor(self):
+    def test_get_input_state(self):
         # validity of size and values already checked in test build input state
         ag_state = self.init_ag_state()
         obs_map = self.get_obstacle_map()
@@ -225,22 +224,22 @@ class MyTestCase(unittest.TestCase):
                                                                       input_map=obs_map)
         ag_state.set_obstacle_map(input_map=obs_map)
 
-        input_tensor = ag_state.get_input_state(goal_pos_list=goal_pos_list,
+        input_state = ag_state.get_input_state(goal_pos_list=goal_pos_list,
                                                 agent_pos_list=agent_pos_list)
 
         # check execution, returned type and size of tensor
-        self.assertIsInstance(input_tensor, torch.FloatTensor)
+        self.assertIsInstance(input_state, np.ndarray)
         channel_num = 3
         # shape = (num_agents, channels, FOV_H+2*border, FOV_W+2*border)
         self.assertEqual((ag_state.agent_number, channel_num, ag_state.H, ag_state.W),
-                         input_tensor.shape)
+                         input_state.shape)
 
         # check local objective list
         local_objective_list = ag_state.get_local_obj_list()
 
         self.assertEqual((ag_state.agent_number, 2), local_objective_list.shape)
 
-    def test_get_sequence_input_tensor(self):
+    def test_get_sequence_input_state(self):
         # validity of size and values already checked in test build input state
         ag_state = self.init_ag_state()
         obs_map = self.get_obstacle_map()
@@ -254,16 +253,16 @@ class MyTestCase(unittest.TestCase):
         # set up goal schedule, shape = (makespan, num_agents, 2)
         goal_schedule = np.tile(goal_pos_list, reps=(makespan, 1, 1))
 
-        input_tensor = ag_state.get_sequence_input_state(goal_pos_schedule=goal_schedule,
+        input_state = ag_state.get_sequence_input_state(goal_pos_schedule=goal_schedule,
                                                          agent_pos_schedule=ag_schedule,
                                                          makespan=makespan)
 
         # check execution, returned type and size of tensor
-        self.assertIsInstance(input_tensor, torch.FloatTensor)
+        self.assertIsInstance(input_state, np.ndarray)
         channel_num = 3
         # shape = (makespan, num_agents, channels, FOV_H+2*border, FOV_W+2*border)
         self.assertEqual((makespan, ag_state.agent_number, channel_num, ag_state.H, ag_state.W),
-                         input_tensor.shape)
+                         input_state.shape)
 
 
 if __name__ == '__main__':

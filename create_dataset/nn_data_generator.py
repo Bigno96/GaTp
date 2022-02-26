@@ -16,15 +16,22 @@ N.B.: Generating input data at 'runtime' takes a bit of time
 
 ### Be sure to feed the model with FOV and Comm Radius values equal to the one used for its training ###
 """
+
 import os
+import utils.transform_data as tf_data
+import utils.file_utils as f_utils
 
 from p_tqdm import p_map
+from typing import Optional
+from easydict import EasyDict
 
-from utils.transform_data import DataTransformer
-from utils.file_utils import load_basename_list, dump_data
 
-
-def get_nn_data(config, dataset_dir, bad_instances_list=(), recovery_mode=False, file_path_list=None):
+def get_nn_data(config: EasyDict,
+                dataset_dir: str,
+                bad_instances_list: list[Optional[str]] = (),
+                recovery_mode: bool = False,
+                file_path_list: Optional[list[str]] = None
+                ) -> None:
     """
     Get NN compatible data out of environment and expert solution files
     :param config: Namespace of dataset configurations
@@ -53,7 +60,7 @@ def get_nn_data(config, dataset_dir, bad_instances_list=(), recovery_mode=False,
 
             basename_list = {os.path.basename(os.path.normpath(file_path))
                              for file_path in file_path_list
-                             if mode in file_path             # only 'mode' folder
+                             if mode in file_path   # only 'mode' folder
                              }
 
             # discard bad instances, even in recovery mode, since no expert solution for them
@@ -61,13 +68,16 @@ def get_nn_data(config, dataset_dir, bad_instances_list=(), recovery_mode=False,
 
         # first generation
         else:
-            basename_list = load_basename_list(data_path=dataset_dir, mode=mode)
-            basename_list = list(set(basename_list) - bad_instances_basename)      # discard bad instances
+            basename_list = f_utils.load_basename_list(data_path=dataset_dir,
+                                                       mode=mode)
+            basename_list = list(set(basename_list) - bad_instances_basename)   # discard bad instances
 
         # if there are files to transform
         if basename_list:
             # launch multiprocessing data transformation
-            worker = DataTransformerWorker(config=config, mode=mode, dataset_dir=dataset_dir)
+            worker = DataTransformerWorker(config=config,
+                                           mode=mode,
+                                           dataset_dir=dataset_dir)
             print(f'Transforming {mode} data')
             p_map(worker, basename_list)
 
@@ -77,7 +87,10 @@ class DataTransformerWorker:
     Class for multiprocess data transformation
     """
 
-    def __init__(self, config, mode, dataset_dir):
+    def __init__(self,
+                 config: EasyDict,
+                 mode: str,
+                 dataset_dir: str):
         """
         :param config: Namespace of dataset configurations
         :param mode: 'train', 'valid', 'test'
@@ -87,11 +100,13 @@ class DataTransformerWorker:
         self.mode = mode
         self.dataset_dir = dataset_dir
 
-        self.data_transform = DataTransformer(config=config,
-                                              data_path=dataset_dir,
-                                              mode=mode)
+        self.data_transform = tf_data.DataTransformer(config=config,
+                                                      data_path=dataset_dir,
+                                                      mode=mode)
 
-    def __call__(self, basename):
+    def __call__(self,
+                 basename: str
+                 ) -> None:
         """
         :param basename: file basename (mapID_caseID)
         """
@@ -100,4 +115,5 @@ class DataTransformerWorker:
         # get complete file path for dumping
         file_path = os.path.join(self.dataset_dir, self.mode, f'{basename}_data')
         # data are saved as they come from data_transform.get_data
-        dump_data(file_path=file_path, data=data)
+        f_utils.dump_data(file_path=file_path,
+                          data=data)

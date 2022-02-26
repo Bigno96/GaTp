@@ -17,18 +17,24 @@ Default -> tasks locations can't coincide with non-task endpoints in order to ge
 Task endpoints cannot be on map borders, to increase probabilities of well-formed MAPD instances
 """
 
-from random import sample
-
 import numpy as np
 
+from random import sample
+from easydict import EasyDict
+from typing import Optional
 
-def create_scenario(config, input_map):
+
+def create_scenario(config: EasyDict,
+                    input_map: np.array
+                    ) -> tuple[list[tuple[int, int]],
+                               list[tuple[int, int]],
+                               list[tuple[tuple[int, int], tuple[int, int]]]]:
     """
     Create a scenario
     :param config: Namespace of dataset configurations
-    :param input_map: np.ndarray, shape:H*W, matrix of 0 and 1
-    :return: start_pos_list -> list of agent starting positions, [(x,y), ...]
-             parking_spot_list -> list of agent parking spots, [(x,y), ...]
+    :param input_map: shape = (H, W), matrix of 0 and 1
+    :return: start_pos_list -> agent starting positions, [(x,y), ...]
+             parking_spot_list -> agent parking spots, [(x,y), ...]
              task_list -> [(task1), (task2), ...]
                           task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
     """
@@ -53,19 +59,23 @@ def create_scenario(config, input_map):
     return start_pos_list, parking_spot_list, task_list
 
 
-def create_starting_pos(input_map, agent_num, mode='random', fixed_pos_list=None):
+def create_starting_pos(input_map: np.array,
+                        agent_num: int,
+                        mode: str = 'random',
+                        fixed_pos_list: Optional[list[tuple[int, int]]] = None
+                        ) -> list[tuple[int, int]]:
     """
     Get starting position, one for each agent, and collect them
-    :param input_map: np.ndarray, shape:H*W, matrix of 0 and 1
-    :param agent_num: int, number of agents
+    :param input_map: shape = (H, W), matrix of 0 and 1
+    :param agent_num: number of agents
     :param mode:
                 'random': randomly generates starting positions amongst free cell
                           guarantees that starting positions do not coincide with obstacles
                 'fixed': choose amongst predefined, passed set of positions
                          no guarantees that fixed spots won't overwrite obstacles positions
-    :param fixed_pos_list: list of fixed starting positions to choose from -> [(x,y), ...]
+    :param fixed_pos_list: fixed starting positions to choose from -> [(x,y), ...]
                            only used when 'start_pos_mode' = 'fixed'
-    :return: start_pos: list of starting positions of agents -> [(x,y), ...]
+    :return: start_pos: starting positions of agents -> [(x,y), ...]
     :raise: ValueError if not enough starting positions for all the agents
     """
 
@@ -87,13 +97,16 @@ def create_starting_pos(input_map, agent_num, mode='random', fixed_pos_list=None
         return sample(population=free_cell_list, k=agent_num)  # list of tuples
 
 
-def create_task(input_map, mode='avoid_non_task_rep',
-                non_task_ep_list=None, task_list=None):
+def create_task(input_map: np.array,
+                mode: str = 'avoid_non_task_rep',
+                non_task_ep_list: Optional[list[tuple[int, int]]] = None,
+                task_list: Optional[list[tuple[tuple[int, int], tuple[int, int]]]] = None
+                ) -> tuple[tuple[int, int], tuple[int, int]]:
     """
     Return a task for the given map and starting positions
     Task endpoints cannot be on map borders, to increase probabilities of well-formed MAPD instances
     Whether tasks can coincide with starting locations or with other tasks is controlled by 'mode'
-    :param input_map: np.ndarray, shape:H*W, matrix of 0 and 1
+    :param input_map: shape = (H, W), matrix of 0 and 1
     :param mode:
                 'free'
                     no restriction on new task position (obviously avoiding obstacles)
@@ -103,9 +116,9 @@ def create_task(input_map, mode='avoid_non_task_rep',
                     avoid placing new task on another task position
                 'avoid_all'
                     both 'avoid_non_task_rep' and 'avoid_task_rep'
-    :param non_task_ep_list: list of non task endpoints -> [(x,y), ...]
+    :param non_task_ep_list: non task endpoints -> [(x,y), ...]
                              if 'mode' = 'avoid_non_task_rep' or 'avoid_all' --> 'non_task_ep_list' != None
-    :param task_list: list of tasks -> [(task1), (task2), ...]
+    :param task_list: [(task1), (task2), ...]
                       task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
                       if 'mode' = 'avoid_task_rep' or 'avoid_all' --> 'task_list' != None
     :return: task: tuple ((x,y),(x,y)) -> ((pickup_pos),(delivery_pos))
@@ -113,7 +126,7 @@ def create_task(input_map, mode='avoid_non_task_rep',
     """
     # filters out obstacles coords
     where_res = np.nonzero(input_map == 0)
-    free_cell_pool = set(zip(where_res[0], where_res[1]))
+    free_cell_pool: set[tuple[int, int]] = set(zip(where_res[0], where_res[1]))
 
     # filters out borders
     free_cell_pool = set(filter(lambda c: c[0] != 0 and c[1] != 0
@@ -136,4 +149,5 @@ def create_task(input_map, mode='avoid_non_task_rep',
         free_cell_pool = free_cell_pool - set(non_task_ep_list)
 
     # get the task
+    # noinspection PyTypeChecker
     return tuple(sample(population=list(free_cell_pool), k=2))

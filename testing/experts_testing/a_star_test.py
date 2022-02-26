@@ -23,7 +23,7 @@ class AStarTest(unittest.TestCase):
         density = 0.2
 
         grid_map = create_random_grid_map(map_shape=shape, map_density=density, connected=True)
-        goal = np.unravel_index(indices=random.choice(range(size)), shape=shape)
+        goal = tuple(np.unravel_index(indices=random.choice(range(size)), shape=shape))
         rand_point = np.unravel_index(indices=random.choice(range(size)), shape=shape)
         h_map = compute_manhattan_heuristic(input_map=grid_map, goal=goal)
 
@@ -46,15 +46,15 @@ class AStarTest(unittest.TestCase):
 
         '''verify check 1, the cell is inside map boundaries'''
         # child_pos negative
-        self.assertFalse(is_valid_expansion(next_node=(-1, -1, 0), input_map=grid_map, closed_list=None))
-        self.assertFalse(is_valid_expansion(next_node=(0, -1, 0), input_map=grid_map, closed_list=None))
-        self.assertFalse(is_valid_expansion(next_node=(-1, 0, 0), input_map=grid_map, closed_list=None))
+        self.assertFalse(is_valid_expansion(next_node=(-1, -1, 0), input_map=grid_map, closed_list=set()))
+        self.assertFalse(is_valid_expansion(next_node=(0, -1, 0), input_map=grid_map, closed_list=set()))
+        self.assertFalse(is_valid_expansion(next_node=(-1, 0, 0), input_map=grid_map, closed_list=set()))
 
         # child_pos out of positive bounds
         x_bound, y_bound = grid_map.shape
-        self.assertFalse(is_valid_expansion(next_node=(x_bound, y_bound, 0), input_map=grid_map, closed_list=None))
-        self.assertFalse(is_valid_expansion(next_node=(0, y_bound, 0), input_map=grid_map, closed_list=None))
-        self.assertFalse(is_valid_expansion(next_node=(x_bound, 0, 0), input_map=grid_map, closed_list=None))
+        self.assertFalse(is_valid_expansion(next_node=(x_bound, y_bound, 0), input_map=grid_map, closed_list=set()))
+        self.assertFalse(is_valid_expansion(next_node=(0, y_bound, 0), input_map=grid_map, closed_list=set()))
+        self.assertFalse(is_valid_expansion(next_node=(x_bound, 0, 0), input_map=grid_map, closed_list=set()))
 
         '''verify check 2, the cell has already been expanded'''
         # next pos, inbound

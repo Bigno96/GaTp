@@ -15,27 +15,27 @@ import timeit
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
+import agents.base_agent as agents
+import data_loading.data_loader as loader
+import models.magat_net as magat
+import utils.multi_agent_simulator as sim
+import utils.metrics as metrics
 
-from typing import Optional
 from statistics import mean
-
-from agents.base_agent import Agent
-from data_loading.data_loader import GaTpDataLoader
-from models.magat_net import MAGATNet
-from utils.multi_agent_simulator import MultiAgentSimulator
-from utils.metrics import Performance, PerformanceRecorder
+from easydict import EasyDict
 
 
-class MagatAgent(Agent):
+class MagatAgent(agents.Agent):
 
-    def __init__(self, config):
+    def __init__(self,
+                 config: EasyDict):
         super(MagatAgent, self).__init__(config)
 
         # initialize data loader
-        self.data_loader: GaTpDataLoader = GaTpDataLoader(config=self.config)
+        self.data_loader = loader.GaTpDataLoader(config=self.config)
 
         # initialize model
-        self.model: torch.nn.Module = MAGATNet(config=self.config)
+        self.model: torch.nn.Module = magat.MAGATNet(config=self.config)
         self.logger.info(f'MAGAT Model: {self.model}\n')
 
         # define loss
@@ -51,7 +51,8 @@ class MagatAgent(Agent):
 
         # initialize counters
         self.current_epoch = 0
-        self.performance: Performance = Performance()
+        self.performance = metrics.Performance()
+        self.best_performance = metrics.Performance()
         self.time_record = 0.0
 
         # set cuda flag
@@ -92,16 +93,18 @@ class MagatAgent(Agent):
                                  latest=config.load_ckp_mode == 'latest')
 
         # simulation handling classes and variables
-        self.simulator: MultiAgentSimulator = MultiAgentSimulator(config=self.config)
-        self.recorder: PerformanceRecorder = PerformanceRecorder(simulator=self.simulator)
-        self.best_performance: Performance = Performance()
+        self.simulator = sim.MultiAgentSimulator(config=self.config)
+        self.recorder = metrics.PerformanceRecorder(simulator=self.simulator)
 
-    def save_checkpoint(self, epoch=0, is_best=False, latest=True):
+    def save_checkpoint(self,
+                        epoch: int = 0,
+                        is_best: bool = False,
+                        latest: bool = True):
         """
         Checkpoint saver
-        :param epoch: int, current epoch being saved
-        :param is_best: bool, flag to indicate whether current checkpoint's metric is the best so far
-        :param latest: bool, flag to indicate the checkpoint is the latest one trained
+        :param epoch: current epoch being saved
+        :param is_best: flag to indicate whether current checkpoint's metric is the best so far
+        :param latest: flag to indicate the checkpoint is the latest one trained
         """
         if latest:
             file_name = 'checkpoint.pth.tar'    # latest checkpoint -> unnamed
@@ -122,13 +125,16 @@ class MagatAgent(Agent):
             shutil.copyfile(os.path.join(self.config.checkpoint_dir, file_name),
                             os.path.join(self.config.checkpoint_dir, 'model_best.pth.tar'))
 
-    def load_checkpoint(self, epoch=0, best=False, latest=True):
+    def load_checkpoint(self,
+                        epoch: int = 0,
+                        best: bool = False,
+                        latest: bool = True):
         """
         Checkpoint loader
         Priority: latest -> best -> epoch
-        :param epoch: int, current epoch being loaded
-        :param best: bool, flag to indicate whether loading best checkpoint or not
-        :param latest: bool, flag to indicate the loaded checkpoint is the latest one trained
+        :param epoch: current epoch being loaded
+        :param best: flag to indicate whether loading best checkpoint or not
+        :param latest: flag to indicate the loaded checkpoint is the latest one trained
         """
         # order of priority: latest -> best -> specific epoch
         if latest:
@@ -189,28 +195,25 @@ class MagatAgent(Agent):
 
             self.train_one_epoch()          # train the epoch
 
-            # set to None to avoid useless instancing
-            performance: Optional[Performance] = None
             # always validate first 4 epochs
             if epoch <= 4:
-                performance = self.validate()
+                self.performance = self.validate()
                 self.save_checkpoint(epoch, is_best=False, latest=False)
             # else validate only every n epochs
             elif epoch % self.config.validate_every == 0:
-                performance = self.validate()
+                self.performance = self.validate()
                 self.save_checkpoint(epoch, is_best=False, latest=False)
 
             # if performance was instanced
-            if performance:
-                is_best = performance > self.best_performance   # check if it is the best one
-                if is_best:     # if so
-                    # save performance value and best checkpoint
-                    self.best_performance = performance
-                    self.save_checkpoint(epoch=epoch, is_best=is_best, latest=True)
+            is_best = self.performance > self.best_performance   # check if it is the best one
+            if is_best:     # if so
+                # save performance value and best checkpoint
+                self.best_performance = self.performance.copy()
+                self.save_checkpoint(epoch=epoch, is_best=is_best, latest=True)
 
             self.scheduler.step()
 
-    def validate(self) -> Performance:
+    def validate(self) -> metrics.Performance:
         """
         Validate current model
         :return: mean performance recorder during the validation simulation
@@ -305,7 +308,9 @@ class MagatAgent(Agent):
                          f'({100.:.0f}%)]\t'
                          f'Loss: {loss.item():.6f}')
 
-    def sim_agent_exec_single(self, data_loader: data.DataLoader) -> Performance:
+    def sim_agent_exec_single(self,
+                              data_loader: data.DataLoader
+                              ) -> metrics.Performance:
         """
         Simulate all MAPD problem in the data loader using trained model for solving it
         All the simulations are done in a single process, sequentially
@@ -314,7 +319,7 @@ class MagatAgent(Agent):
         """
         self.logger.info('Starting MAPD simulations')
 
-        performance_list: list[Performance] = []
+        performance_list: list[metrics.Performance] = []
         with torch.no_grad():
             # loop over all cases in the test/valid data loader
             for case_idx, (obstacle_map, start_pos_list, task_list, makespan, service_time) \
@@ -348,9 +353,9 @@ class MagatAgent(Agent):
         mks = [p.makespan_difference for p in performance_list]
 
         # return a Performance instance
-        return Performance(completed_task=mean(compl_task),
-                           collisions_difference=mean(coll),
-                           makespan_difference=mean(mks))
+        return metrics.Performance(completed_task=mean(compl_task),
+                                   collisions_difference=mean(coll),
+                                   makespan_difference=mean(mks))
 
     def sim_agent_exec_multi(self):
         # TODO

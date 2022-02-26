@@ -9,10 +9,12 @@ In Proceedings of the IEEE conference on computer vision and pattern recognition
 Implementation based on the following git-hub repo:
 https://github.com/FrancescoSaverioZuppichini/ResNet.git
 """
-
-from functools import partial
+import torch
 
 import torch.nn as nn
+
+from functools import partial
+from typing import Any, Type
 
 
 class ResNet(nn.Module):
@@ -23,10 +25,14 @@ class ResNet(nn.Module):
                fully connected layer
     """
 
-    def __init__(self, in_channels, out_features, *args, **kwargs):
+    def __init__(self,
+                 in_channels: int,
+                 out_features: int,
+                 *args: Any,
+                 **kwargs: Any):
         """
-        :param in_channels: int, input planes
-        :param out_features: int, number of features of the output array
+        :param in_channels: input planes
+        :param out_features: number of features of the output array
         :param args: optional positional arguments for ResNet Blocks and Conv layer
         :param kwargs: optional keyword arguments for ResNet Blocks and Conv layer
         """
@@ -37,7 +43,12 @@ class ResNet(nn.Module):
         # initialize weights
         self.apply(init_res_net_weight)
 
-    def forward(self, x):
+    def forward(self,
+                x: torch.FloatTensor
+                ) -> torch.FloatTensor:
+        """
+        Forward pass
+        """
         x = self.encoder(x)
         x = self.decoder(x)
         return x
@@ -47,7 +58,9 @@ class Conv2dAuto(nn.Conv2d):
     """
     Conv2d with auto padding
     """
-    def __init__(self, *args, **kwargs):
+    def __init__(self,
+                 *args: Any,
+                 **kwargs: Any):
         super().__init__(*args, **kwargs)
         # dynamic add padding based on the kernel_size
         self.padding = (self.kernel_size[0] // 2, self.kernel_size[1] // 2)
@@ -65,10 +78,15 @@ conv3x3 = partial(Conv2dAuto, kernel_size=(3, 3), bias=False)
 conv7x7 = partial(Conv2dAuto, kernel_size=(7, 7), bias=False)
 
 
-def conv_bn(in_channels, out_channels, conv, *args, **kwargs):
+def conv_bn(in_channels: int,
+            out_channels: int,
+            conv: Type[nn.Conv2d] or partial[nn.Conv2d],
+            *args: Any,
+            **kwargs: Any
+            ) -> nn.Sequential:
     """
-    :param in_channels: int, input planes
-    :param out_channels: int, output planes
+    :param in_channels: input planes
+    :param out_channels: output planes
     :param conv: Conv layer to use, custom or from torch.nn
     :param args: optional positional arguments for Conv layer
     :param kwargs: optional keyword arguments for Conv layer
@@ -76,19 +94,23 @@ def conv_bn(in_channels, out_channels, conv, *args, **kwargs):
                 Conv layer (of the specified type)
                 Batch Norm 2D
     """
-    return nn.Sequential(conv(in_channels=in_channels, out_channels=out_channels, *args, **kwargs),
+    return nn.Sequential(conv(in_channels=in_channels,
+                              out_channels=out_channels,
+                              *args,
+                              **kwargs),
                          nn.BatchNorm2d(out_channels))
 
 
-def activation_func(activation):
+def activation_func(activation: str) -> nn.Module:
     """
     Dynamically select activation function
-    :return: ModuleDict with options for activation function
+    :param activation: 'relu', 'leaky_relu' or 'selu'
+    :return: Module with selected activation function
     """
     return nn.ModuleDict(modules={
-        'relu': nn.ReLU(inplace=True),    # Rectified Linear Unit
+        'relu': nn.ReLU(inplace=True),  # Rectified Linear Unit
         'leaky_relu': nn.LeakyReLU(negative_slope=0.01, inplace=True),
-        'selu': nn.SELU(inplace=True)      # Scaled Exponential Linear Unit
+        'selu': nn.SELU(inplace=True)   # Scaled Exponential Linear Unit
     })[activation]
 
 
@@ -97,17 +119,23 @@ class ResidualBlock(nn.Module):
     Residual Block, super class of other building Blocks for ResNet
     """
 
-    def __init__(self, in_channels, out_channels, activation='relu', expansion=1, down_sampling=(1, 1)):
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 activation: str = 'relu',
+                 expansion: int = 1,
+                 down_sampling: tuple[int, int] = (1, 1)):
         """
-        :param in_channels: int, input planes
-        :param out_channels: int, output planes
-        :param activation: string, activation function to select from activation_dict
-        :param expansion: int, multiplicative factor of expansion for output channels
+        :param in_channels: input planes
+        :param out_channels: output planes
+        :param activation: activation function to select from activation_dict
+                           options: 'relu', 'leaky_relu', 'selu'
+        :param expansion: multiplicative factor of expansion for output channels
                           out_channels = in_channels * expansion
-                          Default: 1, out_channels = in_channels
+                          (Default: 1, out_channels = in_channels)
         :param down_sampling: factor of down-sampling to apply to the first Conv layer
                               Perform down-sampling directly by convolutional layers using stride
-                              Default: (1, 1), no down-sampling
+                              (Default: (1, 1), no down-sampling)
         """
         super().__init__()
         # save parameters needed
@@ -122,24 +150,38 @@ class ResidualBlock(nn.Module):
         self.blocks = nn.Identity()
         # save shortcut for skip connection
         self.shortcut = nn.Sequential(
-            conv1x1(in_channels=self.in_channels, out_channels=self.expanded_channels, stride=self.down_sampling),
+            conv1x1(in_channels=self.in_channels,
+                    out_channels=self.expanded_channels,
+                    stride=self.down_sampling),
             nn.BatchNorm2d(self.expanded_channels)) if self.should_apply_shortcut else None
 
     @property
-    def expanded_channels(self):
-        return self.out_channels * self.expansion
+    def expanded_channels(self) -> int:
+        """
+        Number of channels after expansion
+        """
+        return int(self.out_channels * self.expansion)
 
     @property
-    def should_apply_shortcut(self):
+    def should_apply_shortcut(self) -> bool:
+        """
+        The shortcut should be applied or not when using skip connections
+        """
         return self.in_channels != self.expanded_channels
 
-    def forward(self, x):
+    def forward(self,
+                x: torch.FloatTensor
+                ) -> torch.FloatTensor:
+        """
+        Forward pass
+        """
         residual = x
+        # if needed to apply skip connection
         if self.should_apply_shortcut:
-            residual = self.shortcut(x)
+            residual = self.shortcut(x)     # apply shortcut
 
         x = self.blocks(x)
-        x += residual
+        x += residual   # sum back skip connection
         x = self.activation_func(x)
 
         return x
@@ -155,25 +197,40 @@ class BasicBlock(ResidualBlock):
     """
     expansion = 1
 
-    def __init__(self, in_channels, out_channels, conv=conv3x3, *args, **kwargs):
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 conv: Type[nn.Conv2d] or partial[nn.Conv2d] = conv3x3,
+                 *args: Any,
+                 **kwargs: Any):
         """
-        :param in_channels: int, input planes
-        :param out_channels: int, output planes
+        :param in_channels: input planes
+        :param out_channels: output planes
         :param conv: Conv layer to use, custom or from torch.nn
         :param args: optional positional arguments for Conv layer
         :param kwargs: optional keyword arguments for Conv layer
         """
-        super().__init__(in_channels=in_channels, out_channels=out_channels, expansion=1, *args, **kwargs)
+        super().__init__(in_channels=in_channels,
+                         out_channels=out_channels,
+                         expansion=1,
+                         *args,
+                         **kwargs)
         # save layers
         self.blocks = nn.Sequential(
             # Conv + Batch Norm
-            conv_bn(in_channels=in_channels, out_channels=out_channels,
-                    conv=conv, stride=self.down_sampling, bias=False),   # down sampling by stride, optional
+            conv_bn(in_channels=in_channels,
+                    out_channels=out_channels,
+                    conv=conv,
+                    stride=self.down_sampling,  # down sampling by stride, optional
+                    bias=False),
             # activation function
             activation_func(activation=self.activation),
             # Conv + Batch Norm
-            conv_bn(in_channels=out_channels, out_channels=self.expanded_channels,    # channels expansion
-                    conv=conv, stride=(1, 1), bias=False)       # no stride
+            conv_bn(in_channels=out_channels,
+                    out_channels=self.expanded_channels,    # channels expansion
+                    conv=conv,
+                    stride=(1, 1),  # no stride
+                    bias=False)
         )
 
 
@@ -189,26 +246,40 @@ class BottleNeckBlock(ResidualBlock):
     """
     expansion = 4
 
-    def __init__(self, in_channels, out_channels, *args, **kwargs):
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 *args: Any,
+                 **kwargs: Any):
         """
-        :param in_channels: int, input planes
-        :param out_channels: int, output planes
+        :param in_channels: input planes
+        :param out_channels: output planes
         :param args: optional positional arguments for Conv layer
         :param kwargs: optional keyword arguments for Conv layer
         """
-        super().__init__(in_channels=in_channels, out_channels=out_channels, expansion=4, *args, **kwargs)
+        super().__init__(in_channels=in_channels,
+                         out_channels=out_channels,
+                         expansion=4,
+                         *args,
+                         **kwargs)
         self.blocks = nn.Sequential(
             # 1x1 Conv + Batch Norm
-            conv_bn(in_channels=self.in_channels, out_channels=self.out_channels, conv=conv1x1),
+            conv_bn(in_channels=self.in_channels,
+                    out_channels=self.out_channels,
+                    conv=conv1x1),
             # activation function
             activation_func(activation=self.activation),
             # 3x3 Conv with (optional) down-sampling by meaning of stride + Batch Norm
-            conv_bn(in_channels=self.out_channels, out_channels=self.out_channels, conv=conv3x3,
+            conv_bn(in_channels=self.out_channels,
+                    out_channels=self.out_channels,
+                    conv=conv3x3,
                     stride=self.down_sampling),
             # activation function
             activation_func(activation=self.activation),
             # 1x1 Conv + Batch Norm with expansion
-            conv_bn(in_channels=self.out_channels, out_channels=self.expanded_channels, conv=conv1x1),
+            conv_bn(in_channels=self.out_channels,
+                    out_channels=self.expanded_channels,
+                    conv=conv1x1)
         )
 
 
@@ -217,12 +288,18 @@ class ResNetLayer(nn.Module):
     A ResNet Layer composed by n Blocks stacked one after the other
     Skip connection between each Block
     """
-    def __init__(self, in_channels, out_channels, n=1, block=BasicBlock, *args, **kwargs):
+    def __init__(self,
+                 in_channels: int,
+                 out_channels: int,
+                 n: int = 1,
+                 block: Type[BasicBlock] = BasicBlock,
+                 *args: Any,
+                 **kwargs: Any):
         """
-        :param in_channels: int, input planes
-        :param out_channels: int, output planes
-        :param n: int, number of Blocks that compose the Layer
-        :param block: nn.Module, Blocks to build the layer
+        :param in_channels: input planes
+        :param out_channels: output planes
+        :param n: number of Blocks that compose the Layer
+        :param block: Blocks to build the layer
         :param args: optional positional arguments for Block and Conv layer
         :param kwargs: optional keyword arguments for Block and Conv layer
         """
@@ -232,15 +309,26 @@ class ResNetLayer(nn.Module):
         # save block structure for forward pass
         self.blocks = nn.Sequential(
             # first block with (optional) down-sampling
-            block(in_channels=in_channels, out_channels=out_channels,
-                  down_sampling=down_sampling, *args, **kwargs),
+            block(in_channels=in_channels,
+                  out_channels=out_channels,
+                  down_sampling=down_sampling,
+                  *args,
+                  **kwargs),
             # n-1 remaining blocks with no down-sampling and (optional) expansion
-            *[block(in_channels=out_channels*block.expansion, out_channels=out_channels,
-                    down_sampling=(1, 1), *args, **kwargs)
+            *[block(in_channels=out_channels*block.expansion,
+                    out_channels=out_channels,
+                    down_sampling=(1, 1),
+                    *args,
+                    **kwargs)
               for _ in range(n - 1)]
         )
 
-    def forward(self, x):
+    def forward(self,
+                x: torch.FloatTensor
+                ) -> torch.FloatTensor:
+        """
+        Forward pass
+        """
         x = self.blocks(x)
         return x
 
@@ -257,40 +345,64 @@ class ResNetEncoder(nn.Module):
     Each layer has n specified Blocks
     """
 
-    def __init__(self, in_channels, blocks_size=(64, 128, 256, 512), depths=(2, 2, 2, 2),
-                 activation='relu', block=BasicBlock, *args, **kwargs):
+    def __init__(self,
+                 in_channels: int,
+                 blocks_size: tuple[int, ...] = (64, 128, 256, 512),
+                 depths: tuple[int, ...] = (2, 2, 2, 2),
+                 activation: str = 'relu',
+                 block: Type[BasicBlock] = BasicBlock,
+                 *args: Any,
+                 **kwargs: Any):
         """
-        :param in_channels: int, input planes
-        :param blocks_size: int array/tuple, in_channels for each subsequent Layer
-        :param depths: int array/tuple, number of blocks in each subsequent Layer
-        :param activation: string, activation function to select from activation_dict
-        :param block: nn.Module, Blocks to build the layer
+        :param in_channels: input planes
+        :param blocks_size: in_channels for each subsequent Layer
+        :param depths: number of blocks in each subsequent Layer
+        :param activation: activation function to select from activation_dict
+                           options: 'relu', 'leaky_relu', 'selu'
+        :param block: Blocks to build the layer
         :param args: optional positional arguments for Block and Conv layer
         :param kwargs: optional keyword arguments for Block and Conv layer
         """
         super().__init__()
         # first layer, fixed
         self.gate = nn.Sequential(
-            conv_bn(in_channels=in_channels, out_channels=blocks_size[0], conv=conv7x7,
-                    stride=(2, 2)),  # 7x7 kernel, stride = 2
+            conv_bn(in_channels=in_channels,
+                    out_channels=blocks_size[0],
+                    conv=conv7x7,
+                    stride=(2, 2)),     # 7x7 kernel, stride = 2
             activation_func(activation=activation),
-            nn.MaxPool2d(kernel_size=(3, 3), stride=(2, 2), padding=(1, 1))     # 3x3 max pooling
+            nn.MaxPool2d(kernel_size=(3, 3),    # 3x3 max pooling
+                         stride=(2, 2),
+                         padding=(1, 1))
         )
         # rest of the custom layers
         in_out_block_sizes = list(zip(blocks_size, blocks_size[1:]))
         self.blocks = nn.ModuleList([
             # first layer, no expansion -> will trigger down-sampling
-            ResNetLayer(in_channels=blocks_size[0], out_channels=blocks_size[0],
-                        n=depths[0], activation=activation, block=block,       # block type
-                        *args, **kwargs),
+            ResNetLayer(in_channels=blocks_size[0],
+                        out_channels=blocks_size[0],
+                        n=depths[0],
+                        activation=activation,
+                        block=block,    # block type
+                        *args,
+                        **kwargs),
             # rest of the layer, with optional expansion
-            *[ResNetLayer(in_channels=in_channels * block.expansion, out_channels=out_channels,
-                          n=n, activation=activation, block=block,     # block type
-                          *args, **kwargs)
+            *[ResNetLayer(in_channels=int(in_channels * block.expansion),
+                          out_channels=out_channels,
+                          n=n,
+                          activation=activation,
+                          block=block,     # block type
+                          *args,
+                          **kwargs)
               for (in_channels, out_channels), n in zip(in_out_block_sizes, depths[1:])]
         ])
 
-    def forward(self, x):
+    def forward(self,
+                x: torch.FloatTensor
+                ) -> torch.FloatTensor:
+        """
+        Forward pass
+        """
         x = self.gate(x)
         for block in self.blocks:
             x = block(x)
@@ -302,24 +414,32 @@ class ResnetDecoder(nn.Module):
     This class represents the tail of ResNet
     Perform global average pooling and output the features array by using a fully connected layer
     """
-    def __init__(self, in_features, out_features):
+    def __init__(self,
+                 in_features: int,
+                 out_features: int):
         """
-        :param in_features: int, input planes
-        :param out_features: int, features to output
+        :param in_features: input planes
+        :param out_features: features to output
         """
         super().__init__()
         self.avg = nn.AdaptiveAvgPool2d((1, 1))
         self.flat = nn.Flatten()
-        self.fc = nn.Linear(in_features=in_features, out_features=out_features)
+        self.fc = nn.Linear(in_features=in_features,
+                            out_features=out_features)
 
-    def forward(self, x):
+    def forward(self,
+                x: torch.FloatTensor
+                ) -> torch.FloatTensor:
+        """
+        Forward pass
+        """
         x = self.avg(x)
         x = self.flat(x)
         x = self.fc(x)
         return x
 
 
-def init_res_net_weight(m):
+def init_res_net_weight(m: nn.Module) -> None:
     """
     Initialize weights for Residual Network, following original paper initialization
     Convolutional layer -> weights: He-normal, no bias
@@ -328,7 +448,9 @@ def init_res_net_weight(m):
     :param m: torch.nn.layer
     """
     if isinstance(m, nn.Conv2d):
-        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+        nn.init.kaiming_normal_(m.weight,
+                                mode='fan_out',
+                                nonlinearity='relu')
 
     elif isinstance(m, nn.BatchNorm2d):
         nn.init.constant_(m.weight, 1)

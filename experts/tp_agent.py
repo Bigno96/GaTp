@@ -3,14 +3,14 @@ Token Passing Agent class for TP Algorithm
 
 Define agent's move, find resting position and receive token
 """
-
-
-from collections import deque
+from __future__ import annotations
 
 import numpy as np
-
 import experts.a_star as a_s
 import utils.expert_utils as exp_utils
+
+from collections import deque
+from typing import Optional
 
 
 class TpAgent:
@@ -18,15 +18,18 @@ class TpAgent:
     Class for Agents in Token Passing algorithms
     """
 
-    def __init__(self, name, input_map, start_pos, h_coll):
+    def __init__(self,
+                 name: int,
+                 input_map: np.array,
+                 start_pos: tuple[int, int],
+                 h_coll: dict[tuple[int, int], np.array]):
         """
-        Initialize the class
-        :param name: int, unique identifier
-        :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
-        :param start_pos: tuple (x,y), absolute position of the agent in the map
+        :param name: unique identifier
+        :param input_map: matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
+        :param start_pos: (x,y), absolute position of the agent in the map
         :param h_coll: dict -> {endpoint : h_map}
-                       endpoint: tuple (x,y) of int coordinates
-                       h_map: np.ndarray, type=int, shape=input_map.shape, heuristic matrices with goal = endpoint
+                       endpoint: (x,y), endpoint coordinates
+                       h_map: shape = input_map.shape, heuristic matrices with goal = endpoint
         """
         self.name = name
         self.map = input_map
@@ -36,20 +39,20 @@ class TpAgent:
         self.path = deque([(start_pos[0], start_pos[1], 0)])
         # position the agent is trying to reach
         self.goal = self.pos
-        self.is_free = True         # free -> agent is not doing any task (can be standing still or moving to rest)
-        self.is_idle = True        # idle -> agent is free AND standing still
+        self.is_free = True     # free -> agent is not doing any task (can be standing still or moving to rest)
+        self.is_idle = True     # idle -> agent is free AND standing still
 
-    def __eq__(self, other):
+    def __eq__(self, other: TpAgent) -> bool:
         return self.name == other.name
 
-    def __str__(self):
+    def __str__(self) -> str:
         return (f'TpAgent(name={self.name}, free={self.is_free}, idle={self.is_idle}, pos={self.pos}\n'
                 f'\t\tpath={self.path})')
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         return hash(self.name)
 
-    def move_one_step(self):
+    def move_one_step(self) -> None:
         """
         Agent moves one step down its path
         By assumption, agents stay in place at the end of their paths
@@ -65,9 +68,14 @@ class TpAgent:
             self.pos = self.path.popleft()[:-1]  # move
             # check pickup pos is reached
             if self.pos == self.goal:
-                self.goal = self.path[-1][:-1]      # update with delivery position
+                self.goal = self.path[-1][:-1]  # update with delivery position
 
-    def receive_token(self, token, task_list, non_task_ep_list, sys_timestep):
+    def receive_token(self,
+                      token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]],
+                      task_list: list[tuple[tuple[int, int], tuple[int, int]]],
+                      non_task_ep_list: list[tuple[int, int]],
+                      sys_timestep: int
+                      ) -> Optional[tuple[tuple[int, int], tuple[int, int]]]:
         """
         Agent receives token and assigns himself to a new task
         Add its new path to the token, remove assigned task from task_list
@@ -76,12 +84,13 @@ class TpAgent:
                   with pos = current agent pos
                   with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...]), future steps
                   x, y -> cartesian coords, t -> timestep
-        :param task_list: list of tasks -> [(task1), (task2), ...]
+        :param task_list: [(task1), (task2), ...]
                           task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
-        :param non_task_ep_list: list of endpoints not belonging to a task -> [(ep1), (ep2), ...]
+        :param non_task_ep_list: endpoints not belonging to a task -> [(ep1), (ep2), ...]
                                  endpoint: tuple (x,y) of int coordinates
         :param sys_timestep: global timestep of the execution
-        :return: assigned task, None if no task assigned
+        :return: assigned task,
+                 None if no task assigned
         """
 
         # remove himself from the token
@@ -110,14 +119,16 @@ class TpAgent:
                 # first, from curr_pos to pickup_pos
                 pickup_pos, delivery_pos = best_task
                 pickup_path, pick_len = a_s.a_star(input_map=self.map,
-                                                   start=self.pos, goal=pickup_pos,
+                                                   start=self.pos,
+                                                   goal=pickup_pos,
                                                    token=token,
                                                    h_map=self.h_coll[pickup_pos],
                                                    starting_t=sys_timestep,
                                                    include_start_node=False)
                 # second, from pickup_pos to delivery_pos
                 delivery_path, _ = a_s.a_star(input_map=self.map,
-                                              start=pickup_pos, goal=delivery_pos,
+                                              start=pickup_pos,
+                                              goal=delivery_pos,
                                               token=token,
                                               h_map=self.h_coll[delivery_pos],
                                               starting_t=sys_timestep+pick_len,
@@ -153,11 +164,17 @@ class TpAgent:
         # no available task, agent is in a delivery spot
         else:
             # move to another reachable endpoint
-            self.find_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list,
-                                  sys_timestep=sys_timestep)
+            self.go_to_resting_pos(token=token,
+                                   task_list=task_list,
+                                   non_task_ep_list=non_task_ep_list,
+                                   sys_timestep=sys_timestep)
             return None
 
-    def find_resting_pos(self, token, task_list, non_task_ep_list, sys_timestep):
+    def go_to_resting_pos(self,
+                          token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]],
+                          task_list: list[tuple[tuple[int, int], tuple[int, int]]],
+                          non_task_ep_list: list[tuple[int, int]],
+                          sys_timestep: int) -> None:
         """
         Pick the nearest endpoint s.t. delivery locations of all tasks are different from the chosen endpoint,
         no path of other agents in the token ends in the chosen endpoint
@@ -168,9 +185,9 @@ class TpAgent:
                   with pos = current agent pos
                   with path = deque([(x_0, y_0, t_0), (x_1, y_1, t_1), ...]), future steps
                   x, y -> cartesian coords, t -> timestep
-        :param task_list: list of tasks -> [(task1), (task2), ...]
+        :param task_list: [(task1), (task2), ...]
                           task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
-        :param non_task_ep_list: list of endpoints not belonging to a task -> [(ep1), (ep2), ...]
+        :param non_task_ep_list: endpoints not belonging to a task -> [(ep1), (ep2), ...]
                                  endpoint: tuple (x,y) of int coordinates
         :param sys_timestep: global timestep of the execution
         """
@@ -190,7 +207,8 @@ class TpAgent:
         ep_list = list(set(ep_list) - token_ep_list)
 
         # sort based off heuristic value, ascending order (lowest first)
-        sorted_ep_list = deque(sorted(ep_list, key=lambda ep: self.h_coll[ep][self.pos]))
+        sorted_ep_list = deque(sorted(ep_list,
+                                      key=lambda ep: self.h_coll[ep][self.pos]))
 
         # while there are still endpoints to try
         while sorted_ep_list:
@@ -199,8 +217,12 @@ class TpAgent:
 
             try:
                 # collision free path, if endpoint is reachable
-                self.path, _ = a_s.a_star(input_map=self.map, start=self.pos, goal=best_ep,
-                                          token=token, h_map=self.h_coll[best_ep], starting_t=sys_timestep,
+                self.path, _ = a_s.a_star(input_map=self.map,
+                                          start=self.pos,
+                                          goal=best_ep,
+                                          token=token,
+                                          h_map=self.h_coll[best_ep],
+                                          starting_t=sys_timestep,
                                           include_start_node=False)
                 token[self.name] = {'pos': self.pos,
                                     'path': self.path}
@@ -218,7 +240,12 @@ class TpAgent:
         token[self.name] = {'pos': self.pos,
                             'path': self.path}
 
-    def collision_shielding(self, token, sys_timestep, agent_pool, _time_horizon=3):
+    def collision_shielding(self,
+                            token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]],
+                            sys_timestep: int,
+                            agent_pool: set[TpAgent],
+                            _time_horizon: int = 3
+                            ) -> None:
         """
         Avoid collisions by moving an agent if another one is coming into its current idle spot
         Scan token looking for potential future conflicts beneath the time horizon
@@ -229,7 +256,8 @@ class TpAgent:
                   x, y -> cartesian coords, t -> timestep
         :param sys_timestep: global timestep of the execution
         :param agent_pool: set of agents
-        :param _time_horizon: int, maximum time distance the agent will look in the future
+        :param _time_horizon: maximum time distance the agent will look in the future
+                              (Default: 3)
         """
         # if the agent is doing nothing
         if self.is_idle:

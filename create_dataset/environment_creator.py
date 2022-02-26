@@ -12,17 +12,22 @@ environment = {'name': file path to the env data file,
 
 After creating a data pool, an expert will be run on it to generate the complete dataset
 """
+
 import os
 import pickle
+import create_dataset.map_creator as map_cr
+import create_dataset.scenario_creator as sc_cr
+import utils.file_utils as f_utils
+
 from p_tqdm import p_map
-
-from create_dataset.map_creator import create_random_grid_map
-from create_dataset.scenario_creator import create_scenario
-from utils.file_utils import create_dirs, FolderSwitch
-from utils.file_utils import save_image, dump_data
+from easydict import EasyDict
+from typing import Optional
 
 
-def create_environment(config, dataset_dir, file_path_list=None, recovery_mode=False):
+def create_environment(config: EasyDict,
+                       dataset_dir: str,
+                       file_path_list: Optional[list[str]] = None,
+                       recovery_mode: bool = False):
     """
     Pipeline:
         Create Maps (see map_creator.py for more details):
@@ -46,7 +51,7 @@ def create_environment(config, dataset_dir, file_path_list=None, recovery_mode=F
     :param dataset_dir: path to the dataset directory
     :param file_path_list: list of file path containing environment data to regenerate
                            Pass this ONLY with recovery_mode = True
-    :param recovery_mode: boolean, True if create_env is used to re-compute bad MAPD instances
+    :param recovery_mode: True if create_env is used to re-compute bad MAPD instances
     """
     assert config.map_type in ['random_grid']
 
@@ -56,15 +61,17 @@ def create_environment(config, dataset_dir, file_path_list=None, recovery_mode=F
         return
 
     # create directories, if not there
-    create_dirs([dataset_dir])
+    f_utils.create_dirs([dataset_dir])
 
     if not recovery_mode:
         print('Creating Environments')
         # dict to simulate switch case for test/train/valid folders
-        folder_switch = FolderSwitch(dataset_dir=dataset_dir, config=config)
+        folder_switch = f_utils.FolderSwitch(dataset_dir=dataset_dir,
+                                             config=config)
 
         # setup multiprocessing
-        worker = EnvironmentWorker(config=config, folder_switch=folder_switch)
+        worker = EnvironmentWorker(config=config,
+                                   folder_switch=folder_switch)
 
         # run pool of processes over map_id sequence
         p_map(worker, range(config.map_number))
@@ -84,7 +91,9 @@ class EnvironmentWorker:
     Worker for creating environment, executed on a thread
     """
 
-    def __init__(self, config, folder_switch):
+    def __init__(self,
+                 config: EasyDict,
+                 folder_switch: f_utils.FolderSwitch):
         """
         :param config: Namespace of dataset configurations
         :param folder_switch: instance of FolderSwitch, simulate switch for saving into folders
@@ -94,9 +103,11 @@ class EnvironmentWorker:
 
         # pick a map creator
         if self.config.map_type == 'random_grid':
-            self.create_map = create_random_grid_map
+            self.create_map = map_cr.create_random_grid_map
 
-    def __call__(self, map_id):
+    def __call__(self,
+                 map_id: int
+                 ) -> None:
         """
         :param map_id: int, id of the map processed
         """
@@ -107,16 +118,18 @@ class EnvironmentWorker:
 
         for sc_id in range(self.config.scenario_number):
             # get scenario
-            start_pos_list, parking_spot_list, task_list = create_scenario(config=self.config,
-                                                                           input_map=input_map)
+            start_pos_list, parking_spot_list, task_list = sc_cr.create_scenario(config=self.config,
+                                                                                 input_map=input_map)
 
             # get directory where to save scenario and map data
             save_dir = self.folder_switch.get_folder(map_id=map_id, sc_id=sc_id)
             file_path = os.path.join(save_dir, f'map{map_id:03d}_case{sc_id:02d}')
 
             # save map image and dump env file
-            save_and_dump(file_path=file_path, input_map=input_map,
-                          start_pos_list=start_pos_list, parking_spot_list=parking_spot_list,
+            save_and_dump(file_path=file_path,
+                          input_map=input_map,
+                          start_pos_list=start_pos_list,
+                          parking_spot_list=parking_spot_list,
                           task_list=task_list)
 
 
@@ -125,7 +138,8 @@ class RecoveryWorker:
     Worker for recovery mode
     """
 
-    def __init__(self, config):
+    def __init__(self,
+                 config: EasyDict):
         """
         :param config: Namespace of dataset configurations
         """
@@ -133,9 +147,11 @@ class RecoveryWorker:
 
         # pick a map creator
         if self.config.map_type == 'random_grid':
-            self.create_map = create_random_grid_map
+            self.create_map = map_cr.create_random_grid_map
 
-    def __call__(self, file_path):
+    def __call__(self,
+                 file_path: str
+                 ) -> None:
         """
         :param file_path: file path of the bad instance to regenerate
         """
@@ -145,20 +161,22 @@ class RecoveryWorker:
         input_map = environment['map']
 
         # get new scenario over same map
-        start_pos_list, parking_spot_list, task_list = create_scenario(config=self.config,
-                                                                       input_map=input_map)
+        start_pos_list, parking_spot_list, task_list = sc_cr.create_scenario(config=self.config,
+                                                                             input_map=input_map)
 
         # save map image and dump env file
-        save_and_dump(file_path=file_path, input_map=input_map,
-                      start_pos_list=start_pos_list, parking_spot_list=parking_spot_list,
+        save_and_dump(file_path=file_path,
+                      input_map=input_map,
+                      start_pos_list=start_pos_list,
+                      parking_spot_list=parking_spot_list,
                       task_list=task_list)
 
 
 def save_and_dump(file_path, input_map, start_pos_list, parking_spot_list, task_list):
     # save the image of map + starting position
-    save_image(file_path=file_path,
-               input_map=input_map,
-               start_pos_list=start_pos_list)
+    f_utils.save_image(file_path=file_path,
+                       input_map=input_map,
+                       start_pos_list=start_pos_list)
 
     # dump data into a file
     env = {'name': file_path,
@@ -166,4 +184,5 @@ def save_and_dump(file_path, input_map, start_pos_list, parking_spot_list, task_
            'start_pos_list': start_pos_list,
            'parking_spot_list': parking_spot_list,
            'task_list': task_list}
-    dump_data(file_path=file_path, data=env)
+    f_utils.dump_data(file_path=file_path,
+                      data=env)

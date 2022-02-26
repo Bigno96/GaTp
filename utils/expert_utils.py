@@ -3,8 +3,8 @@ Utility functions for experts algorithms
 """
 
 import numpy as np
-import experts.tp_agent as tp_ag
 
+from typing import Any, Optional
 from collections import deque
 
 
@@ -66,9 +66,9 @@ def is_valid_expansion(next_node: tuple[int, int, int],
     return True
 
 
-def check_token_conflicts(token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]],
-                          next_node: tuple[int, int, int],
-                          curr_node: tuple[int, int, int],
+def check_token_conflicts(token: Optional[dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]]],
+                          next_node: Optional[tuple[int, int, int]],
+                          curr_node: Optional[tuple[int, int, int]],
                           starting_t: int = 0
                           ) -> bool:
     """
@@ -254,8 +254,8 @@ def free_cell_heuristic(target: tuple[int, int],
                 and pos not in token_pos_list])
 
 
-def drop_idle(agent_pool: set[tp_ag.TpAgent],
-              curr_agent: tp_ag.TpAgent,
+def drop_idle(agent_pool: set[Any],
+              curr_agent: Any,
               token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]]
               ) -> dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]]:
     """

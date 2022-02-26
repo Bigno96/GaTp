@@ -26,21 +26,20 @@ Inside each training, validation and testing folders there are:
 
 import logging
 import os
+import create_dataset.environment_creator as env_cr
+import create_dataset.run_expert as exp
+import create_dataset.nn_data_generator as nn_data_gen
+import utils.config as cfg
 
-from create_dataset.environment_creator import create_environment
-from create_dataset.run_expert import run_expert
-from create_dataset.nn_data_generator import get_nn_data
-from utils.config import get_config_from_yaml
 
-
-def create_dataset():
+def create_dataset() -> None:
     """
     Create dataset consisting of maps, scenarios and experts solutions
     """
     # get logger
     logger = logging.getLogger("Dataset Creator")
     # get config from yaml file
-    config = get_config_from_yaml('dataset_creation')
+    config = cfg.get_config_from_yaml('dataset_creation')
 
     # create folder for the dataset
     dataset_dir = os.path.join(config.data_root,
@@ -54,24 +53,35 @@ def create_dataset():
 
     try:
         # create maps with scenarios
-        create_environment(config=config, dataset_dir=dataset_dir)
+        env_cr.create_environment(config=config,
+                                  dataset_dir=dataset_dir)
         # run expert over those environments
-        bad_instances_list = run_expert(config=config, dataset_dir=dataset_dir)
+        bad_instances_list = exp.run_expert(config=config,
+                                            dataset_dir=dataset_dir)
         # transform data for NN
-        get_nn_data(config=config, dataset_dir=dataset_dir, bad_instances_list=bad_instances_list)
+        nn_data_gen.get_nn_data(config=config,
+                                dataset_dir=dataset_dir,
+                                bad_instances_list=bad_instances_list)
 
         bad_instances_count = 0
         # until no bad MAPD instances are left, repeat their generation
         while bad_instances_list:
             print(f'\n\nFound bad MAPD instances')
             bad_instances_count += len(bad_instances_list)
-            old_bad_instances = bad_instances_list.copy()      # to pass to get_nn_data
-            create_environment(config=config, dataset_dir=dataset_dir,
-                               recovery_mode=True, file_path_list=bad_instances_list)
-            bad_instances_list = run_expert(config=config, dataset_dir=dataset_dir,
-                                            recovery_mode=True, file_path_list=bad_instances_list)
-            get_nn_data(config=config, dataset_dir=dataset_dir, bad_instances_list=bad_instances_list,
-                        recovery_mode=True, file_path_list=old_bad_instances)
+            old_bad_instances = bad_instances_list.copy()   # to pass to get_nn_data
+            env_cr.create_environment(config=config,
+                                      dataset_dir=dataset_dir,
+                                      recovery_mode=True,
+                                      file_path_list=bad_instances_list)
+            bad_instances_list = exp.run_expert(config=config,
+                                                dataset_dir=dataset_dir,
+                                                recovery_mode=True,
+                                                file_path_list=bad_instances_list)
+            nn_data_gen.get_nn_data(config=config,
+                                    dataset_dir=dataset_dir,
+                                    bad_instances_list=bad_instances_list,
+                                    recovery_mode=True,
+                                    file_path_list=old_bad_instances)
 
         print(f'\n\nRegenerated {bad_instances_count} bad MAPD instances')
 

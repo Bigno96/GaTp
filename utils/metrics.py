@@ -24,6 +24,11 @@ class Performance:
     # higher the value, shorter the model solution is -> better
     makespan_difference: float = sys.maxsize
 
+    def copy(self):
+        return Performance(self.completed_task,
+                           self.collisions_difference,
+                           self.makespan_difference)
+
 
 class PerformanceRecorder:
     """

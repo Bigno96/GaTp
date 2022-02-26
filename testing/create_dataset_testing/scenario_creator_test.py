@@ -15,7 +15,7 @@ class ScenarioCreatorTest(unittest.TestCase):
         size = shape[0] * shape[1]
         map_density = 0.2
         agent_number = 10
-        repetition = 1000
+        repetition = 100
 
         '''random pos list'''
         for _ in range(repetition):
@@ -115,7 +115,7 @@ class ScenarioCreatorTest(unittest.TestCase):
         shape = (20, 20)
         map_density = 0.2
         agent_number = 10
-        repetition = 1000
+        repetition = 100
 
         '''free mode'''
         for _ in range(repetition):

@@ -28,12 +28,15 @@ import os
 import logging
 import torch
 import pickle
+
+import numpy as np
+import utils.transform_data as tf_data
+import utils.file_utils as f_utils
+
 from tqdm import tqdm
 from p_tqdm import p_map
-
 from torch.utils.data import Dataset
-from utils.transform_data import DataTransformer
-from utils.file_utils import load_basename_list
+from easydict import EasyDict
 
 
 class GaTpDataset(Dataset):
@@ -47,10 +50,12 @@ class GaTpDataset(Dataset):
                basename is used to access data cache
     """
 
-    def __init__(self, config, mode):
+    def __init__(self,
+                 config: EasyDict,
+                 mode: str):
         """
         :param config: Namespace of dataset configurations
-        :param mode: str, options: ['test', 'train', 'valid']
+        :param mode: 'test', 'train' or 'valid'
         """
         self.config = config
         self.logger = logging.getLogger("Dataset")
@@ -73,11 +78,14 @@ class GaTpDataset(Dataset):
                                       )
 
         # class for transforming input data
-        self.data_transform = DataTransformer(config=config, data_path=self.data_path, mode=self.mode)
+        self.data_transform = tf_data.DataTransformer(config=config,
+                                                      data_path=self.data_path,
+                                                      mode=self.mode)
 
         self.logger.info(f'Start loading {self.mode} data')
         # list of case files (only names, not full path)
-        self.basename_list = load_basename_list(data_path=self.data_path, mode=self.mode)
+        self.basename_list = f_utils.load_basename_list(data_path=self.data_path,
+                                                        mode=self.mode)
 
         # if input data have to be generated at data loading
         if self.config.transform_runtime_data:
@@ -111,7 +119,9 @@ class GaTpDataset(Dataset):
         else:
             self.get_data = self.get_test_data
 
-    def __getitem__(self, index):
+    def __getitem__(self,
+                    index: int
+                    ) -> tuple[torch.FloatTensor, ...]:
         """
         :param index: int
         :return: training -> (step_input_tensor, step_GSO, step_target, basename)
@@ -137,15 +147,17 @@ class GaTpDataset(Dataset):
         # get data
         return self.get_data(basename=basename, timestep=timestep)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.data_size
 
-    def get_train_data(self, **kwargs):
+    def get_train_data(self,
+                       **kwargs: int or str
+                       ) -> tuple[torch.FloatTensor, ...]:
         """
         Retrieve training data from data cache
         :param **kwargs
-                basename str, case file name
-                timestep int, timestep of the solution associated to the case
+                'basename': str, case file name
+                'timestep': int, timestep of the solution associated to the case
         :return: step_input_tensor, step_GSO, step_target
                  step_input_tensor -> FloatTensor,
                                       shape = (agent_num, channel_num, FOV+2*border, FOV+2*border)
@@ -167,11 +179,13 @@ class GaTpDataset(Dataset):
 
         return step_input_tensor, step_GSO, step_target
 
-    def get_test_data(self, **kwargs):
+    def get_test_data(self,
+                      **kwargs: int or str,
+                      ) -> tuple[torch.FloatTensor, ...]:
         """
         Retrieve testing data from data cache
         :param **kwargs
-                basename str, case file name
+                'basename': str, case file name
         :return: obstacle_map, start_pos_list, task_list, makespan, service_time
                  obstacle_map -> FloatTensor,
                                  shape = (H, W)
@@ -206,28 +220,30 @@ class BasenameSwitch:
     This class convert index of __getitem__ to the corresponding basename and timestep
     """
 
-    def __init__(self, basename_list, data_cache, mode):
+    def __init__(self,
+                 basename_list: list[str],
+                 data_cache: dict[str, tuple[np.array, ...]],
+                 mode: str):
         """
-        :param basename_list: list of str, all case file's names
+        :param basename_list: all case file's names
         :param data_cache: dictionary, {basename : nn_data}
-                                       nn_data = input tensor, GSO, target
-        :param mode: str, options: ['test', 'train', 'valid']
+        :param mode: 'test', 'train' or 'valid'
         """
-        self.switch = {}        # dictionary with range as keys
+        self.switch = {}    # dictionary with range as keys
 
         # training mode
         if mode == 'train':
             # for each basename
-            cum_makespan = 0        # sum of length up to now
+            cum_makespan = 0    # sum of length up to now
             for basename in basename_list:
                 # look up for makespan in the data cache
                 _, GSO, _ = data_cache[basename]
-                makespan = GSO.shape[0]        # first dim is the makespan
+                makespan = GSO.shape[0]     # first dim is the makespan
 
                 # basename is associated with a range
                 self.switch[range(cum_makespan, cum_makespan+makespan)] = basename
 
-                cum_makespan += makespan        # sum up
+                cum_makespan += makespan    # sum up
 
             self.data_size = cum_makespan
 
@@ -237,14 +253,15 @@ class BasenameSwitch:
             for i, basename in enumerate(basename_list):
                 self.switch[range(i, i+1)] = basename
 
-            self.data_size = len(basename_list)  # each basename used once
+            self.data_size = len(basename_list)     # each basename used once
 
-    def get_item(self, idx):
+    def get_item(self,
+                 idx: int
+                 ) -> tuple[str, int]:
         """
         Return basename and timestep (of the corresponding solution) selected by index
-        :param idx: int, index of __getitem__
-        :return: str, int
-                 basename, timestep
+        :param idx: index of __getitem__
+        :return: basename, timestep
         """
         for key_range, value in self.switch.items():
             if idx in key_range:

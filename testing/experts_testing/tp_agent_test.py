@@ -102,7 +102,7 @@ class TpAgentTest(unittest.TestCase):
                       for t in range(path_len)])
         goal = path[-1][:-1]
         # create agent and give him the path
-        agent = TpAgent(name='ag', input_map=None, start_pos=start_pos, h_coll=None)
+        agent = TpAgent(name=10, input_map=None, start_pos=start_pos, h_coll={})
         agent.path = deque(path)
         agent.goal = goal
         agent.is_free = False
@@ -157,17 +157,17 @@ class TpAgentTest(unittest.TestCase):
             # get information from token
             _, token_start_pos_list, token_ep_list = get_tok_posl_startl_epl(token=token)
 
-            '''testing find_resting_pos'''
+            '''testing go_to_resting_pos'''
             # test an agent which needs to find resting position
-            # start from position outside non-task endpoints (cause otherwise find_resting_pos is not called)
+            # start from position outside non-task endpoints (cause otherwise go_to_resting_pos is not called)
             # exclude also first positions in token's paths, impossible to be there (conflicts)
             # no other limitations on starting pos
             start_pos = random.choice(list(set(free_cell_list) - set(non_task_ep_list) - set(token_start_pos_list)))
 
             # set Tp Agent instance, free and idle
-            agent = TpAgent(name='ag', input_map=grid_map, start_pos=start_pos, h_coll=h_coll)
-            agent.find_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list,
-                                   sys_timestep=0)
+            agent = TpAgent(name=10, input_map=grid_map, start_pos=start_pos, h_coll=h_coll)
+            agent.go_to_resting_pos(token=token, task_list=task_list, non_task_ep_list=non_task_ep_list,
+                                    sys_timestep=0)
 
             # check validity of self.path -> endpoint not in tasks delivery location (pickup allowed),
             #                                nor in token endpoints
@@ -179,7 +179,7 @@ class TpAgentTest(unittest.TestCase):
                 self.assertEqual((agent.path[-1][0], agent.path[-1][1], agent.path[-1][2]),
                                  (start_pos[0], start_pos[1], 0))
             # path has been added to the token and agent is free
-            self.assertEqual(token['ag']['path'], agent.path)
+            self.assertEqual(token[10]['path'], agent.path)
             self.assertEqual(token[agent.name]['pos'], agent.pos)
 
             agent_schedule = build_ag_schedule(token=token)
@@ -226,7 +226,7 @@ class TpAgentTest(unittest.TestCase):
             # set Tp Agent instance, not in a position in the token
             start_pos = random.choice(list(set(free_cell_list) - set(token_pos_list)))
             # why? if it stands still since no task assigned, no collision shielding and might collide
-            agent = TpAgent(name='ag', input_map=grid_map, start_pos=start_pos, h_coll=h_coll)
+            agent = TpAgent(name=10, input_map=grid_map, start_pos=start_pos, h_coll=h_coll)
             token[agent.name] = {'pos': agent.pos,
                                  'path': agent.path}
 
@@ -308,7 +308,7 @@ class TpAgentTest(unittest.TestCase):
             # another agent going into start pos == delivery pos of the only task available
             # -> 'ag' can't assign to the only task available
             # -> 'ag' is in a delivery spot
-            # -> 'ag' will move with 'find_resting_pos'
+            # -> 'ag' will move with 'go_to_resting_pos'
             token['stands_still'] = {'pos': start_pos,
                                      'path': deque([(start_pos[0], start_pos[1], 1)])}
             agent.receive_token(token=token, task_list=[(pickup, start_pos)],
@@ -338,7 +338,7 @@ class TpAgentTest(unittest.TestCase):
             # another agent going into start pos == pickup pos of the only task available
             # -> 'ag' can't assign to the only task available
             # -> 'ag' is in a delivery spot
-            # -> 'ag' will move with 'find_resting_pos'
+            # -> 'ag' will move with 'go_to_resting_pos'
             token['stands_still'] = {'pos': pickup,
                                      'path': deque([(pickup[0], pickup[1], 2)])}
             agent.receive_token(token=token, task_list=[(pickup, start_pos)],
@@ -379,8 +379,8 @@ class TpAgentTest(unittest.TestCase):
 
             ''' 1) ag2 comes into ag1 the next timestep after ag1 finishes its path'''
             start_pos_ag1, start_pos_ag2 = random.sample(population=free_cell_list, k=2)
-            agent1 = TpAgent(name='ag1', input_map=grid_map, start_pos=start_pos_ag1, h_coll=None)  # h coll doesnt matter
-            agent2 = TpAgent(name='ag2', input_map=grid_map, start_pos=start_pos_ag2, h_coll=None)  # h coll doesnt matter
+            agent1 = TpAgent(name=1, input_map=grid_map, start_pos=start_pos_ag1, h_coll={})  # h coll doesnt matter
+            agent2 = TpAgent(name=2, input_map=grid_map, start_pos=start_pos_ag2, h_coll={})  # h coll doesnt matter
             agent_pool = {agent1, agent2}
 
             starting_t = random.choice(range(starting_t_range))
@@ -431,9 +431,9 @@ class TpAgentTest(unittest.TestCase):
             start_pos_ag1 = (pos, pos)      # idle ag1
             start_pos_ag2 = (pos-1, pos)    # idle ag2
             start_pos_ag3 = (pos+1, pos)    # going into ag1
-            agent1 = TpAgent(name='ag1', input_map=grid_map, start_pos=start_pos_ag1, h_coll=None)  # h coll doesnt matter
-            agent2 = TpAgent(name='ag2', input_map=grid_map, start_pos=start_pos_ag2, h_coll=None)  # h coll doesnt matter
-            agent3 = TpAgent(name='ag3', input_map=grid_map, start_pos=start_pos_ag3, h_coll=None)  # h coll doesnt matter
+            agent1 = TpAgent(name=1, input_map=grid_map, start_pos=start_pos_ag1, h_coll={})  # h coll doesnt matter
+            agent2 = TpAgent(name=2, input_map=grid_map, start_pos=start_pos_ag2, h_coll={})  # h coll doesnt matter
+            agent3 = TpAgent(name=3, input_map=grid_map, start_pos=start_pos_ag3, h_coll={})  # h coll doesnt matter
             agent_pool = {agent1, agent2, agent3}
 
             # ag1 standing idle

@@ -17,11 +17,13 @@ GatGso returns a Graph Convolution Attentional Network Module with support for d
 """
 
 import math
+import torch
 
 import numpy as np
-import torch
 import torch.nn as nn
 import torch.nn.functional as f
+
+from typing import Optional
 
 ZERO_TOLERANCE = 1e-9    # values below this number are considered zero
 INF_NUMBER = 1e12       # infinity equals this number
@@ -32,59 +34,70 @@ class GatGSO(nn.Module):
     Graph Convolution Attention Network with Graph Shift Operator
     Attention Mode -> Key Query
     """
-    def __init__(self, in_features, out_features, hidden_features=(),
-                 graph_filter_taps=(3,), attention_heads=(1,), attention_concat=True):
+    def __init__(self,
+                 in_features: int,
+                 out_features: int,
+                 hidden_features: Optional[tuple[int, ...]] = (),
+                 graph_filter_taps: Optional[tuple[int, ...]] = (3,),
+                 attention_heads: Optional[tuple[int, ...]] = (1,),
+                 attention_concat: bool = True):
         """
-        :param in_features: int, input features
-        :param out_features: int, output, features
-        :param hidden_features: int tuple, (f_0, f_1, ...)
-                                vector of INPUT features of hidden layers
+        :param in_features: input features
+        :param out_features: output features
+        :param hidden_features: vector of INPUT features of hidden layers, (f_0, f_1, ...)
                                 len = # graph filtering layers - 1
                                 (default: ())
-        :param graph_filter_taps: int tuple (k_0, k_1, ...)
+        :param graph_filter_taps: vector (k_0, k_1, ...)
                                   k_i = number of filter taps at i_th layer
                                   len = number of graph filtering layers
                                   (default: (3,))
-        :param attention_heads: int tuple, number of attention heads for each layer
+        :param attention_heads: number of attention heads for each layer
                                 (default: (1,))
-        :param attention_concat: bool,
-                                 if True, the output of the attention_heads attention heads are concatenated
+        :param attention_concat: if True, the output of the attention_heads attention heads are concatenated
                                           to form the output features,
                                  if False, they are averaged
                                  (default: True)
         """
         # initialize parent
         super().__init__()
+
         # set parameters
         self.in_features = in_features
         self.out_features = out_features
         self.F = [in_features] + list(hidden_features) + [out_features]     # features vector
         self.L = len(graph_filter_taps)  # number of graph filtering layers
-        self.K = graph_filter_taps   # array of number of filter taps, for each layer
+        self.K = graph_filter_taps  # number of filter taps, for each layer
         self.P = attention_heads    # number of attention heads
         assert len(self.P) == self.L
         assert len(self.F)-1 == self.L
 
         self.E = 1  # Number of edge features
-        self.bias = True
-        self.attention_concat = attention_concat    # attention concatenation bool
+        self.bias = True    # if True, use bias
+        self.attention_concat = attention_concat    # if True, use attention concatenation
 
-        self.S = None   # GSO not yet defined
+        self.S = torch.FloatTensor(())   # GSO not yet defined
 
         # build layers, feeding to Sequential
         self.model = nn.Sequential(*[
-            GraphFilterBatchAttentional(G=self.F[i], F=self.F[i+1],     # input and output features for each layer
-                                        K=self.K[i], P=self.P[i],   # filter taps, attention heads
-                                        E=self.E, bias=self.bias,   # edge features, bias
+            GraphFilterBatchAttentional(G=self.F[i],    # input features for each layer
+                                        F=self.F[i+1],  # output features for each layer
+                                        K=self.K[i],    # attention heads
+                                        P=self.P[i],    # filter taps
+                                        E=self.E,   # edge features
+                                        bias=self.bias,
                                         concatenate=self.attention_concat)
             for i in range(self.L)
         ])
 
-    def set_gso(self, S):
-        # We set the GSO on real time, this GSO also depends on time and has
-        # B -> batch size
-        # E -> edge features
-        # N -> agents number
+    def set_gso(self,
+                S: torch.FloatTensor) -> None:
+        """
+        Set the GSO on real time, shape = (B, E, N)
+        B -> batch size
+        E -> edge features
+        N -> agents number
+        :param S: GSO to be set
+        """
         # shape either B x N x N or B x E x N x N
         if self.E == 1:  # It is B x N x N
             assert len(S.shape) == 3
@@ -94,11 +107,23 @@ class GatGSO(nn.Module):
             assert S.shape[1] == self.E
             self.S = S
 
-    def forward(self, x):
+    def forward(self,
+                x: torch.FloatTensor
+                ) -> torch.FloatTensor:
+        """
+        Forwards pass of the model
+        :param x: input data, shape = (B, F, N)
+                  B -> batch size
+                  F -> input features
+                  N -> agents number
+        :return: output data, shape = (B, G, N)
+                 B -> batch size
+                 G -> output features
+                 N -> agents number
+        """
         for i in range(self.L):
             self.model[i].add_gso(self.S)  # add GSO for GraphFilter
 
-        # F -> input features, G -> output features
         # B x F x N - > B x G x N,
         out = self.model(x)
 
@@ -110,57 +135,32 @@ class GraphFilterBatchAttentional(nn.Module):
     GraphFilterAttentional Creates a graph convolution attentional layer
     Key and Query Attention mode
         https://arxiv.org/abs/2003.09575
-
-    Initialization:
-        GraphFilterAttentional(in_features, out_features,
-                               filter_taps, attention_heads,
-                               edge_features=1, bias=True,
-                               non-linearity=nn.functional.relu,
-                               concatenate=True)
-
-        Inputs:
-            in_features (int): number of input features on top of each node
-            out_features (int): number of output features on top of each node
-            filter_taps (int): number of filter taps (power of the GSO)
-            attention_heads (int): number of attention_heads
-            edge_features (int): number of features on top of each edge
-                (default: 1)
-            bias (bool): include a bias in the LSIGF stage (default: True)
-            non-linearity (nn.functional): non-linearity applied after features
-                have been updated through attention (default:nn.functional.relu)
-            concatenate (bool): If True, the output of the attention_heads
-                attention heads are concatenated to form the output features, if
-                False, they are averaged (default: True)
-
-        Output:
-            torch.nn.Module for a graph convolution attentional layer.
-
-    Add graph shift operator:
-
-        GraphFilterAttentional.add_gso(GSO) Before applying the filter, we need
-        to define the GSO that we are going to use. This allows to change the
-        GSO while using the same filtering coefficients (as long as the number
-        of edge features is the same; but the number of nodes can change).
-
-        Inputs:
-            GSO (torch.tensor): graph shift operator; shape:
-                Batch x edge_features x number_nodes x number_nodes
-
-    Forward call:
-
-        y = GraphFilterAttentional(x)
-
-        Inputs:
-            x (torch.tensor): input data; shape:
-                batch_size x in_features x number_nodes
-
-        Outputs:
-            y (torch.tensor): output; shape:
-                batch_size x out_features x number_nodes
     """
 
-    def __init__(self, G, F, K, P, E=1, bias=True, non_linearity=f.relu, concatenate=True):
-        # P: Number of heads
+    def __init__(self,
+                 G: int,
+                 F: int,
+                 K: int,
+                 P: int,
+                 E: int = 1,
+                 bias: bool = True,
+                 non_linearity: nn.functional = f.relu,
+                 concatenate: bool = True):
+        """
+        :param G: in_features, number of input features on top of each node
+        :param F: out_features, number of output features on top of each node
+        :param K: filter_taps, number of filter taps (power of the GSO)
+        :param P: attention_heads, number of attention_heads
+        :param E: edge_features, number of features on top of each edge
+                  (default: 1)
+        :param bias: if True, include a bias in the LSIGF stage
+                     (default: True)
+        :param non_linearity: non-linearity applied after features have been updated through attention
+                              (default:nn.functional.relu)
+        :param concatenate: If True, the output of the attention_heads are concatenated to form the output features
+                            If False, they are averaged
+                            (default: True)
+        """
         # GSOs will be added later
         # this combines both weight scalars and weight vectors
 
@@ -173,21 +173,22 @@ class GraphFilterBatchAttentional(nn.Module):
         self.K = K  # filter_taps
         self.P = P  # attention_heads
         self.E = E  # edge_features
-        self.S = None   # no GSO assigned yet
+        self.S = torch.FloatTensor(())  # no GSO assigned yet
         self.N = 0
-        self.aij = None
+        self.aij = torch.FloatTensor(())    # no GSO output yet
         self.non_linearity = non_linearity
         self.concatenate = concatenate
 
         '''create parameters'''
         self.mixer = nn.parameter.Parameter(torch.Tensor(P, E, 2*F))
-
         self.weight_bias = nn.parameter.Parameter(torch.Tensor(P, E, F))
         self.filter_weight = nn.parameter.Parameter(torch.Tensor(P, F, E, K, G))
+        # add bias if optioned
         if bias:
             self.bias = nn.parameter.Parameter(torch.Tensor(F, 1))
         else:
             self.register_parameter('bias', None)
+
         # Key and Query mode
         # https://arxiv.org/abs/2003.09575
         self.weight = nn.parameter.Parameter(torch.Tensor(P, E, G, G))
@@ -196,8 +197,11 @@ class GraphFilterBatchAttentional(nn.Module):
         '''initialize parameters'''
         self.set_parameters()
 
-    def set_parameters(self):
-        # Taken from _ConvNd initialization of parameters:
+    def set_parameters(self) -> None:
+        """
+        Set weights and parameters
+        Taken from _ConvNd internal initialization of parameters:
+        """
         std_v = 1. / math.sqrt(self.G * self.P)
         self.weight.data.uniform_(-std_v, std_v)
         self.weight_bias.data.uniform_(0, 0)
@@ -206,7 +210,17 @@ class GraphFilterBatchAttentional(nn.Module):
         if self.bias is not None:
             self.bias.data.uniform_(-std_v, std_v)
 
-    def add_gso(self, S):
+    def add_gso(self,
+                S: torch.FloatTensor
+                ) -> None:
+        """
+        Before applying the filter, we need to define the GSO that we are going to use.
+        This allows to change the GSO while using the same filtering coefficients,
+        as long as the number of edge features is the same
+        The number of nodes can change
+        :param S: graph shift operator,
+                  shape = (Batch, edge_features, number_nodes, number_nodes)
+        """
         # every S has 4 dimensions
         assert len(S.shape) == 4
         # S is of shape B x E x N x N
@@ -215,7 +229,10 @@ class GraphFilterBatchAttentional(nn.Module):
         assert S.shape[3] == self.N
         self.S = S
 
-    def return_attention_gso(self):
+    def return_attention_gso(self) -> np.array:
+        """
+        Compute output from the GSO after the attention
+        """
         assert len(self.aij.shape) == 5
         # aij is of shape B x P x E x N x N
         assert self.aij.shape[2] == self.E
@@ -228,52 +245,64 @@ class GraphFilterBatchAttentional(nn.Module):
         # every S has 4 dimensions
         return aij_mean
 
-    def forward(self, x):
-        # x is of shape: batchSize x dimInFeatures x numberNodesIn
-        B = x.shape[0]
-        F = x.shape[1]
-        N = x.shape[2]
+    def forward(self,
+                x: torch.FloatTensor
+                ) -> torch.FloatTensor:
+        """
+        Forward pass
+        :param x: input data,
+                  shape = (batch_size, in_features, number_nodes)
+        :return: output data,
+                 shape = (batch_size, out_features, number_nodes)
+        """
+        B = x.shape[0]  # batch size
+        F = x.shape[1]  # input features
+        N = x.shape[2]  # nodes number
 
-        # And now we add the zero padding
+        # add the zero padding
         if N < self.N:
             x = torch.cat((x,
                            torch.zeros(B, F, self.N-N)
                                    .type(x.dtype).to(x.device)
                            ), dim=2)
 
-        # And get the graph attention output
-        y, aij = self.graph_attention_LSIGF_batch(h=self.filter_weight, x=x, a=self.mixer,
-                                                  W=self.weight, S=self.S, b=self.bias)
+        # get the graph attention output
+        y, aij = self.graph_attention_LSIGF_batch(h=self.filter_weight,
+                                                  x=x,
+                                                  a=self.mixer,
+                                                  W=self.weight,
+                                                  S=self.S,
+                                                  b=self.bias)
         self.aij = aij.detach().cpu().numpy()
 
-        # This output is of size B x P x F x N.
-        # Now, we can either concatenate them (inner layers) or average them (outer layer)
+        # output is of size B x P x F x N.
+        # we can either concatenate them (inner layers) or average them (outer layer)
         if self.concatenate:
-            # When we concatenate we first apply the non-linearity
+            # if concatenated, first apply the non-linearity
             y = self.non_linearity(y)
-            # Concatenate: Make it B x PF x N such that first iterates over f
+            # concatenate: make it B x PF x N such that first iterates over f
             # and then over p: (p=0,f=0), (p=0,f=1), ..., (p=0,f=F-1), (p=1,f=0), (p=1,f=1), ...
             y = y.permute(0, 3, 1, 2)\
                     .reshape([B, self.N, self.P*self.F])\
                     .permute(0, 2, 1)
         else:
-            # When we don't, we first average
+            # no concatenate -> first average
             y = torch.mean(y, dim=1)    # B x F x N
-            # And then we apply the non-linearity
+            # then apply the non-linearity
             y = self.non_linearity(y)
 
         if N < self.N:
             y = torch.index_select(y, 2, torch.arange(N).to(y.device))
         return y
 
-    def extra_repr(self):
+    def extra_repr(self) -> str:
         repr_string = "in_features=%d, " % self.G
         repr_string += "out_features=%d, " % self.F
         repr_string += "filter_taps=%d, " % self.K
         repr_string += "attention_heads=%d, " % self.P
         repr_string += "edge_features=%d, " % self.E
         repr_string += "bias=%s, " % (self.bias is not None)
-        if self.S is not None:
+        if self.S.shape[0]:
             repr_string += "GSO stored: number_nodes=%d" % self.N
         else:
             repr_string += "no GSO stored"
@@ -281,14 +310,39 @@ class GraphFilterBatchAttentional(nn.Module):
 
 
 # noinspection DuplicatedCode
-def graph_attention_lsigf_batch_key_query(h, x, a, W, S, b=None, negative_slope=0.2):
-
+def graph_attention_lsigf_batch_key_query(h: nn.Parameter,
+                                          x: torch.FloatTensor,
+                                          a: nn.Parameter,
+                                          W: nn.Parameter,
+                                          S: torch.FloatTensor,
+                                          b: nn.Parameter = None,
+                                          negative_slope: float = 0.2
+                                          ) -> tuple[torch.FloatTensor, torch.FloatTensor]:
+    """
+    Compute graph attention with key_query
+    :param h: filter weights,
+              shape = (attention_heads, out_features, edge_features, filter_taps, in_features)
+    :param x: input data,
+              shape = (batch_size, in_features, number_nodes)
+    :param a: mixer,
+              shape = (attention_heads, edge_features, 2 * out_features)
+    :param W: attention weights,
+              shape = (heads_number, edge_features, input_features)
+    :param S: GSO,
+              shape = (batch, edge_features, number_nodes, number_nodes)
+    :param b: bias,
+              shape = (out_features, 1)
+    :param negative_slope: slope of the leaky ReLu,
+                           (default: 0.2)
+    :return: GSO output, GSO parameters
+    """
     K = h.shape[3]  # filter_taps
     F = h.shape[4]  # out_features
 
     B = x.shape[0]  # batch_size
     G = x.shape[1]  # input_features
     N = x.shape[2]  # number_nodes
+
     P = a.shape[0]  # number_heads
     E = a.shape[1]  # edge_features
 
@@ -298,9 +352,12 @@ def graph_attention_lsigf_batch_key_query(h, x, a, W, S, b=None, negative_slope=
     assert S.shape[1] == E
     assert S.shape[2] == S.shape[3] == N
 
-    aij = learn_attention_gso_batch_key_query(x=x, a=a, W=W, S=S, negative_slope=negative_slope)
-    # aij = S.reshape([B, 1, 1, N, N]).repeat(1, P, E, 1, 1).type(torch.float)
     # B x P x E x N x N
+    aij = learn_attention_gso_batch_key_query(x=x,
+                                              a=a,
+                                              W=W,
+                                              S=S,
+                                              negative_slope=negative_slope)
 
     # h: P x F x E x K x G
     x = x.reshape([B, 1, 1, G, N])  # (B x P x E x G x N)
@@ -340,7 +397,12 @@ def graph_attention_lsigf_batch_key_query(h, x, a, W, S, b=None, negative_slope=
 
 
 # noinspection DuplicatedCode
-def learn_attention_gso_batch_key_query(x, a, W, S, negative_slope=0.2):
+def learn_attention_gso_batch_key_query(x: torch.FloatTensor,
+                                        a: nn.Parameter,
+                                        W: nn.Parameter,
+                                        S: torch.FloatTensor,
+                                        negative_slope: float = 0.2
+                                        ) -> torch.FloatTensor:
     """
     Computes the GSO following the attention mechanism
     https://towardsdatascience.com/attention-and-its-different-forms-7fc3674d14dc
@@ -367,21 +429,18 @@ def learn_attention_gso_batch_key_query(x, a, W, S, negative_slope=0.2):
         ))
     for all j in N_{i}, and where beta is the negative slope of the leaky ReLU.
 
-    Inputs:
-        x (torch.tensor): input;
-            shape: batch_size x input_features x number_nodes
-        a (torch.tensor): mixing parameter; shape:
-            number_heads x edge_features x 2 * output_features
-        W (torch.tensor): linear parameter; shape:
-            number_heads x edge_features x input_features x input_features
-        S (torch.tensor): graph shift operator; shape:
-            batch_size x edge_features x number_nodes x number_nodes
-
-    Outputs:
-        aij: output GSO; shape:
-         batch_size x number_heads x edge_features x number_nodes x number_nodes
+    :param x: input,
+               shape = (batch_size, input_features, number_nodes)
+    :param a: mixing parameter,
+              shape = (number_heads, edge_features, 2 * output_features)
+    :param W: linear parameter,
+              shape = (number_heads, edge_features, input_features, input_features)
+    :param S: graph shift operator,
+              shape = (batch_size, edge_features, number_nodes, number_nodes)
+    :param negative_slope: slope of the leaky ReLu
+    :return output GSO,
+            shape = (batch_size, number_heads, edge_features, number_nodes, number_nodes)
     """
-
     B = x.shape[0]  # batch_size
     N = x.shape[2]  # number_nodes
     P = a.shape[0]  # number_heads

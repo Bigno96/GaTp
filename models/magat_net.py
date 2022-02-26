@@ -17,13 +17,14 @@ Model structure:
 """
 
 import logging
-
 import torch
-import torch.nn as nn
 
-from models.basic.gat_gso_net import GatGSO
-from models.basic.mlp import MLP
-from models.basic.res_net import ResNet
+import torch.nn as nn
+import models.basic.gat_gso_net as gat_gso
+import models.basic.mlp as mlp
+import models.basic.res_net as res_net
+
+from easydict import EasyDict
 
 
 class MAGATNet(nn.Module):
@@ -52,7 +53,8 @@ class MAGATNet(nn.Module):
     MLP:
         Final Multi Layer Perceptron Network, to map features into actions
     """
-    def __init__(self, config):
+    def __init__(self,
+                 config: EasyDict):
         # initialize parent
         super().__init__()
 
@@ -77,7 +79,7 @@ class MAGATNet(nn.Module):
 
         if self.cnn_model.lower() == 'res':
             self.cnn = \
-                ResNet(
+                res_net.ResNet(
                     in_channels=self.cnn_in_channels,
                     out_features=self.cnn_out_features,
                     blocks_size=self.cnn_blocks_size,
@@ -100,7 +102,7 @@ class MAGATNet(nn.Module):
 
         if self.feature_compression:
             self.feature_compressor = \
-                MLP(
+                mlp.MLP(
                     in_features=self.cnn_out_features,
                     out_features=self.feature_compr_out,
                     hidden_features=self.feature_compr_hidden_feat,
@@ -147,9 +149,9 @@ class MAGATNet(nn.Module):
 
         if self.gnn_model.lower() == 'gat_gso':
             self.gnn = \
-                GatGSO(
+                gat_gso.GatGSO(
                     in_features=self.gnn_features,
-                    out_features=self.gnn_features,       # output features == input features
+                    out_features=self.gnn_features,     # output features == input features
                     hidden_features=self.gnn_hidden_features,
                     graph_filter_taps=self.graph_filter_taps,
                     attention_heads=self.attention_heads,
@@ -181,21 +183,29 @@ class MAGATNet(nn.Module):
             self.mlp_in_features = self.residual_size + self.gnn_features
 
         self.mlp = \
-            MLP(
+            mlp.MLP(
                 in_features=self.mlp_in_features,
-                out_features=5,             # 5 actions available
+                out_features=5,     # 5 actions available
                 hidden_features=self.mlp_hidden_features,
                 use_dropout=self.mlp_dropout,
                 dropout_rate=self.mlp_dropout_rate,
                 learn_bias=True
             )
 
-    def set_gso(self, S):
+    def set_gso(self,
+                S: torch.FloatTensor) -> None:
+        """
+        Set given GSO to the graph neural network
+        """
         self.gnn.set_gso(S)
 
     # noinspection PyUnboundLocalVariable
-    def forward(self, input_tensor):
-
+    def forward(self,
+                input_tensor: torch.FloatTensor
+                ) -> torch.FloatTensor:
+        """
+        Forward pass
+        """
         # B = batch size
         # N = agents number
         # C = input channels

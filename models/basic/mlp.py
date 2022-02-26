@@ -1,8 +1,11 @@
 """
 Multi-Layer Perceptron implementation
 """
+import torch
 
 import torch.nn as nn
+
+from typing import Optional
 
 
 class MLP(nn.Module):
@@ -12,18 +15,25 @@ class MLP(nn.Module):
     Weight initialization -> He-Normal
     """
 
-    def __init__(self, in_features, out_features, hidden_features=(),
-                 learn_bias=True, use_dropout=False, dropout_rate=0.2):
+    def __init__(self,
+                 in_features: int,
+                 out_features: int,
+                 hidden_features: Optional[tuple[int, ...]] = (),
+                 learn_bias: bool = True,
+                 use_dropout: bool = False,
+                 dropout_rate: float = 0.2):
         """
-        :param in_features: int, input features
-        :param out_features: int, output features
-        :param hidden_features: int tuple, (f_0, f_1, ...)
-                                vector of INPUT features of hidden layers
+        :param in_features: input features
+        :param out_features: output features
+        :param hidden_features: (f_0, f_1, ...), vector of INPUT features of hidden layers
                                 len = # total layers - 1
                                 (default: ())
-        :param learn_bias: bool, learn the additive bias (default: True)
-        :param use_dropout: bool, apply a Dropout after each activation function, except last (default: False)
-        :param dropout_rate: float, ratio of Dropout (default: 0.2)
+        :param learn_bias: if True, learn the additive bias
+                           (default: True)
+        :param use_dropout: if True, apply a Dropout after each activation function, except last layer
+                            (default: False)
+        :param dropout_rate: ratio of Dropout
+                             (default: 0.2)
         """
         # initialize parent
         super().__init__()
@@ -51,12 +61,17 @@ class MLP(nn.Module):
         # initialize weights
         self.apply(init_mlp_weight)
 
-    def forward(self, x):
+    def forward(self,
+                x: torch.FloatTensor
+                ) -> torch.FloatTensor:
+        """
+        Forward pass
+        """
         x = self.blocks(x)
         return x
 
 
-def init_mlp_weight(m):
+def init_mlp_weight(m: torch.nn.Module) -> None:
     """
     Initialize weights for MLP Network
     Linear layer -> weights: He-normal, no bias

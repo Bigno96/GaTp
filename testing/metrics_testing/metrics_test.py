@@ -2,6 +2,7 @@ import unittest
 
 from testing.test_utils import get_grid_map_free_cell_token, find_start_goal
 from utils.metrics import count_collision
+from collections import deque
 
 
 class MetricsTest(unittest.TestCase):
@@ -20,8 +21,8 @@ class MetricsTest(unittest.TestCase):
 
         '''1) single node collision'''
         # define a colliding agent schedule at time 0
-        ag_sched = {0: [(start[0], start[1], 0)],
-                    1: [(start[0], start[1], 0)]}
+        ag_sched = {0: deque([(start[0], start[1], 0)]),
+                    1: deque([(start[0], start[1], 0)])}
 
         coll_count, coll_list = count_collision(agent_schedule=ag_sched)
 
@@ -30,8 +31,8 @@ class MetricsTest(unittest.TestCase):
 
         '''2) multiple node collision'''
         # define a colliding agent schedule at time 0 and 2
-        ag_sched = {0: [(start[0], start[1], 0), (goal[0], goal[1], 1), (start[0], start[1], 2)],
-                    1: [(start[0], start[1], 0), (start[0], start[1], 1), (start[0], start[1], 2)]}
+        ag_sched = {0: deque([(start[0], start[1], 0), (goal[0], goal[1], 1), (start[0], start[1], 2)]),
+                    1: deque([(start[0], start[1], 0), (start[0], start[1], 1), (start[0], start[1], 2)])}
 
         coll_count, coll_list = count_collision(agent_schedule=ag_sched)
 
@@ -41,8 +42,8 @@ class MetricsTest(unittest.TestCase):
 
         '''3) single swap collision'''
         # define a colliding agent schedule at time 0-1
-        ag_sched = {0: [(start[0], start[1], 0), (goal[0], goal[1], 1)],
-                    1: [(goal[0], goal[1], 0), (start[0], start[1], 1)]}
+        ag_sched = {0: deque([(start[0], start[1], 0), (goal[0], goal[1], 1)]),
+                    1: deque([(goal[0], goal[1], 0), (start[0], start[1], 1)])}
 
         coll_count, coll_list = count_collision(agent_schedule=ag_sched)
 
@@ -51,8 +52,10 @@ class MetricsTest(unittest.TestCase):
 
         '''4) multiple swap collision'''
         # define a colliding agent schedule at time 0-1, and 2-3
-        ag_sched = {0: [(start[0], start[1], 0), (goal[0], goal[1], 1), (goal[0], goal[1], 2), (start[0], start[1], 3)],
-                    1: [(goal[0], goal[1], 0), (start[0], start[1], 1), (start[0], start[1], 2), (goal[0], goal[1], 3)]}
+        ag_sched = {0: deque([(start[0], start[1], 0), (goal[0], goal[1], 1),
+                              (goal[0], goal[1], 2), (start[0], start[1], 3)]),
+                    1: deque([(goal[0], goal[1], 0), (start[0], start[1], 1),
+                              (start[0], start[1], 2), (goal[0], goal[1], 3)])}
 
         coll_count, coll_list = count_collision(agent_schedule=ag_sched)
 
@@ -62,10 +65,10 @@ class MetricsTest(unittest.TestCase):
 
         '''5) multiple combined collision'''
         # node collision at time 0 and 3, swap collision at time 1-2
-        ag_sched = {1: [(start[0], start[1], 0), (goal[0], goal[1], 1), (start[0], start[1], 2),
-                        (start[0], start[1], 3)],
-                    2: [(start[0], start[1], 0), (start[0], start[1], 1), (goal[0], goal[1], 2),
-                        (start[0], start[1], 3)]}
+        ag_sched = {1: deque([(start[0], start[1], 0), (goal[0], goal[1], 1), (start[0], start[1], 2),
+                              (start[0], start[1], 3)]),
+                    2: deque([(start[0], start[1], 0), (start[0], start[1], 1), (goal[0], goal[1], 2),
+                              (start[0], start[1], 3)])}
 
         coll_count, coll_list = count_collision(agent_schedule=ag_sched)
 
@@ -75,8 +78,8 @@ class MetricsTest(unittest.TestCase):
         self.assertIn(3, coll_list)
 
         '''6) schedule length 1 with no collision'''
-        ag_sched = {0: [(start[0], start[1], 0)],
-                    1: [(goal[0], goal[1], 0)]}
+        ag_sched = {0: deque([(start[0], start[1], 0)]),
+                    1: deque([(goal[0], goal[1], 0)])}
 
         coll_count, coll_list = count_collision(agent_schedule=ag_sched)
 
@@ -84,8 +87,8 @@ class MetricsTest(unittest.TestCase):
         self.assertFalse(coll_list)
 
         '''7) schedule length 2 with no collision'''
-        ag_sched = {1: [(start[0], start[1], 0), (start[0], start[1], 1)],
-                    2: [(goal[0], goal[1], 0), (goal[0], goal[1], 1)]}
+        ag_sched = {1: deque([(start[0], start[1], 0), (start[0], start[1], 1)]),
+                    2: deque([(goal[0], goal[1], 0), (goal[0], goal[1], 1)])}
 
         coll_count, coll_list = count_collision(agent_schedule=ag_sched)
 

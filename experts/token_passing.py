@@ -4,7 +4,7 @@ Token Passing algorithm
 Number of agents cooperating is defined as a function parameter
 Path1, Path2 functions in the pseudocode are, respectively:
     - experts.a_star
-    - TPAgent.find_resting_pos
+    - TPAgent.go_to_resting_pos
 
 Agents, once finished their task, if not assigned a new one, moves to a non-conflicting position
 That is, an endpoint such that the delivery locations of all tasks are different from the chosen endpoint,
@@ -18,38 +18,49 @@ The following implementation is based on:
         arXiv preprint arXiv:1705.10868.
 """
 import timeit
-from collections import deque
 
 import experts.tp_agent as tp_ag
 import utils.expert_utils as exp_utils
+import numpy as np
+
+from collections import deque
 
 
-def tp(input_map, start_pos_list, task_list, parking_spot_list,
-       agent_schedule, goal_schedule, metrics, execution,
-       imm_task_split=0, new_task_per_insertion=1, step_between_insertion=1):
+def tp(input_map: np.array,
+       start_pos_list: list[tuple[int, int]],
+       task_list: list[tuple[tuple[int, int], tuple[int, int]]],
+       parking_spot_list: list[tuple[int, int]],
+       agent_schedule: dict[int, deque[tuple[int, int, int]]],
+       goal_schedule: dict[int, deque[tuple[int, int, int]]],
+       metrics: dict['str', list[int or float]],
+       execution: exp_utils.StopToken,
+       imm_task_split: float = 0.,
+       new_task_per_insertion: int = 1,
+       step_between_insertion: int = 1
+       ) -> None:
     """
     Token Passing algorithm
-    :param input_map: np.ndarray, matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
-    :param start_pos_list: list of tuples, (x,y) -> coordinates over the map
-    :param task_list: list of tasks -> [(task1), (task2), ...]
+    :param input_map: matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
+    :param start_pos_list: (x,y), coordinates over the map
+    :param task_list: [(task1), (task2), ...]
                       task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
-    :param parking_spot_list: list of tuples, (x,y) -> coordinates over the map
-           Non-task endpoints for the agent to rest on to avoid deadlocks, can be empty
-    :param imm_task_split: float, 1 > x > 0, % of task_list to add to active_task
-    :param new_task_per_insertion: int, > 0, how many 'new' task from task_list to add to active_task at each insertion
-    :param step_between_insertion: int, > 0, how many timestep between each insertion
-    :param agent_schedule, dict, RETURN VALUE
+    :param parking_spot_list: (x,y) -> coordinates over the map
+                              Non-task endpoints for the agent to rest on to avoid deadlocks, can be empty
+    :param imm_task_split: 1 >= x >= 0, % of task_list to add to active_task
+    :param new_task_per_insertion: > 0, how many 'new' task from task_list to add to active_task at each insertion
+    :param step_between_insertion: > 0, how many timestep between each insertion
+    :param agent_schedule, RETURN VALUE
              agent_schedule -> {agent_id : schedule}
                                 with schedule = deque([(x_0, y_0, 0), (x_1, y_1, 1), ...])
-    :param goal_schedule, dict, RETURN VALUE
+    :param goal_schedule, RETURN VALUE
              goal_schedule -> {agent_id : schedule}
                                 with schedule = deque([(current_goal, 0), (curr_goal, 1), ...])
                                 curr_goal -> position the agent is trying to reach
-    :param metrics, dict, RETURN VALUE
-             service_time, list of float, number of timesteps for completing each task
-             timestep_runtime, list of float, execution time of each timestep, in ms
-    :param execution: StopToken instance, used to terminate hanging instances
-            when using stop, return values behaviour is undefined
+    :param metrics, RETURN VALUE
+             'service_time': number of timesteps for completing each task
+             'timestep_runtime': execution time of each timestep, in ms
+    :param execution: used to terminate hanging instances
+                      when using stop, return values behaviour is undefined
     """
     # starting positions are used as non-task endpoints
     non_task_ep_list = start_pos_list + parking_spot_list

@@ -2,6 +2,7 @@
 Base Agent class, where all other agents inherit from
 Contains definitions for all the necessary functions
 """
+
 import logging
 
 
@@ -17,9 +18,9 @@ class Agent:
     def save_checkpoint(self, epoch, is_best=False, latest=True):
         """
         Checkpoint saver
-        :param epoch: int, current epoch being saved
-        :param is_best: bool, flag to indicate whether current checkpoint's metric is the best so far
-        :param latest: bool, flag to indicate the checkpoint is the latest one trained
+        :param epoch: current epoch being saved
+        :param is_best: flag to indicate whether current checkpoint's metric is the best so far
+        :param latest: flag to indicate the checkpoint is the latest one trained
         """
         raise NotImplementedError
 

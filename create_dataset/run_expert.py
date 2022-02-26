@@ -16,20 +16,24 @@ expert_data = {'name': file path to the expert data file,
 
 import pickle
 import statistics
+import experts.token_passing as tp
+import utils.expert_utils as exp_utils
+import utils.file_utils as f_utils
+import utils.metrics as m
+
 from abc import abstractmethod
 from multiprocessing import Pool, Manager
 from os.path import normpath, basename
 from threading import Thread
-
 from easydict import EasyDict
-
-from experts.token_passing import tp
-from utils.expert_utils import StopToken
-from utils.file_utils import get_all_files, dump_data
-from utils.metrics import count_collision
+from typing import Optional
 
 
-def run_expert(config, dataset_dir, file_path_list=None, recovery_mode=False):
+def run_expert(config: EasyDict,
+               dataset_dir: str,
+               file_path_list: Optional[list[str]] = None,
+               recovery_mode: bool = False
+               ) -> list[str]:
     """
     Run selected expert to generate solutions for all pre-generated environments
     Expert type supported: 'tp'
@@ -37,12 +41,12 @@ def run_expert(config, dataset_dir, file_path_list=None, recovery_mode=False):
     :param dataset_dir: path to the dataset directory
     :param file_path_list: list of file path containing environment data to run expert over
                            Pass this ONLY with recovery_mode = True
-    :param recovery_mode: boolean, True if run_expert is used to re-compute bad MAPD instances
+    :param recovery_mode: True if run_expert is used to re-compute bad MAPD instances
     :return bad_instances_list, list with the file path of bad MAPD instance files
     """
     # get path of all file in the dataset dir, if not in recovery mode
     if not recovery_mode:
-        file_path_list = get_all_files(directory=dataset_dir)
+        file_path_list = f_utils.get_all_files(directory=dataset_dir)
 
         # check out for expert presence
         # if keep_expert = True, return, since nothing to do
@@ -96,14 +100,17 @@ class ExpertWorker:
     Base expert class to run on a process
     """
 
-    def __init__(self, config):
+    def __init__(self,
+                 config: EasyDict):
         """
         :param config: Namespace of dataset configurations
         """
         self.config = config
         self.bad_instances_list = None  # manager list, where to write bad environment filenames
 
-    def set_bad_instance_list(self, bad_instances_list):
+    def set_bad_instance_list(self,
+                              bad_instances_list: Manager
+                              ) -> None:
         """
         :param bad_instances_list: manager list, where to write bad environment filenames
         """
@@ -127,12 +134,14 @@ class TpWorker(ExpertWorker):
     Worker for token passing, implement ExpertWorker class
     """
 
-    def __call__(self, environment):
+    def __call__(self,
+                 environment: EasyDict
+                 ) -> None:
         # setup return structures
         agent_schedule = {}
         goal_schedule = {}
         metrics = {}
-        execution = StopToken()
+        execution = exp_utils.StopToken()
 
         # run tp
         kwargs = {'input_map': environment.map,
@@ -148,7 +157,7 @@ class TpWorker(ExpertWorker):
                   'execution': execution}
 
         # run token passing
-        worker = Thread(target=tp, kwargs=kwargs)
+        worker = Thread(target=tp.tp, kwargs=kwargs)
         worker.start()
 
         # wait for timeout
@@ -165,7 +174,7 @@ class TpWorker(ExpertWorker):
 
         else:
             # collect metrics
-            collision_count, _ = count_collision(agent_schedule=agent_schedule)
+            collision_count, _ = m.count_collision(agent_schedule=agent_schedule)
 
             # if collisions, regenerate
             if collision_count:
@@ -188,7 +197,8 @@ class TpWorker(ExpertWorker):
                                'agent_schedule': agent_schedule,
                                'goal_schedule': goal_schedule}
                 # dump data into pickle file
-                dump_data(file_path=file_name, data=expert_data)
+                f_utils.dump_data(file_path=file_name,
+                                  data=expert_data)
 
                 name = basename(normpath(environment.name))
                 print(f'Successful Expert on Environment {name}')
