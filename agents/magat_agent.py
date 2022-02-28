@@ -345,7 +345,7 @@ class MagatAgent(agents.Agent):
                                      f'{performance}')
                 # else, validation, update every 50 sim
                 else:
-                    if case_idx % self.config.log_interval == 0:
+                    if case_idx % 50 == 0:
                         self.logger.info(f'Case {case_idx}: [{case_idx}/{len(data_loader)}'
                                          f'({100 * case_idx / len(data_loader):.0f}%)]\t'
                                          f'{performance}')

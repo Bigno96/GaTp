@@ -49,7 +49,7 @@ batch_size: 64  # batch size for training
 valid_batch_size: 1   # batch size for validation (simulation)
 test_batch_size: 1  # batch size for testing (simulation)
 
-data_loader_workers: 8  # num of processes for data loading
+data_loader_workers: 0  # num of processes for data loading
 pin_memory: True  # if True, data loader will copy Tensors into CUDA pinned memory before returning them
 
 label_smoothing: 0.0  # amount of smoothing when computing the loss, where 0.0 means no smoothing
@@ -58,5 +58,5 @@ weight_decay: 0.00001   # weight decay of optimizer (implemented as L2 penalty)
 max_epoch: 300  # maximum number of epochs of training
 
 validate_every: 4   # how many epochs between each validation
-log_interval: 50    # how many batches passes between screen updates
+log_interval: 250    # how many batches passes between screen updates
 max_step_factor: 2  # multiplicative factor for simulation max step (target makespan * max_step_factor)

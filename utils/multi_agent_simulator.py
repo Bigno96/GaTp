@@ -254,11 +254,11 @@ class MultiAgentSimulator:
             # list -> [h-value1, h-value2, ...]
             # h-value from current agent position to pickup_pos of the task
             # argmin -> index of avail_task_list where task has min(h-value)
-            task = self.active_task_list[np.argmin([self.h_coll[tuple(pickup)][tuple(agent_pos)]
-                                                    for pickup, _ in self.active_task_list
-                                                    ])]
-            # remove found task from active list
-            self.active_task_list.remove(task)
+            min_idx = np.argmin([self.h_coll[tuple(pickup)][tuple(agent_pos)]
+                                 for pickup, _ in self.active_task_list
+                                 ])
+            # pop found task from active list
+            task = self.active_task_list.pop(min_idx)
 
             return task
         else:
