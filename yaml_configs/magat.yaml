@@ -58,5 +58,5 @@ weight_decay: 0.00001   # weight decay of optimizer (implemented as L2 penalty)
 max_epoch: 300  # maximum number of epochs of training
 
 validate_every: 4   # how many epochs between each validation
-log_interval: 100   # how many batches passes between screen updates
+log_interval: 50    # how many batches passes between screen updates
 max_step_factor: 2  # multiplicative factor for simulation max step (target makespan * max_step_factor)

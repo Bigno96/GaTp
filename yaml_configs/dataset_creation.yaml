@@ -13,7 +13,7 @@ keep_expert_solutions: True
 
 # Map specifications
 map_type: 'random_grid'   # supported values: random_grid
-map_number: 50    # how many unique maps
+map_number: 200    # how many unique maps
 map_shape: [20, 20]   # (H, W)
 map_density: 0.1  # % of obstacles in the map
 force_conn: True  # whether to generate only fully connected maps or not

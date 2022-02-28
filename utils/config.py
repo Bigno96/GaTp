@@ -9,6 +9,8 @@ import logging
 import os
 import pprint
 import argparse
+import sys
+import time
 
 import utils.file_utils as f_utils
 
@@ -181,5 +183,7 @@ def process_config(args: argparse.Namespace) -> EasyDict:
     # print out processed configuration
     print('Selected configuration is the following:')
     pprint.pprint(config, sort_dicts=False)
+    sys.stdout.flush()
 
+    time.sleep(1)   # aligning prints
     return config

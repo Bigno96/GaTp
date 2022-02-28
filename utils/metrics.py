@@ -29,6 +29,11 @@ class Performance:
                            self.collisions_difference,
                            self.makespan_difference)
 
+    def __repr__(self):
+        return f'Performance: completed task = {self.completed_task * 100:.2f}%, ' \
+               f'collisions = {-self.collisions_difference:.2f}, ' \
+               f'makespan degradation = {-self.makespan_difference * 100:.2f}%'
+
 
 class PerformanceRecorder:
     """
@@ -51,14 +56,21 @@ class PerformanceRecorder:
         :return: computed performance
         """
         # obtain percentage of tasks completed
-        task_percentage = len(self.simulator.active_task_list) / self.simulator.task_number
+        agent_active_tasks = sum([1
+                                  for v in self.simulator.task_register.values()
+                                  if v.size > 0])     # number of tasks assigned to agents
+        task_percentage = 1 - ((len(self.simulator.active_task_list) - agent_active_tasks)
+                               / self.simulator.task_number)
         # count collisions
         collisions, _ = count_collision(agent_schedule=self.simulator.agent_schedule)
-        # get makespan difference
-        makespan_diff = target_makespan - len(self.simulator.agent_schedule[0])
+        # get makespan difference %
+        # agent makespan = 0 -> difference = 1
+        # agent makespan = max length -> difference = -1
+        # 1 > -1 -> holds consistency for comparison (makespan = 0 > makespan = max length
+        makespan_diff = (target_makespan - len(self.simulator.agent_schedule[0])) / target_makespan
 
         return Performance(completed_task=task_percentage,
-                           collisions_difference=-collisions,   # negative, check explanation in Performance
+                           collisions_difference=-collisions,  # negative, check explanation in Performance
                            makespan_difference=makespan_diff)
 
 
@@ -78,7 +90,7 @@ def count_collision(agent_schedule: dict[int, deque[tuple[int, int, int]]]
     # get a new view of agent schedule where all agents' steps are paired by timestep
     # time_view = [ (s1_0, s2_0, s3_0), (s1_1, s2_1, s3_1), ... ]
     # list of tuples of tuples
-    time_view = list(map(lambda v: __drop_ts(v),      # remove timesteps
+    time_view = list(map(lambda v: __drop_ts(v),  # remove timesteps
                          zip(*agent_schedule.values())))
 
     # get number of repeated steps at each timestep -> node conflict
@@ -88,7 +100,7 @@ def count_collision(agent_schedule: dict[int, deque[tuple[int, int, int]]]
     collision_time_list = [idx for idx, val in enumerate(coll_list) if val != 0]
 
     # second, check swap conflicts
-    if len(next(iter(agent_schedule.values()))) > 1:        # if path has at least one step
+    if len(next(iter(agent_schedule.values()))) > 1:  # if path has at least one step
         # count how many agents
         agent_num = len(agent_schedule)
         # loop over each pair of time slice with its successor

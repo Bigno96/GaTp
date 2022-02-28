@@ -106,7 +106,7 @@ class MultiAgentSimulator:
                                model=model)
 
         # loop until termination or max step is reached
-        while not self.terminate or self.timestep < (max_step-1):   # -1 since timestep update is at the start
+        while not self.terminate and self.timestep < (max_step-1):   # -1 since timestep update is at the start
             self.execute_one_timestep()
 
     def set_up_simulation(self,
@@ -183,12 +183,12 @@ class MultiAgentSimulator:
         input_tensor = self.agent_state.get_input_state(goal_pos_list=goal_list,
                                                         agent_pos_list=self.curr_agent_pos)
         # shape = 1 x N x 3 x F_H x F_W
-        input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).to(self.config.device)
+        input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).to(self.config.device).float()   # add batch = 1
 
         # obtain and set gso
         GSO = g_utils.compute_adj_matrix(agent_pos_list=self.curr_agent_pos,
                                          comm_radius=self.config.comm_radius)
-        GSO = torch.from_numpy(GSO).to(self.config.device)
+        GSO = torch.from_numpy(GSO).unsqueeze(0).to(self.config.device).float()     # add batch = 1
         self.model.set_gso(GSO)
 
         # predict with model
@@ -254,7 +254,7 @@ class MultiAgentSimulator:
             # list -> [h-value1, h-value2, ...]
             # h-value from current agent position to pickup_pos of the task
             # argmin -> index of avail_task_list where task has min(h-value)
-            task = self.active_task_list[np.argmin([self.h_coll[tuple(pickup)][agent_pos]  # tuple for hash
+            task = self.active_task_list[np.argmin([self.h_coll[tuple(pickup)][tuple(agent_pos)]
                                                     for pickup, _ in self.active_task_list
                                                     ])]
             # remove found task from active list

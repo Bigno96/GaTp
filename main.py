@@ -8,6 +8,7 @@ Main execution file
 """
 
 import argparse
+import time
 
 import agents.magat_agent as ag
 import utils.config as cfg
@@ -95,6 +96,8 @@ def main():
     # run the agent
     agent = ag.MagatAgent(config)
     agent.run()
+    time.sleep(1)   # print coordination
+    agent.finalize()
 
 
 def __check_odd(v):

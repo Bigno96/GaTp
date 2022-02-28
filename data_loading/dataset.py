@@ -33,7 +33,6 @@ import numpy as np
 import utils.transform_data as tf_data
 import utils.file_utils as f_utils
 
-from tqdm import tqdm
 from p_tqdm import p_map
 from torch.utils.data import Dataset
 from easydict import EasyDict
@@ -87,20 +86,12 @@ class GaTpDataset(Dataset):
         self.basename_list = f_utils.load_basename_list(data_path=self.data_path,
                                                         mode=self.mode)
 
-        # if input data have to be generated at data loading
+        # process data at loading time
         if self.config.transform_runtime_data:
-            # get processed data
             result = p_map(self.data_transform.get_data, self.basename_list)
-        # read input data from datasets file
+        # read processed data from datasets file
         else:
-            # TODO: multithreading
-            result = []
-            for basename in tqdm(self.basename_list):
-                # get 'data' file path
-                data_path = os.path.join(self.data_path, self.mode, f'{basename}_data')
-                # extract with pickle
-                with open(data_path, 'rb') as f:
-                    result.append(pickle.load(f))
+            result = p_map(self.__load_cache_data, self.basename_list)
 
         # dictionary for data caching
         self.data_cache = dict(zip(self.basename_list, result))
@@ -118,6 +109,20 @@ class GaTpDataset(Dataset):
             self.get_data = self.get_train_data
         else:
             self.get_data = self.get_test_data
+
+    def __load_cache_data(self,
+                          basename: str
+                          ) -> tuple[np.array or int or float, ...]:
+        """
+        Used to read already transformed data from file path
+        :param basename: case file name
+        :return: train or testing data, loaded from 'data' file
+        """
+        # get 'data' file path
+        data_path = os.path.join(self.data_path, self.mode, f'{basename}_data')
+        # extract with pickle
+        with open(data_path, 'rb') as f:
+            return pickle.load(f)
 
     def __getitem__(self,
                     index: int

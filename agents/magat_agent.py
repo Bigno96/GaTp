@@ -199,10 +199,12 @@ class MagatAgent(agents.Agent):
             if epoch <= 4:
                 self.performance = self.validate()
                 self.save_checkpoint(epoch, is_best=False, latest=False)
+                self.logger.info(f'Validation {self.performance}')
             # else validate only every n epochs
             elif epoch % self.config.validate_every == 0:
                 self.performance = self.validate()
                 self.save_checkpoint(epoch, is_best=False, latest=False)
+                self.logger.info(f'Validation {self.performance}')
 
             # if performance was instanced
             is_best = self.performance > self.best_performance   # check if it is the best one
@@ -240,12 +242,12 @@ class MagatAgent(agents.Agent):
         """
         if self.config.mode == 'test':
             print("################## End of testing ################## ")
-            print(f'Testing mean performance:\t{self.best_performance}')
+            print(f'Testing Mean {self.best_performance}')
             print(f'Computation time:\t{self.time_record} ')
         # train mode
         else:
             print("################## End of training ################## ")
-            print(f'Best Validation performance:\t{self.best_performance}')
+            print(f'Best Validation {self.best_performance}')
 
     def train_one_epoch(self):
         """
@@ -325,9 +327,10 @@ class MagatAgent(agents.Agent):
             for case_idx, (obstacle_map, start_pos_list, task_list, makespan, service_time) \
                     in enumerate(data_loader):
                 # simulate the MAPD execution
-                self.simulator.simulate(obstacle_map=obstacle_map,
-                                        start_pos_list=start_pos_list,
-                                        task_list=task_list,
+                # batch size = 1 -> unpack all tensors
+                self.simulator.simulate(obstacle_map=obstacle_map[0],
+                                        start_pos_list=start_pos_list[0],
+                                        task_list=task_list[0],
                                         model=self.model,
                                         target_makespan=makespan.item())
 
@@ -342,7 +345,7 @@ class MagatAgent(agents.Agent):
                                      f'{performance}')
                 # else, validation, update every 50 sim
                 else:
-                    if case_idx % 50 == 0:
+                    if case_idx % self.config.log_interval == 0:
                         self.logger.info(f'Case {case_idx}: [{case_idx}/{len(data_loader)}'
                                          f'({100 * case_idx / len(data_loader):.0f}%)]\t'
                                          f'{performance}')
