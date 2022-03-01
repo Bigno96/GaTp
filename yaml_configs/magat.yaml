@@ -13,7 +13,7 @@ exp_folder: "D:\\Uni\\TESI\\GaTp\\experiments"
 # 1) CNN, feature extractor
 cnn_model: 'res'  # type of cnn: residual (network)
 cnn_in_channels: 3  # number of input channels
-cnn_out_features: 128   # number of 'extracted' features from the input FOV by the CNN
+cnn_out_features: 512   # number of 'extracted' features from the input FOV by the CNN
 cnn_blocks_size: [32, 64, 128, 256]  # number of channels for cnn blocks
 cnn_depths: [3, 3, 3, 3]   # number of blocks that compose each layer of the cnn
                         # blocks in the i-th layer all have channels num = cnn_blocks_size[i]

@@ -1,0 +1,153 @@
+[INFO] - 2022-03-01 16:39:41,171 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:179
+[INFO] - 2022-03-01 16:39:41,186 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:180
+[INFO] - 2022-03-01 16:39:41,186 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:181
+[INFO] - 2022-03-01 16:39:43,202 - Dataset - : Start loading train data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-01 16:45:56,400 - Dataset - : Start loading valid data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-01 16:46:27,127 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:76
+[INFO] - 2022-03-01 16:47:00,327 - Agent - : Start training in D:\Uni\TESI\GaTp\agents\magat_agent.py:201
+[INFO] - 2022-03-01 16:47:00,327 - Agent - : Begin Epoch 0 - Learning Rate: [0.001] in D:\Uni\TESI\GaTp\agents\magat_agent.py:206
+[INFO] - 2022-03-01 16:47:06,130 - Agent - : Epoch 0:[0/1525744(0%)]	Loss: 1.840393 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:47:55,071 - Agent - : Epoch 0:[16000/1525744(1%)]	Loss: 0.810716 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:48:44,266 - Agent - : Epoch 0:[32000/1525744(2%)]	Loss: 0.726108 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:49:33,395 - Agent - : Epoch 0:[48000/1525744(3%)]	Loss: 0.712324 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:50:22,774 - Agent - : Epoch 0:[64000/1525744(4%)]	Loss: 0.631650 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:51:12,232 - Agent - : Epoch 0:[80000/1525744(5%)]	Loss: 0.613447 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:52:01,688 - Agent - : Epoch 0:[96000/1525744(6%)]	Loss: 0.586944 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:52:51,081 - Agent - : Epoch 0:[112000/1525744(7%)]	Loss: 0.570687 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:53:40,476 - Agent - : Epoch 0:[128000/1525744(8%)]	Loss: 0.622653 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:54:33,923 - Agent - : Epoch 0:[144000/1525744(9%)]	Loss: 0.605249 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:55:25,579 - Agent - : Epoch 0:[160000/1525744(10%)]	Loss: 0.608832 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:56:17,019 - Agent - : Epoch 0:[176000/1525744(12%)]	Loss: 0.610667 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:57:09,802 - Agent - : Epoch 0:[192000/1525744(13%)]	Loss: 0.600151 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:58:02,409 - Agent - : Epoch 0:[208000/1525744(14%)]	Loss: 0.572205 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:58:55,521 - Agent - : Epoch 0:[224000/1525744(15%)]	Loss: 0.581599 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 16:59:50,448 - Agent - : Epoch 0:[240000/1525744(16%)]	Loss: 0.579835 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:00:43,200 - Agent - : Epoch 0:[256000/1525744(17%)]	Loss: 0.603388 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:01:34,477 - Agent - : Epoch 0:[272000/1525744(18%)]	Loss: 0.587158 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:02:27,009 - Agent - : Epoch 0:[288000/1525744(19%)]	Loss: 0.541800 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:03:17,920 - Agent - : Epoch 0:[304000/1525744(20%)]	Loss: 0.539584 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:04:09,211 - Agent - : Epoch 0:[320000/1525744(21%)]	Loss: 0.559139 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:05:04,339 - Agent - : Epoch 0:[336000/1525744(22%)]	Loss: 0.581922 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:05:58,108 - Agent - : Epoch 0:[352000/1525744(23%)]	Loss: 0.585908 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:06:53,164 - Agent - : Epoch 0:[368000/1525744(24%)]	Loss: 0.572375 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:07:48,277 - Agent - : Epoch 0:[384000/1525744(25%)]	Loss: 0.581432 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:08:39,362 - Agent - : Epoch 0:[400000/1525744(26%)]	Loss: 0.548967 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:09:30,422 - Agent - : Epoch 0:[416000/1525744(27%)]	Loss: 0.512532 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:10:21,500 - Agent - : Epoch 0:[432000/1525744(28%)]	Loss: 0.598565 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:11:12,448 - Agent - : Epoch 0:[448000/1525744(29%)]	Loss: 0.532558 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:12:03,565 - Agent - : Epoch 0:[464000/1525744(30%)]	Loss: 0.562646 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:12:54,551 - Agent - : Epoch 0:[480000/1525744(31%)]	Loss: 0.515848 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:13:45,784 - Agent - : Epoch 0:[496000/1525744(33%)]	Loss: 0.566191 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:14:36,804 - Agent - : Epoch 0:[512000/1525744(34%)]	Loss: 0.597918 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:15:30,195 - Agent - : Epoch 0:[528000/1525744(35%)]	Loss: 0.543886 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:16:21,599 - Agent - : Epoch 0:[544000/1525744(36%)]	Loss: 0.529392 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:17:13,130 - Agent - : Epoch 0:[560000/1525744(37%)]	Loss: 0.540484 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:18:04,178 - Agent - : Epoch 0:[576000/1525744(38%)]	Loss: 0.574030 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:18:55,185 - Agent - : Epoch 0:[592000/1525744(39%)]	Loss: 0.569956 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:19:46,416 - Agent - : Epoch 0:[608000/1525744(40%)]	Loss: 0.573172 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:20:37,679 - Agent - : Epoch 0:[624000/1525744(41%)]	Loss: 0.536503 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:21:29,001 - Agent - : Epoch 0:[640000/1525744(42%)]	Loss: 0.575980 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:22:20,143 - Agent - : Epoch 0:[656000/1525744(43%)]	Loss: 0.532151 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:23:11,166 - Agent - : Epoch 0:[672000/1525744(44%)]	Loss: 0.537681 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:24:02,107 - Agent - : Epoch 0:[688000/1525744(45%)]	Loss: 0.568820 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:24:53,115 - Agent - : Epoch 0:[704000/1525744(46%)]	Loss: 0.544650 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:25:44,181 - Agent - : Epoch 0:[720000/1525744(47%)]	Loss: 0.547983 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:26:35,174 - Agent - : Epoch 0:[736000/1525744(48%)]	Loss: 0.539168 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:27:26,794 - Agent - : Epoch 0:[752000/1525744(49%)]	Loss: 0.547189 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:28:17,766 - Agent - : Epoch 0:[768000/1525744(50%)]	Loss: 0.519445 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:29:08,789 - Agent - : Epoch 0:[784000/1525744(51%)]	Loss: 0.551478 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:29:59,949 - Agent - : Epoch 0:[800000/1525744(52%)]	Loss: 0.514961 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:30:51,179 - Agent - : Epoch 0:[816000/1525744(53%)]	Loss: 0.542430 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:31:42,202 - Agent - : Epoch 0:[832000/1525744(55%)]	Loss: 0.496790 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:32:33,460 - Agent - : Epoch 0:[848000/1525744(56%)]	Loss: 0.535142 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:33:24,294 - Agent - : Epoch 0:[864000/1525744(57%)]	Loss: 0.532908 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:34:15,371 - Agent - : Epoch 0:[880000/1525744(58%)]	Loss: 0.619666 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:35:06,766 - Agent - : Epoch 0:[896000/1525744(59%)]	Loss: 0.548710 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:35:57,818 - Agent - : Epoch 0:[912000/1525744(60%)]	Loss: 0.553695 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:36:48,851 - Agent - : Epoch 0:[928000/1525744(61%)]	Loss: 0.543853 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:37:39,942 - Agent - : Epoch 0:[944000/1525744(62%)]	Loss: 0.495501 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:38:31,122 - Agent - : Epoch 0:[960000/1525744(63%)]	Loss: 0.519472 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:39:22,060 - Agent - : Epoch 0:[976000/1525744(64%)]	Loss: 0.526310 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:40:13,126 - Agent - : Epoch 0:[992000/1525744(65%)]	Loss: 0.553929 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:41:04,378 - Agent - : Epoch 0:[1008000/1525744(66%)]	Loss: 0.497048 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:41:55,324 - Agent - : Epoch 0:[1024000/1525744(67%)]	Loss: 0.520212 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:42:46,377 - Agent - : Epoch 0:[1040000/1525744(68%)]	Loss: 0.524068 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:43:37,193 - Agent - : Epoch 0:[1056000/1525744(69%)]	Loss: 0.504958 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:44:29,787 - Agent - : Epoch 0:[1072000/1525744(70%)]	Loss: 0.569008 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:45:20,851 - Agent - : Epoch 0:[1088000/1525744(71%)]	Loss: 0.534896 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:46:11,745 - Agent - : Epoch 0:[1104000/1525744(72%)]	Loss: 0.558042 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:47:02,800 - Agent - : Epoch 0:[1120000/1525744(73%)]	Loss: 0.542290 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:47:53,945 - Agent - : Epoch 0:[1136000/1525744(74%)]	Loss: 0.549620 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:48:44,953 - Agent - : Epoch 0:[1152000/1525744(76%)]	Loss: 0.507567 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:49:36,022 - Agent - : Epoch 0:[1168000/1525744(77%)]	Loss: 0.502032 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:50:26,924 - Agent - : Epoch 0:[1184000/1525744(78%)]	Loss: 0.577927 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:51:17,995 - Agent - : Epoch 0:[1200000/1525744(79%)]	Loss: 0.545337 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:52:09,030 - Agent - : Epoch 0:[1216000/1525744(80%)]	Loss: 0.538507 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:53:00,021 - Agent - : Epoch 0:[1232000/1525744(81%)]	Loss: 0.547733 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:53:50,962 - Agent - : Epoch 0:[1248000/1525744(82%)]	Loss: 0.556013 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:54:42,043 - Agent - : Epoch 0:[1264000/1525744(83%)]	Loss: 0.549491 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:55:32,916 - Agent - : Epoch 0:[1280000/1525744(84%)]	Loss: 0.537348 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:56:23,923 - Agent - : Epoch 0:[1296000/1525744(85%)]	Loss: 0.511203 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:57:14,789 - Agent - : Epoch 0:[1312000/1525744(86%)]	Loss: 0.509697 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:58:05,761 - Agent - : Epoch 0:[1328000/1525744(87%)]	Loss: 0.568378 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:58:56,643 - Agent - : Epoch 0:[1344000/1525744(88%)]	Loss: 0.548704 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 17:59:47,515 - Agent - : Epoch 0:[1360000/1525744(89%)]	Loss: 0.524147 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 18:00:38,348 - Agent - : Epoch 0:[1376000/1525744(90%)]	Loss: 0.543766 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 18:01:29,225 - Agent - : Epoch 0:[1392000/1525744(91%)]	Loss: 0.539654 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 18:02:22,552 - Agent - : Epoch 0:[1408000/1525744(92%)]	Loss: 0.555822 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 18:03:13,435 - Agent - : Epoch 0:[1424000/1525744(93%)]	Loss: 0.472952 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 18:04:04,267 - Agent - : Epoch 0:[1440000/1525744(94%)]	Loss: 0.541726 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 18:04:55,330 - Agent - : Epoch 0:[1456000/1525744(95%)]	Loss: 0.560754 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 18:05:47,755 - Agent - : Epoch 0:[1472000/1525744(96%)]	Loss: 0.524783 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 18:06:44,325 - Agent - : Epoch 0:[1488000/1525744(98%)]	Loss: 0.479698 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 18:07:37,882 - Agent - : Epoch 0:[1504000/1525744(99%)]	Loss: 0.520532 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 18:08:28,881 - Agent - : Epoch 0:[1520000/1525744(100%)]	Loss: 0.532231 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 18:08:48,961 - Agent - : Epoch 0:[1525744/1525744(100%)]	Loss: 0.541786 in D:\Uni\TESI\GaTp\agents\magat_agent.py:320
+[INFO] - 2022-03-01 18:08:48,978 - Agent - : Start validation in D:\Uni\TESI\GaTp\agents\magat_agent.py:235
+[INFO] - 2022-03-01 18:08:48,978 - Agent - : Starting MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:334
+[INFO] - 2022-03-01 18:09:05,219 - Agent - : Case 0: [0/600(0%)]	Performance: completed task = 0.00%, collisions = 6.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 18:19:41,773 - Agent - : Case 50: [50/600(8%)]	Performance: completed task = 0.00%, collisions = 2406.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 18:30:15,990 - Agent - : Case 100: [100/600(17%)]	Performance: completed task = 0.00%, collisions = 2816.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 18:40:46,324 - Agent - : Case 150: [150/600(25%)]	Performance: completed task = 0.00%, collisions = 2555.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 18:51:23,967 - Agent - : Case 200: [200/600(33%)]	Performance: completed task = 0.00%, collisions = 4266.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 19:03:15,881 - Agent - : Case 250: [250/600(42%)]	Performance: completed task = 0.00%, collisions = 2160.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 19:14:39,615 - Agent - : Case 300: [300/600(50%)]	Performance: completed task = 0.00%, collisions = 41.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 19:25:32,220 - Agent - : Case 350: [350/600(58%)]	Performance: completed task = 0.00%, collisions = 3425.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 19:36:13,534 - Agent - : Case 400: [400/600(67%)]	Performance: completed task = 0.00%, collisions = 3457.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 19:46:53,913 - Agent - : Case 450: [450/600(75%)]	Performance: completed task = 0.00%, collisions = 2819.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 19:57:26,155 - Agent - : Case 500: [500/600(83%)]	Performance: completed task = 0.00%, collisions = 8209.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 20:08:44,329 - Agent - : Case 550: [550/600(92%)]	Performance: completed task = 0.00%, collisions = 3011.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:361
+[INFO] - 2022-03-01 20:19:23,157 - Agent - : Validation Performance: completed task = 0.03%, collisions = 2576.41, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:214
+[INFO] - 2022-03-01 20:19:23,313 - Agent - : Begin Epoch 1 - Learning Rate: [0.0009999726120980734] in D:\Uni\TESI\GaTp\agents\magat_agent.py:206
+[INFO] - 2022-03-01 20:19:23,734 - Agent - : Epoch 1:[0/1525744(0%)]	Loss: 0.583508 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:20:12,947 - Agent - : Epoch 1:[16000/1525744(1%)]	Loss: 0.534918 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:21:02,078 - Agent - : Epoch 1:[32000/1525744(2%)]	Loss: 0.502236 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:21:51,592 - Agent - : Epoch 1:[48000/1525744(3%)]	Loss: 0.596771 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:22:41,108 - Agent - : Epoch 1:[64000/1525744(4%)]	Loss: 0.472451 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:23:30,587 - Agent - : Epoch 1:[80000/1525744(5%)]	Loss: 0.508004 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:24:20,013 - Agent - : Epoch 1:[96000/1525744(6%)]	Loss: 0.521639 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:25:09,420 - Agent - : Epoch 1:[112000/1525744(7%)]	Loss: 0.511918 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:25:58,822 - Agent - : Epoch 1:[128000/1525744(8%)]	Loss: 0.550774 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:26:48,422 - Agent - : Epoch 1:[144000/1525744(9%)]	Loss: 0.510349 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:27:37,850 - Agent - : Epoch 1:[160000/1525744(10%)]	Loss: 0.581348 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:28:27,581 - Agent - : Epoch 1:[176000/1525744(12%)]	Loss: 0.546754 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:29:17,582 - Agent - : Epoch 1:[192000/1525744(13%)]	Loss: 0.497940 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:30:07,511 - Agent - : Epoch 1:[208000/1525744(14%)]	Loss: 0.544463 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:30:57,374 - Agent - : Epoch 1:[224000/1525744(15%)]	Loss: 0.526600 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:31:47,559 - Agent - : Epoch 1:[240000/1525744(16%)]	Loss: 0.539990 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:32:37,615 - Agent - : Epoch 1:[256000/1525744(17%)]	Loss: 0.519398 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:33:27,847 - Agent - : Epoch 1:[272000/1525744(18%)]	Loss: 0.535366 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:34:18,075 - Agent - : Epoch 1:[288000/1525744(19%)]	Loss: 0.486057 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:35:08,624 - Agent - : Epoch 1:[304000/1525744(20%)]	Loss: 0.521662 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:35:58,629 - Agent - : Epoch 1:[320000/1525744(21%)]	Loss: 0.560665 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:36:49,469 - Agent - : Epoch 1:[336000/1525744(22%)]	Loss: 0.535016 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:37:41,343 - Agent - : Epoch 1:[352000/1525744(23%)]	Loss: 0.499606 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:38:31,369 - Agent - : Epoch 1:[368000/1525744(24%)]	Loss: 0.517009 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:39:21,699 - Agent - : Epoch 1:[384000/1525744(25%)]	Loss: 0.503431 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:40:11,998 - Agent - : Epoch 1:[400000/1525744(26%)]	Loss: 0.558848 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:41:02,281 - Agent - : Epoch 1:[416000/1525744(27%)]	Loss: 0.502596 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:41:52,851 - Agent - : Epoch 1:[432000/1525744(28%)]	Loss: 0.534224 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:42:43,228 - Agent - : Epoch 1:[448000/1525744(29%)]	Loss: 0.529884 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:43:33,541 - Agent - : Epoch 1:[464000/1525744(30%)]	Loss: 0.479207 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-01 20:44:24,984 - Agent - : Epoch 1:[480000/1525744(31%)]	Loss: 0.541805 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
