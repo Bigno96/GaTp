@@ -92,7 +92,7 @@ class GatGSO(nn.Module):
     def set_gso(self,
                 S: torch.FloatTensor) -> None:
         """
-        Set the GSO on real time, shape = (B, E, N)
+        Set the GSO on real time, shape = (B, E, N, N) or (B, N, N)
         B -> batch size
         E -> edge features
         N -> agents number

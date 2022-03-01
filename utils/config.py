@@ -181,6 +181,7 @@ def process_config(args: argparse.Namespace) -> EasyDict:
     logging.getLogger().info('The pipeline of the project will begin now.')
 
     # print out processed configuration
+    time.sleep(1)  # aligning prints
     print('Selected configuration is the following:')
     pprint.pprint(config, sort_dicts=False)
     sys.stdout.flush()

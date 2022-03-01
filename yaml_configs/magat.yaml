@@ -14,12 +14,12 @@ exp_folder: "D:\\Uni\\TESI\\GaTp\\experiments"
 cnn_model: 'res'  # type of cnn: residual (network)
 cnn_in_channels: 3  # number of input channels
 cnn_out_features: 128   # number of 'extracted' features from the input FOV by the CNN
-cnn_blocks_size: [32, 64, 128]  # number of channels for cnn blocks
-cnn_depths: [1, 1, 1]   # number of blocks that compose each layer of the cnn
+cnn_blocks_size: [32, 64, 128, 256]  # number of channels for cnn blocks
+cnn_depths: [3, 3, 3, 3]   # number of blocks that compose each layer of the cnn
                         # blocks in the i-th layer all have channels num = cnn_blocks_size[i]
 feature_compression: True   # if True, an additional MLP layer is placed at the end of the CNN
 feature_compr_out: 32   # output from features compression. These coincide with skip connection features
-feature_compr_hidden_feat: [64]   # number of features of the hidden layers in the MLP
+feature_compr_hidden_feat: [128, 64]   # number of features of the hidden layers in the MLP
 feature_compr_dropout: True   # if True, add dropout to MLP
 feature_compr_dropout_rate: 0.2   # ratio of dropout, if used
 
@@ -33,12 +33,12 @@ gnn_hidden_features: []   # tuple of int, e.g. (32, 64, 128), vector of INPUT fe
                           # len = number of desired graph filtering layers - 1
 graph_filter_taps: [2]  # tuple of int, 'power' of the GSO. Vector with number of filter taps for each layer
                         # len = number of graph filtering layers
-attention_heads: [1]  # tuple of int, vector with number of attention heads for each layer
+attention_heads: [4]  # tuple of int, vector with number of attention heads for each layer
                       # len = number of graph filtering layers
 attention_concat: True  # if True, concatenate the output of the attention heads. False, average the output
 
 # 3) MLP, map features to actions
-mlp_hidden_features: [32]   # tuple of int, vector of INPUT features of hidden layers
+mlp_hidden_features: [128, 64]   # tuple of int, vector of INPUT features of hidden layers
                             # len = number of layers - 1
 mlp_dropout: True   # if True, add dropout to MLP
 mlp_dropout_rate: 0.2   # ratio of dropout, if used

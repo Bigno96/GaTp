@@ -23,6 +23,7 @@ import utils.metrics as metrics
 
 from statistics import mean
 from easydict import EasyDict
+from torchinfo import summary
 
 
 class MagatAgent(agents.Agent):
@@ -34,9 +35,8 @@ class MagatAgent(agents.Agent):
         # initialize data loader
         self.data_loader = loader.GaTpDataLoader(config=self.config)
 
-        # initialize model
-        self.model: torch.nn.Module = magat.MAGATNet(config=self.config)
-        self.logger.info(f'MAGAT Model: {self.model}\n')
+        # initialize the model
+        self.model = magat.MAGATNet(config=self.config)
 
         # define loss
         self.loss = nn.CrossEntropyLoss(label_smoothing=self.config.label_smoothing)
@@ -95,6 +95,18 @@ class MagatAgent(agents.Agent):
         # simulation handling classes and variables
         self.simulator = sim.MultiAgentSimulator(config=self.config)
         self.recorder = metrics.PerformanceRecorder(simulator=self.simulator)
+
+        # print the model
+        batch_size = self.config.batch_size
+        agent_num = self.config.agent_number
+        channel_num = 3
+        H, W = self.config.FOV + 2, self.config.FOV + 2
+        dummy_GSO = torch.ones((batch_size, agent_num, agent_num)).to(self.config.device).float()
+        self.model.set_gso(dummy_GSO)
+        summary(model=self.model,
+                input_size=(batch_size, agent_num, channel_num, H, W),
+                device=self.config.device,
+                col_names=["input_size", "output_size", "num_params"])
 
     def save_checkpoint(self,
                         epoch: int = 0,

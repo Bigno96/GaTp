@@ -95,6 +95,7 @@ def main():
 
     # run the agent
     agent = ag.MagatAgent(config)
+    time.sleep(1)   # print coordination
     agent.run()
     time.sleep(1)   # print coordination
     agent.finalize()

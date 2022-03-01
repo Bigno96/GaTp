@@ -59,7 +59,7 @@ class PerformanceRecorder:
         agent_active_tasks = sum([1
                                   for v in self.simulator.task_register.values()
                                   if v.size > 0])     # number of tasks assigned to agents
-        task_percentage = 1 - ((len(self.simulator.active_task_list) - agent_active_tasks)
+        task_percentage = 1 - ((len(self.simulator.active_task_list) + agent_active_tasks)
                                / self.simulator.task_number)
         # count collisions
         collisions, _ = count_collision(agent_schedule=self.simulator.agent_schedule)
