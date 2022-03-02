@@ -108,24 +108,24 @@ def process_config(args: argparse.Namespace) -> EasyDict:
     config.map_type = args.map_type
     config.map_shape = args.map_shape
     config.map_density = args.map_density
-    config.agent_number = args.agent_number
-    config.task_number = args.task_number
-    config.imm_task_split = args.imm_task_split
-    config.new_task_per_timestep = args.new_task_per_timestep
-    config.step_between_insertion = args.step_between_insertion
-    config.start_position_mode = args.start_position_mode
-    config.task_creation_mode = args.task_creation_mode
+    config.agent_number = args.agent_num
+    config.task_number = args.task_num
+    config.imm_task_split = args.imm_split
+    config.new_task_per_timestep = args.new_task_ts
+    config.step_between_insertion = args.insertion_step
+    config.start_position_mode = args.start_pos_mode
+    config.task_creation_mode = args.task_mode
     config.expert_type = args.expert_type
 
     # agent configuration
-    config.transform_runtime_data = args.transform_runtime_data
+    config.transform_runtime_data = args.tf_runtime_data
     config.FOV = args.FOV
     config.comm_radius = args.comm_radius
     config.sim_num_process = args.sim_num_process
-    config.load_checkpoint = args.load_checkpoint
+    config.load_checkpoint = args.load_ckp
     config.load_ckp_mode = args.load_ckp_mode
-    config.load_epoch = args.load_epoch
-    config.checkpoint_timestamp = args.checkpoint_timestamp
+    config.epoch_id = args.epoch_id
+    config.checkpoint_timestamp = args.ckp_ts
 
     # set up experiment name with configuration summary:
     #   environment description, hyper parameters, timestamp
@@ -147,9 +147,12 @@ def process_config(args: argparse.Namespace) -> EasyDict:
             print('Error: No checkpoint to load!')
             exit(-1)
         # check that if load_mode == 'epoch', an epoch is specified
-        if config.load_ckp_mode == 'epoch' and not config.load_epoch:
+        if config.load_ckp_mode == 'epoch' and config.epoch_id is None:
             print('Error: No epoch specified when trying to load checkpoint!')
             exit(-1)
+        # for testing, put load_mode == 'best'
+        if config.mode == 'test':
+            config.load_ckp_mode = 'best'
 
         config.exp_time = config.checkpoint_timestamp
 

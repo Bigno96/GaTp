@@ -151,3 +151,222 @@
 [INFO] - 2022-03-01 20:42:43,228 - Agent - : Epoch 1:[448000/1525744(29%)]	Loss: 0.529884 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
 [INFO] - 2022-03-01 20:43:33,541 - Agent - : Epoch 1:[464000/1525744(30%)]	Loss: 0.479207 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
 [INFO] - 2022-03-01 20:44:24,984 - Agent - : Epoch 1:[480000/1525744(31%)]	Loss: 0.541805 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-02 10:13:46,698 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:179
+[INFO] - 2022-03-02 10:13:46,698 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:180
+[INFO] - 2022-03-02 10:13:46,698 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:181
+[INFO] - 2022-03-02 10:13:48,710 - Dataset - : Start loading train data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 10:17:09,557 - Dataset - : Start loading valid data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 10:17:35,091 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:76
+[INFO] - 2022-03-02 10:17:35,091 - Agent - : Loading checkpoint "checkpoint.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:161
+[INFO] - 2022-03-02 10:19:43,741 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:179
+[INFO] - 2022-03-02 10:19:43,741 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:180
+[INFO] - 2022-03-02 10:19:43,741 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:181
+[INFO] - 2022-03-02 10:19:45,756 - Dataset - : Start loading train data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 10:23:20,965 - Dataset - : Start loading valid data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 10:23:45,338 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:76
+[INFO] - 2022-03-02 10:23:45,338 - Agent - : Loading checkpoint "checkpoint.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:161
+[INFO] - 2022-03-02 10:24:01,132 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:173
+[INFO] - 2022-03-02 10:24:19,909 - Agent - : Start training in D:\Uni\TESI\GaTp\agents\magat_agent.py:201
+[INFO] - 2022-03-02 10:24:19,909 - Agent - : Begin Epoch 1 - Learning Rate: [0.001] in D:\Uni\TESI\GaTp\agents\magat_agent.py:206
+[INFO] - 2022-03-02 10:24:25,595 - Agent - : Epoch 1:[0/1525744(0%)]	Loss: 0.517374 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-02 10:25:01,305 - Agent - : Entered CTRL+C. Wait to finalize in D:\Uni\TESI\GaTp\agents\magat_agent.py:195
+[INFO] - 2022-03-02 10:57:48,092 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:179
+[INFO] - 2022-03-02 10:57:48,092 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:180
+[INFO] - 2022-03-02 10:57:48,092 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:181
+[INFO] - 2022-03-02 10:57:50,124 - Dataset - : Start loading train data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 11:01:27,715 - Dataset - : Start loading valid data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 11:01:52,400 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:76
+[INFO] - 2022-03-02 11:01:52,400 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:161
+[INFO] - 2022-03-02 11:02:08,365 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:173
+[INFO] - 2022-03-02 11:02:27,861 - Agent - : Start training in D:\Uni\TESI\GaTp\agents\magat_agent.py:201
+[INFO] - 2022-03-02 11:02:27,861 - Agent - : Begin Epoch 1 - Learning Rate: [0.001] in D:\Uni\TESI\GaTp\agents\magat_agent.py:206
+[INFO] - 2022-03-02 11:02:35,593 - Agent - : Epoch 1:[0/1525744(0%)]	Loss: 0.525312 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-02 11:03:03,367 - Agent - : Entered CTRL+C. Wait to finalize in D:\Uni\TESI\GaTp\agents\magat_agent.py:195
+[INFO] - 2022-03-02 11:08:01,158 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:179
+[INFO] - 2022-03-02 11:08:01,158 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:180
+[INFO] - 2022-03-02 11:08:01,158 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:181
+[INFO] - 2022-03-02 11:08:03,174 - Dataset - : Start loading train data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 11:11:51,154 - Dataset - : Start loading valid data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 11:12:14,508 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:76
+[INFO] - 2022-03-02 11:12:14,508 - Agent - : Loading checkpoint "checkpoint_000.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:161
+[INFO] - 2022-03-02 11:12:28,864 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:173
+[INFO] - 2022-03-02 11:12:47,735 - Agent - : Start training in D:\Uni\TESI\GaTp\agents\magat_agent.py:201
+[INFO] - 2022-03-02 11:12:47,735 - Agent - : Begin Epoch 1 - Learning Rate: [0.001] in D:\Uni\TESI\GaTp\agents\magat_agent.py:206
+[INFO] - 2022-03-02 11:12:53,905 - Agent - : Epoch 1:[0/1525744(0%)]	Loss: 0.540982 in D:\Uni\TESI\GaTp\agents\magat_agent.py:315
+[INFO] - 2022-03-02 11:13:13,072 - Agent - : Entered CTRL+C. Wait to finalize in D:\Uni\TESI\GaTp\agents\magat_agent.py:195
+[INFO] - 2022-03-02 11:16:39,855 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:179
+[INFO] - 2022-03-02 11:16:39,855 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:180
+[INFO] - 2022-03-02 11:16:39,855 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:181
+[INFO] - 2022-03-02 11:16:41,871 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 11:16:49,868 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:76
+[INFO] - 2022-03-02 11:16:49,868 - Agent - : Loading checkpoint "checkpoint.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:161
+[INFO] - 2022-03-02 11:16:54,086 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:173
+[INFO] - 2022-03-02 11:16:56,227 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:244
+[INFO] - 2022-03-02 11:21:19,309 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 11:21:19,309 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 11:21:19,309 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 11:21:21,340 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 11:21:27,073 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:76
+[INFO] - 2022-03-02 11:21:27,073 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:161
+[INFO] - 2022-03-02 11:21:29,728 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:173
+[INFO] - 2022-03-02 11:21:31,916 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:244
+[INFO] - 2022-03-02 11:21:31,916 - Agent - : Starting MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:334
+[INFO] - 2022-03-02 11:21:46,412 - Agent - : Case 1: [1/600(0%)]	Performance: completed task = 0.00%, collisions = 1924.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:355
+[INFO] - 2022-03-02 11:21:57,425 - Agent - : Entered CTRL+C. Wait to finalize in D:\Uni\TESI\GaTp\agents\magat_agent.py:195
+[INFO] - 2022-03-02 12:17:43,137 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 12:17:43,137 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 12:17:43,137 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 12:17:45,153 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 12:17:50,964 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:77
+[INFO] - 2022-03-02 12:17:50,964 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:162
+[INFO] - 2022-03-02 12:17:52,526 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:174
+[INFO] - 2022-03-02 12:17:54,729 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:245
+[INFO] - 2022-03-02 12:17:54,729 - Agent - : Starting multi process MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:385
+[INFO] - 2022-03-02 13:47:21,657 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 13:47:21,657 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 13:47:21,657 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 13:47:23,673 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 13:47:29,735 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:77
+[INFO] - 2022-03-02 13:47:29,735 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:162
+[INFO] - 2022-03-02 13:47:31,281 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:174
+[INFO] - 2022-03-02 13:47:33,437 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:245
+[INFO] - 2022-03-02 13:47:33,437 - Agent - : Starting multi process MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:386
+[INFO] - 2022-03-02 13:48:28,715 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 13:48:28,715 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 13:48:28,715 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 13:48:30,715 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 13:48:36,307 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:77
+[INFO] - 2022-03-02 13:48:36,307 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:162
+[INFO] - 2022-03-02 13:48:37,919 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:174
+[INFO] - 2022-03-02 13:48:40,169 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:245
+[INFO] - 2022-03-02 13:48:40,169 - Agent - : Starting single process MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:335
+[INFO] - 2022-03-02 13:48:53,462 - Agent - : Case 1: [1/600(0%)]	Performance: completed task = 0.00%, collisions = 1924.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 13:49:06,447 - Agent - : Case 2: [2/600(0%)]	Performance: completed task = 0.00%, collisions = 212.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 13:49:19,339 - Agent - : Case 3: [3/600(0%)]	Performance: completed task = 0.00%, collisions = 7817.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 13:49:32,227 - Agent - : Case 4: [4/600(1%)]	Performance: completed task = 0.00%, collisions = 1376.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 13:49:44,716 - Agent - : Case 5: [5/600(1%)]	Performance: completed task = 0.00%, collisions = 6114.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 13:49:53,167 - Agent - : Entered CTRL+C. Wait to finalize in D:\Uni\TESI\GaTp\agents\magat_agent.py:196
+[INFO] - 2022-03-02 13:53:12,447 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 13:53:12,447 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 13:53:12,447 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 13:53:14,447 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 13:53:30,364 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:77
+[INFO] - 2022-03-02 13:53:30,364 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:162
+[INFO] - 2022-03-02 13:53:31,926 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:174
+[INFO] - 2022-03-02 13:53:34,036 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:245
+[INFO] - 2022-03-02 13:53:34,036 - Agent - : Starting single process MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:335
+[INFO] - 2022-03-02 13:53:49,893 - Agent - : Case 1: [1/600(0%)]	Performance: completed task = 0.00%, collisions = 1924.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 13:54:05,077 - Agent - : Case 2: [2/600(0%)]	Performance: completed task = 0.00%, collisions = 212.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 13:54:20,269 - Agent - : Case 3: [3/600(0%)]	Performance: completed task = 0.00%, collisions = 7817.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 13:54:36,628 - Agent - : Case 4: [4/600(1%)]	Performance: completed task = 0.00%, collisions = 1376.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 13:54:37,690 - Agent - : Entered CTRL+C. Wait to finalize in D:\Uni\TESI\GaTp\agents\magat_agent.py:196
+[INFO] - 2022-03-02 14:08:26,585 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 14:08:26,585 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 14:08:26,585 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 14:08:28,607 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 14:08:44,646 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:77
+[INFO] - 2022-03-02 14:08:44,646 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:162
+[INFO] - 2022-03-02 14:08:46,208 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:174
+[INFO] - 2022-03-02 14:08:48,302 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:245
+[INFO] - 2022-03-02 14:08:48,302 - Agent - : Starting single process MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:335
+[INFO] - 2022-03-02 14:09:04,301 - Agent - : Case 1: [1/600(0%)]	Performance: completed task = 0.00%, collisions = 1924.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 14:09:19,899 - Agent - : Case 2: [2/600(0%)]	Performance: completed task = 0.00%, collisions = 212.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 14:09:35,036 - Agent - : Case 3: [3/600(0%)]	Performance: completed task = 0.00%, collisions = 7817.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 14:09:50,624 - Agent - : Case 4: [4/600(1%)]	Performance: completed task = 0.00%, collisions = 1376.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 14:10:06,136 - Agent - : Case 5: [5/600(1%)]	Performance: completed task = 0.00%, collisions = 6114.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 14:10:10,231 - Agent - : Entered CTRL+C. Wait to finalize in D:\Uni\TESI\GaTp\agents\magat_agent.py:196
+[INFO] - 2022-03-02 14:10:22,978 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 14:10:22,978 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 14:10:22,978 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 14:10:24,993 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 14:10:41,316 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:77
+[INFO] - 2022-03-02 14:10:41,316 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:162
+[INFO] - 2022-03-02 14:10:42,972 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:174
+[INFO] - 2022-03-02 14:10:45,144 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:245
+[INFO] - 2022-03-02 14:10:45,144 - Agent - : Starting single process MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:335
+[INFO] - 2022-03-02 14:11:01,507 - Agent - : Case 1: [1/600(0%)]	Performance: completed task = 0.00%, collisions = 1924.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 14:11:17,082 - Agent - : Case 2: [2/600(0%)]	Performance: completed task = 0.00%, collisions = 212.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:357
+[INFO] - 2022-03-02 14:11:28,970 - Agent - : Entered CTRL+C. Wait to finalize in D:\Uni\TESI\GaTp\agents\magat_agent.py:196
+[INFO] - 2022-03-02 14:12:14,794 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 14:12:14,794 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 14:12:14,794 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 14:12:16,810 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 14:12:32,679 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:77
+[INFO] - 2022-03-02 14:12:32,679 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:162
+[INFO] - 2022-03-02 14:12:34,260 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:174
+[INFO] - 2022-03-02 14:12:36,354 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:245
+[INFO] - 2022-03-02 14:12:36,354 - Agent - : Starting single process MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:335
+[INFO] - 2022-03-02 14:14:06,607 - Agent - : Case 1: [1/600(0%)]	Performance: completed task = 0.00%, collisions = 1924.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:414
+[INFO] - 2022-03-02 14:15:04,099 - Agent - : Entered CTRL+C. Wait to finalize in D:\Uni\TESI\GaTp\agents\magat_agent.py:196
+[INFO] - 2022-03-02 16:04:55,298 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 16:04:55,298 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 16:04:55,298 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 16:04:57,313 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 16:05:05,802 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:81
+[INFO] - 2022-03-02 16:05:05,802 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:166
+[INFO] - 2022-03-02 16:05:21,345 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:178
+[INFO] - 2022-03-02 16:05:39,467 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:249
+[INFO] - 2022-03-02 16:05:39,467 - Agent - : Starting single process MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:339
+[INFO] - 2022-03-02 16:05:54,896 - Agent - : Case 1: [1/600(0%)]	Performance: completed task = 0.00%, collisions = 1924.00, makespan degradation = 100.00% in D:\Uni\TESI\GaTp\agents\magat_agent.py:424
+[INFO] - 2022-03-02 16:06:04,503 - Agent - : Entered CTRL+C. Wait to finalize in D:\Uni\TESI\GaTp\agents\magat_agent.py:200
+[INFO] - 2022-03-02 16:07:51,420 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 16:07:51,420 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 16:07:51,420 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 16:07:53,436 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 16:07:58,903 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:81
+[INFO] - 2022-03-02 16:07:58,903 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:166
+[INFO] - 2022-03-02 16:08:00,387 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:178
+[INFO] - 2022-03-02 16:08:02,496 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:249
+[INFO] - 2022-03-02 16:08:02,496 - Agent - : Starting multi process MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:374
+[INFO] - 2022-03-02 16:08:34,457 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 16:08:34,457 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 16:08:34,457 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 16:08:36,473 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 16:08:41,830 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:81
+[INFO] - 2022-03-02 16:08:41,830 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:166
+[INFO] - 2022-03-02 16:08:43,330 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:178
+[INFO] - 2022-03-02 16:08:45,392 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:249
+[INFO] - 2022-03-02 16:08:45,392 - Agent - : Starting multi process MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:374
+[INFO] - 2022-03-02 16:13:04,291 - root - : Hi, This is root. in D:\Uni\TESI\GaTp\utils\config.py:182
+[INFO] - 2022-03-02 16:13:04,291 - root - : The configurations have been successfully processed and directories created. in D:\Uni\TESI\GaTp\utils\config.py:183
+[INFO] - 2022-03-02 16:13:04,291 - root - : The pipeline of the project will begin now. in D:\Uni\TESI\GaTp\utils\config.py:184
+[INFO] - 2022-03-02 16:13:06,307 - Dataset - : Start loading test data in D:\Uni\TESI\GaTp\data_loading\dataset.py:84
+[INFO] - 2022-03-02 16:13:11,727 - Agent - : Program will run on ***GPU-CUDA***
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:81
+[INFO] - 2022-03-02 16:13:11,727 - Agent - : Loading checkpoint "model_best.pth.tar" in D:\Uni\TESI\GaTp\agents\magat_agent.py:166
+[INFO] - 2022-03-02 16:13:13,211 - Agent - : Checkpoint loaded successfully from "D:\Uni\TESI\GaTp\experiments\MAGAT_random_grid_20x20_0.1density_20agents_500\[4]heads+True_concat+7comm_radius+9FOV\random_start+avoid_non_task_rep_task+0.0split_+1_every1\1646149181\checkpoints"at epoch 1
+ in D:\Uni\TESI\GaTp\agents\magat_agent.py:178
+[INFO] - 2022-03-02 16:13:15,335 - Agent - : Start testing in D:\Uni\TESI\GaTp\agents\magat_agent.py:249
+[INFO] - 2022-03-02 16:13:15,335 - Agent - : Starting single process MAPD simulations in D:\Uni\TESI\GaTp\agents\magat_agent.py:339
+[INFO] - 2022-03-02 16:13:18,678 - Agent - : Entered CTRL+C. Wait to finalize in D:\Uni\TESI\GaTp\agents\magat_agent.py:200

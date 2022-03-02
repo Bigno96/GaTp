@@ -45,20 +45,20 @@ def main():
                             help='Shape of the squared map, HxW')
     arg_parser.add_argument('-map_density', type=float, default=0.1,
                             help='Proportion of occupied over free space in the environment')
-    arg_parser.add_argument('-agent_number', type=int, default=20,
+    arg_parser.add_argument('-agent_num', type=int, default=20,
                             help='Number of agents in the map')
-    arg_parser.add_argument('-task_number', type=int, default=500,
+    arg_parser.add_argument('-task_num', type=int, default=500,
                             help='Number of tasks that will be fed to the agents')
-    arg_parser.add_argument('-imm_task_split', type=float, default=0.0,
+    arg_parser.add_argument('-imm_split', type=float, default=0.0,
                             help='Percentage of tasks immediately available at the start')
-    arg_parser.add_argument('-new_task_per_timestep', type=int, default=1,
+    arg_parser.add_argument('-new_task_ts', type=int, default=1,
                             help='How many tasks to add at each insertion')
-    arg_parser.add_argument('-step_between_insertion', type=int, default=1,
+    arg_parser.add_argument('-insertion_step', type=int, default=1,
                             help='How many timesteps pass between each insertion')
-    arg_parser.add_argument('-start_position_mode', type=str, default='random',
+    arg_parser.add_argument('-start_pos_mode', type=str, default='random',
                             choices=['random', 'fixed'],
                             help='How starting positions were created')
-    arg_parser.add_argument('-task_creation_mode', type=str, default='avoid_non_task_rep',
+    arg_parser.add_argument('-task_mode', type=str, default='avoid_non_task_rep',
                             choices=['free', 'avoid_non_task_rep', 'avoid_task_rep', 'avoid_all'],
                             help='How tasks were created')
     arg_parser.add_argument('-expert_type', type=str, default='tp',
@@ -66,7 +66,7 @@ def main():
                             help='Expert used for solving cases')
 
     # agent parameters, if omitted -> default values
-    arg_parser.add_argument('-transform_runtime_data', action='store_true',
+    arg_parser.add_argument('-tf_runtime_data', action='store_true',
                             help='If present, this flag allows to transform input data for the ML model with different'
                                  'FOV and comm_radius. Input tensors are generated at Dataset loading.'
                                  'If not present, input data are taken from "data" dataset files')
@@ -76,15 +76,15 @@ def main():
                             help='Maximum communication distance between agents')
     arg_parser.add_argument('-sim_num_process', type=int, default=4,
                             help='Number of separate processes for running agent simulation')
-    arg_parser.add_argument('-load_checkpoint', action='store_true',
+    arg_parser.add_argument('-load_ckp', action='store_true',
                             help='Add this flag if you want to load a pretrained checkpoint')
     arg_parser.add_argument('-load_ckp_mode', type=str, default='latest',
                             choices=['latest', 'best', 'epoch'],
                             help='Mode of loading checkpoint: latest, best or specific epoch')
-    arg_parser.add_argument('-load_epoch', type=int, default=None,
+    arg_parser.add_argument('-epoch_id', type=int, default=None,
                             help='Number of epoch to load if load_ckp_mode = epoch')
     # MANDATORY if config.mode == 'test' or -load_checkpoint
-    arg_parser.add_argument('-checkpoint_timestamp', type=str,  default=None,
+    arg_parser.add_argument('-ckp_ts', type=str,  default=None,
                             help='Timestamp (folder name) of the checkpoint to load')
 
     # get the argument from the console

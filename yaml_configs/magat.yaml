@@ -49,7 +49,7 @@ batch_size: 64  # batch size for training
 valid_batch_size: 1   # batch size for validation (simulation)
 test_batch_size: 1  # batch size for testing (simulation)
 
-data_loader_workers: 0  # num of processes for data loading
+data_loader_workers: 0  # num of processes for data loading, higher number might lead to memory errors on Windows
 pin_memory: True  # if True, data loader will copy Tensors into CUDA pinned memory before returning them
 
 label_smoothing: 0.0  # amount of smoothing when computing the loss, where 0.0 means no smoothing

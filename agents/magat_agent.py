@@ -8,10 +8,13 @@ in IEEE Robotics and Automation Letters, vol. 6, no. 3, pp. 5533-5540, July 2021
 """
 
 import shutil
+import time
+
 import torch
 import os
 import timeit
 
+import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
@@ -24,6 +27,8 @@ import utils.metrics as metrics
 from statistics import mean
 from easydict import EasyDict
 from torchinfo import summary
+from multiprocessing import Process, Manager
+from typing import Callable
 
 
 class MagatAgent(agents.Agent):
@@ -81,14 +86,14 @@ class MagatAgent(agents.Agent):
             self.logger.info('Program will run on ***CPU***\n')
 
         # set agent simulation function
-        if self.config.sim_num_process == 0:    # single process
+        if self.config.sim_num_process == 0 or os.name == 'nt':    # single process or Windows
             self.simulate_agent_exec = self.sim_agent_exec_single
         else:
-            self.simulate_agent_exec = self.sim_agent_exec_single   # TODO
+            self.simulate_agent_exec = self.sim_agent_exec_multi
 
         # load checkpoint if necessary
         if config.load_checkpoint:
-            self.load_checkpoint(epoch=config.load_epoch,
+            self.load_checkpoint(epoch=config.epoch_id,
                                  best=config.load_ckp_mode == 'best',
                                  latest=config.load_ckp_mode == 'latest')
 
@@ -171,7 +176,7 @@ class MagatAgent(agents.Agent):
             self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
             self.logger.info(f'Checkpoint loaded successfully from "{self.config.checkpoint_dir}"'
-                             f'at (epoch {checkpoint["epoch"]}) at (iteration {checkpoint["iteration"]})\n')
+                             f'at epoch {checkpoint["epoch"]}\n')
         # no file found
         except OSError:
             self.logger.info(f'No checkpoint exists from "{self.config.checkpoint_dir}". Skipping.')
@@ -242,7 +247,7 @@ class MagatAgent(agents.Agent):
         Main testing loop
         """
         self.logger.info('Start testing')
-        data_loader = self.data_loader.valid_loader  # get test loader
+        data_loader = self.data_loader.test_loader  # get test loader
         # simulate
         mean_performance = self.simulate_agent_exec(data_loader=data_loader)
         # set mean performance for printing
@@ -331,7 +336,7 @@ class MagatAgent(agents.Agent):
         :param data_loader: pytorch Dataloader, either testing or valid DataLoader
         :return mean performance recorder during the validation simulation
         """
-        self.logger.info('Starting MAPD simulations')
+        self.logger.info('Starting single process MAPD simulations')
 
         performance_list: list[metrics.Performance] = []
         with torch.no_grad():
@@ -344,34 +349,161 @@ class MagatAgent(agents.Agent):
                                         start_pos_list=start_pos_list[0],
                                         task_list=task_list[0],
                                         model=self.model,
-                                        target_makespan=makespan.item())
+                                        target_makespan=makespan.item(),
+                                        device=self.config.device)
 
                 # collect metrics
                 performance = self.recorder.evaluate_performance(target_makespan=makespan.item())
                 performance_list.append(performance)
+                self.print_performance(performance=performance,
+                                       case_idx=case_idx,
+                                       max_size=len(data_loader))
 
-                # if testing, update at each simulation
-                if self.config.mode == 'test':
-                    self.logger.info(f'Case {case_idx+1}: [{case_idx+1}/{len(data_loader)}'
-                                     f'({100 * (case_idx+1) / len(data_loader):.0f}%)]\t'
-                                     f'{performance}')
-                # else, validation, update every 50 sim
-                else:
-                    if case_idx % 50 == 0:
-                        self.logger.info(f'Case {case_idx}: [{case_idx}/{len(data_loader)}'
-                                         f'({100 * case_idx / len(data_loader):.0f}%)]\t'
-                                         f'{performance}')
+        # return average performances
+        return self.get_avg_performance(performance_list=performance_list)
 
+    def sim_agent_exec_multi(self,
+                             data_loader: data.DataLoader
+                             ) -> metrics.Performance:
+        """
+        Simulate all MAPD problem in the data loader using trained model for solving it
+        Multiprocessing simulation
+        :param data_loader: pytorch Dataloader, either testing or valid DataLoader
+        :return mean performance recorder during the validation simulation
+        """
+        self.logger.info('Starting multi process MAPD simulations')
+
+        # useful variables
+        data_size = len(data_loader)
+        manager = Manager()
+
+        # load data from data loader
+        with torch.no_grad():
+            data_queue = manager.Queue(maxsize=data_size)
+            for i, data_ in enumerate(data_loader):
+                data_queue.put((i, data_), block=True)
+
+            # set up workers
+            performance_queue = manager.Queue(maxsize=data_size)
+            sim_worker = SimWorker(config=self.config,
+                                   model=self.model,
+                                   print_function=self.print_performance,
+                                   data_size=data_size,
+                                   data_queue=data_queue,
+                                   performance_queue=performance_queue)
+
+            # spawn processes
+            pool = [Process(target=sim_worker)
+                    for _ in range(self.config.sim_num_process)]
+            # run processes
+            for p in pool:
+                p.start()
+            # wait all processes
+            for p in pool:
+                p.join()
+
+            # get performance list
+            performance_queue.put('STOP')   # termination sentinel
+            performance_list = [p in iter(performance_queue.get, 'STOP')]
+            time.sleep(.1)      # release the GIL
+
+        # return average performances
+        # noinspection PyTypeChecker
+        return self.get_avg_performance(performance_list=performance_list)
+
+    def print_performance(self,
+                          performance: metrics.Performance,
+                          case_idx: int,
+                          max_size: int
+                          ) -> None:
+        """
+        Internal method to print information about performance
+        :param performance: Performance instance to print
+        :param case_idx: index of case referred to the performance
+        :param max_size: length of the dataset
+        """
+        # if testing, update at each simulation
+        if self.config.mode == 'test':
+            self.logger.info(f'Case {case_idx + 1}: [{case_idx + 1}/{max_size}'
+                             f'({100 * (case_idx + 1) / max_size:.0f}%)]\t'
+                             f'{performance}')
+        # else, validation, update every 50 sim
+        else:
+            if case_idx % 50 == 0:
+                self.logger.info(f'Case {case_idx}: [{case_idx}/{max_size}'
+                                 f'({100 * case_idx / max_size:.0f}%)]\t'
+                                 f'{performance}')
+
+    @staticmethod
+    def get_avg_performance(performance_list: list[metrics.Performance]
+                            ) -> metrics.Performance:
+        """
+        Internal method to compute average performance over a list of performances
+        """
         # collect all the metrics
-        compl_task = [p.completed_task for p in performance_list]
-        coll = [p.collisions_difference for p in performance_list]
-        mks = [p.makespan_difference for p in performance_list]
+        m = np.array([(p.completed_task, p.collisions_difference, p.makespan_difference)
+                      for p in performance_list])
+        compl_task = m[:, 0]
+        coll = m[:, 1]
+        mks = m[:, 2]
 
         # return a Performance instance
         return metrics.Performance(completed_task=mean(compl_task),
                                    collisions_difference=mean(coll),
                                    makespan_difference=mean(mks))
 
-    def sim_agent_exec_multi(self):
-        # TODO
-        pass
+
+class SimWorker:
+    """
+    Class for multiagent multiprocess simulation
+    """
+
+    def __init__(self,
+                 config: EasyDict,
+                 model: nn.Module,
+                 print_function: Callable,
+                 data_size: int,
+                 data_queue: Manager,
+                 performance_queue: Manager
+                 ):
+        # set up variables
+        self.config = config
+        self.print_function = print_function
+        self.model = model
+        # set data and performance manager queues
+        self.data_queue = data_queue
+        self.performance_queue = performance_queue
+        # length of the dataset
+        self.data_size = data_size
+        # simulation handling classes and variables, unique for each process
+        self.simulator = sim.MultiAgentSimulator(config=self.config)
+        self.recorder = metrics.PerformanceRecorder(simulator=self.simulator)
+
+    def __call__(self) -> None:
+        """
+        Given input data taken from iterating over a dataloader, simulate MAPD execution and record performances
+        """
+        with torch.no_grad():
+            while self.data_queue.qsize() > 0:
+                # unpack tensors from input data queue
+                (case_idx, obstacle_map, start_pos_list,
+                 task_list, makespan, service_time) = self.data_queue.get(block=False)
+
+                # simulate the MAPD execution
+                # batch size = 1 -> unpack all tensors
+                self.simulator.simulate(obstacle_map=obstacle_map[0],
+                                        start_pos_list=start_pos_list[0],
+                                        task_list=task_list[0],
+                                        model=self.model,
+                                        target_makespan=makespan.item(),
+                                        device=self.config.device)
+
+                # collect metrics
+                performance = self.recorder.evaluate_performance(target_makespan=makespan.item())
+                # print metrics
+                self.print_function(performance=performance,
+                                    case_idx=case_idx,
+                                    max_size=self.data_size)
+
+                # add metrics
+                self.performance_queue.put(performance)

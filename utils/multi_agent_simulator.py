@@ -88,7 +88,8 @@ class MultiAgentSimulator:
                  start_pos_list: torch.FloatTensor,
                  task_list: torch.FloatTensor,
                  model: torch.nn.Module,
-                 target_makespan: int
+                 target_makespan: int,
+                 device: str,
                  ) -> None:
         """
         :param obstacle_map: shape = (H, W)
@@ -96,6 +97,7 @@ class MultiAgentSimulator:
         :param task_list: shape = (task_num, 2, 2)
         :param model: trained model
         :param target_makespan: makespan of the expert solution
+        :param device: device on which to operate the simulation, 'cuda:id' or 'cpu'
         """
         # maximum step allowed for the simulation
         max_step = int(target_makespan * self.max_step_factor)
@@ -107,13 +109,13 @@ class MultiAgentSimulator:
 
         # loop until termination or max step is reached
         while not self.terminate and self.timestep < (max_step-1):   # -1 since timestep update is at the start
-            self.execute_one_timestep()
+            self.execute_one_timestep(device=device)
 
     def set_up_simulation(self,
                           obstacle_map: torch.FloatTensor,
                           ag_start_pos: torch.FloatTensor,
                           task_list: torch.FloatTensor,
-                          model: torch.nn.Module
+                          model: torch.nn.Module,
                           ) -> None:
         """
         Set up variables for the simulation
@@ -158,9 +160,12 @@ class MultiAgentSimulator:
                                                       # agents don't use parking positions
                                                       non_task_ep_list=[])
 
-    def execute_one_timestep(self) -> None:
+    def execute_one_timestep(self,
+                             device: str
+                             ) -> None:
         """
         Execute one timestep of the simulation
+        :param device: device on which to operate the simulation, 'cuda:id' or 'cpu'
         """
         # update timestep
         self.timestep += 1
@@ -183,12 +188,12 @@ class MultiAgentSimulator:
         input_tensor = self.agent_state.get_input_state(goal_pos_list=goal_list,
                                                         agent_pos_list=self.curr_agent_pos)
         # shape = 1 x N x 3 x F_H x F_W
-        input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).to(self.config.device).float()   # add batch = 1
+        input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).to(device).float()   # add batch = 1
 
         # obtain and set gso
         GSO = g_utils.compute_adj_matrix(agent_pos_list=self.curr_agent_pos,
                                          comm_radius=self.config.comm_radius)
-        GSO = torch.from_numpy(GSO).unsqueeze(0).to(self.config.device).float()     # add batch = 1
+        GSO = torch.from_numpy(GSO).unsqueeze(0).to(device).float()     # add batch = 1
         self.model.set_gso(GSO)
 
         # predict with model
