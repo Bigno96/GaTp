@@ -293,6 +293,7 @@ class ResNetLayer(nn.Module):
                  out_channels: int,
                  n: int = 1,
                  block: Type[BasicBlock] = BasicBlock,
+                 use_down_sampling: bool = True,
                  *args: Any,
                  **kwargs: Any):
         """
@@ -300,12 +301,16 @@ class ResNetLayer(nn.Module):
         :param out_channels: output planes
         :param n: number of Blocks that compose the Layer
         :param block: Blocks to build the layer
+        :param use_down_sampling: if True, down sampling is applied in the first block of the layer
         :param args: optional positional arguments for Block and Conv layer
         :param kwargs: optional keyword arguments for Block and Conv layer
         """
         super().__init__()
         # perform down-sampling directly by convolutional layers that have a stride of 2
-        down_sampling = (2, 2) if in_channels != out_channels else (1, 1)
+        if use_down_sampling:
+            down_sampling = (2, 2) if in_channels != out_channels else (1, 1)
+        else:
+            down_sampling = (1, 1)
         # save block structure for forward pass
         self.blocks = nn.Sequential(
             # first block with (optional) down-sampling
@@ -337,10 +342,9 @@ class ResNetEncoder(nn.Module):
     """
     ResNet Encoder composed by Layers with increasing features
     First Layer ('gate'):
-        Conv with 7x7 Kernel and 2x2 Stride
+        Conv with 7x7 Kernel
         Batch Norm
         Activation function
-        Max Pooling
     Than k specified Layers, where k = len(blocks_size)
     Each layer has n specified Blocks
     """
@@ -351,6 +355,7 @@ class ResNetEncoder(nn.Module):
                  depths: tuple[int, ...] = (2, 2, 2, 2),
                  activation: str = 'relu',
                  block: Type[BasicBlock] = BasicBlock,
+                 use_down_sampling: bool = True,
                  *args: Any,
                  **kwargs: Any):
         """
@@ -360,6 +365,7 @@ class ResNetEncoder(nn.Module):
         :param activation: activation function to select from activation_dict
                            options: 'relu', 'leaky_relu', 'selu'
         :param block: Blocks to build the layer
+        :param use_down_sampling: if True, down sampling is applied in the first block of the layer
         :param args: optional positional arguments for Block and Conv layer
         :param kwargs: optional keyword arguments for Block and Conv layer
         """
@@ -369,21 +375,19 @@ class ResNetEncoder(nn.Module):
             conv_bn(in_channels=in_channels,
                     out_channels=blocks_size[0],
                     conv=conv7x7,
-                    stride=(2, 2)),     # 7x7 kernel, stride = 2
-            activation_func(activation=activation),
-            nn.MaxPool2d(kernel_size=(3, 3),    # 3x3 max pooling
-                         stride=(2, 2),
-                         padding=(1, 1))
+                    stride=(2, 2) if use_down_sampling else (1, 1)),    # 7x7 kernel, stride = 1 or 2
+            activation_func(activation=activation)
         )
         # rest of the custom layers
         in_out_block_sizes = list(zip(blocks_size, blocks_size[1:]))
         self.blocks = nn.ModuleList([
-            # first layer, no expansion -> will trigger down-sampling
+            # first layer, no expansion
             ResNetLayer(in_channels=blocks_size[0],
                         out_channels=blocks_size[0],
                         n=depths[0],
                         activation=activation,
                         block=block,    # block type
+                        use_down_sampling=use_down_sampling,
                         *args,
                         **kwargs),
             # rest of the layer, with optional expansion
@@ -392,6 +396,7 @@ class ResNetEncoder(nn.Module):
                           n=n,
                           activation=activation,
                           block=block,     # block type
+                          use_down_sampling=use_down_sampling,
                           *args,
                           **kwargs)
               for (in_channels, out_channels), n in zip(in_out_block_sizes, depths[1:])]

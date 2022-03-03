@@ -176,6 +176,9 @@ def process_config(args: argparse.Namespace) -> EasyDict:
     # create, if they don't exist
     f_utils.create_dirs([config.log_dir, config.checkpoint_dir])
 
+    # Windows does not support multiprocess pytorch loading
+    config.data_loader_workers = 0 if os.name == 'nt' else config.data_loader_workers
+
     # setup logging in the project
     setup_logging(config.log_dir)
 

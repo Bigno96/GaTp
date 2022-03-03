@@ -76,6 +76,8 @@ class MAGATNet(nn.Module):
         self.cnn_blocks_size = self.config.cnn_blocks_size
         # number of blocks that compose each layer of the cnn
         self.cnn_depths = self.config.cnn_depths
+        # bool to activate down sampling
+        self.use_down_sampling = self.config.use_down_sampling
 
         if self.cnn_model.lower() == 'res':
             self.cnn = \
@@ -83,7 +85,8 @@ class MAGATNet(nn.Module):
                     in_channels=self.cnn_in_channels,
                     out_features=self.cnn_out_features,
                     blocks_size=self.cnn_blocks_size,
-                    depths=self.cnn_depths
+                    depths=self.cnn_depths,
+                    use_down_sampling=self.use_down_sampling
                 )
         else:
             self.logger.error('No CNN model was specified')
