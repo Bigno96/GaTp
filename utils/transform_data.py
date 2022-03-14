@@ -40,8 +40,7 @@ import utils.graph_utils as g_utils
 
 from operator import sub
 from easydict import EasyDict
-from collections import deque
-from typing import Tuple, Dict
+from typing import Tuple, Dict, Deque
 
 
 class DataTransformer:
@@ -177,7 +176,7 @@ class DataTransformer:
         return environment, expert_sol
 
     @staticmethod
-    def schedule_to_numpy(schedule: Dict[int, deque[Tuple[int, int, int]]]
+    def schedule_to_numpy(schedule: Dict[int, Deque[Tuple[int, int, int]]]
                           ) -> np.array:
         """
         Transform given schedule from dict to numpy array
@@ -199,8 +198,8 @@ class DataTransformer:
 
     def build_train_input_state(self,
                                 input_map: np.array,
-                                agent_schedule: Dict[int, deque[Tuple[int, int, int]]],
-                                goal_schedule: Dict[int, deque[Tuple[int, int, int]]]
+                                agent_schedule: Dict[int, Deque[Tuple[int, int, int]]],
+                                goal_schedule: Dict[int, Deque[Tuple[int, int, int]]]
                                 ) -> np.array:
         """
         Build input tensor for training input data
@@ -227,7 +226,7 @@ class DataTransformer:
                                                          makespan=len(agent_schedule[0]))
 
     def compute_gso(self,
-                    agent_schedule: Dict[int, deque[Tuple[int, int, int]]]
+                    agent_schedule: Dict[int, Deque[Tuple[int, int, int]]]
                     ) -> np.array:
         """
         Compute GSO for each timestep
@@ -252,7 +251,7 @@ class DataTransformer:
         return gso
 
     @staticmethod
-    def transform_agent_schedule(agent_schedule: Dict[int, deque[Tuple[int, int, int]]]
+    def transform_agent_schedule(agent_schedule: Dict[int, Deque[Tuple[int, int, int]]]
                                  ) -> np.array:
         """
         A matrix-form notation is used to represent produced agent schedule
