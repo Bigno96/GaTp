@@ -469,16 +469,16 @@ def learn_attention_gso_batch_key_query(x: torch.FloatTensor,
     # we do not want to consider the places where there are no neighbors,
     # so we need to set them to -infinity so that they will be assigned a zero.
 
-    #   First, get places where we have edges
+    # first, get places where we have edges
     maskEdges = torch.sum(torch.abs(S.data), dim=1).reshape([B, 1, 1, N, N])    # B x 1 x 1 x N x N
-    #   Make it a binary matrix
-    maskEdges = (maskEdges > ZERO_TOLERANCE).type(x.dtype).cuda()   # B x 1 x 1 x N x N
-    #   Make it -infinity where there are zeros
+    # make it a binary matrix
+    maskEdges = (maskEdges > ZERO_TOLERANCE).type(x.dtype).to(eij.device)  # B x 1 x 1 x N x N
+    # make it -infinity where there are zeros
     infinityMask = (1 - maskEdges) * INF_NUMBER
-    infinityMask.cuda()
+    infinityMask.to(eij.device)
+
     # compute the softmax plus the -infinity (we first force the places where there is no edge to be zero,
     # and then we add -infinity to them)
-
     aij_tmp = nn.functional.softmax(eij * maskEdges - infinityMask, dim=4)
 
     return aij_tmp * maskEdges
