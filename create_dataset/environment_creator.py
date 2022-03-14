@@ -21,12 +21,12 @@ import utils.file_utils as f_utils
 
 from p_tqdm import p_map
 from easydict import EasyDict
-from typing import Optional
+from typing import Optional, List
 
 
 def create_environment(config: EasyDict,
                        dataset_dir: str,
-                       file_path_list: Optional[list[str]] = None,
+                       file_path_list: Optional[List[str]] = None,
                        recovery_mode: bool = False):
     """
     Pipeline:

@@ -4,7 +4,7 @@ Utility functions for experts algorithms
 
 import numpy as np
 
-from typing import Any, Optional
+from typing import Any, Optional, Set, Tuple, Dict, List
 from collections import deque
 
 
@@ -35,9 +35,9 @@ class StopToken:
         self.is_cancelled = True
 
 
-def is_valid_expansion(next_node: tuple[int, int, int],
+def is_valid_expansion(next_node: Tuple[int, int, int],
                        input_map: np.array,
-                       closed_list: set[tuple[int, int, int]]
+                       closed_list: Set[Tuple[int, int, int]]
                        ) -> bool:
     """
     Check if is possible for A* to expand the new cell
@@ -66,9 +66,9 @@ def is_valid_expansion(next_node: tuple[int, int, int],
     return True
 
 
-def check_token_conflicts(token: Optional[dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]]],
-                          next_node: Optional[tuple[int, int, int]],
-                          curr_node: Optional[tuple[int, int, int]],
+def check_token_conflicts(token: Optional[Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]]],
+                          next_node: Optional[Tuple[int, int, int]],
+                          curr_node: Optional[Tuple[int, int, int]],
                           starting_t: int = 0
                           ) -> bool:
     """
@@ -124,13 +124,13 @@ def check_token_conflicts(token: Optional[dict[int, dict[str, tuple[int, int] or
     return next_pos not in bad_moves_list
 
 
-def get_next_node_list(curr_node: tuple[int, int, int],
+def get_next_node_list(curr_node: Tuple[int, int, int],
                        max_depth: int,
                        starting_t: int,
                        input_map: np.array,
-                       closed_list: set[tuple[int, int, int]],
-                       token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]]
-                       ) -> list[tuple[int, int, int]]:
+                       closed_list: Set[Tuple[int, int, int]],
+                       token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]]
+                       ) -> List[Tuple[int, int, int]]:
     """
     Get list of nodes available for A* expansion
     :param curr_node: (x, y, t), current parent node
@@ -167,7 +167,7 @@ def get_next_node_list(curr_node: tuple[int, int, int],
 
 
 def compute_manhattan_heuristic(input_map: np.array,
-                                goal: tuple[int, int]
+                                goal: Tuple[int, int]
                                 ) -> np.array:
     """
     Create a matrix the same shape of the input map
@@ -186,9 +186,9 @@ def compute_manhattan_heuristic(input_map: np.array,
 
 
 def preprocess_heuristics(input_map: np.ndarray,
-                          task_list: list[tuple[tuple[int, int], tuple[int, int]]],
-                          non_task_ep_list: list[tuple[int, int]]
-                          ) -> dict[tuple[int, int], np.array]:
+                          task_list: List[Tuple[Tuple[int, int], Tuple[int, int]]],
+                          non_task_ep_list: List[Tuple[int, int]]
+                          ) -> Dict[Tuple[int, int], np.array]:
     """
     Since cost-minimal paths need to be found only to endpoints, the path costs from all locations to all endpoints
     are computed in a preprocessing phase
@@ -220,9 +220,9 @@ def preprocess_heuristics(input_map: np.ndarray,
     return dict(zip(iter(ep_list), iter(h_map_list)))
 
 
-def free_cell_heuristic(target: tuple[int, int],
+def free_cell_heuristic(target: Tuple[int, int],
                         input_map: np.array,
-                        token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]],
+                        token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]],
                         target_timestep: int
                         ) -> int:
     """
@@ -254,10 +254,10 @@ def free_cell_heuristic(target: tuple[int, int],
                 and pos not in token_pos_list])
 
 
-def drop_idle(agent_pool: set[Any],
+def drop_idle(agent_pool: Set[Any],
               curr_agent: Any,
-              token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]]
-              ) -> dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]]:
+              token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]]
+              ) -> Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]]:
     """
     Drop idle agents' path from the token, excluding calling agent
     :param agent_pool: set of Agent instances

@@ -26,14 +26,14 @@ from multiprocessing import Pool, Manager
 from os.path import normpath, basename
 from threading import Thread
 from easydict import EasyDict
-from typing import Optional
+from typing import Optional, List
 
 
 def run_expert(config: EasyDict,
                dataset_dir: str,
-               file_path_list: Optional[list[str]] = None,
+               file_path_list: Optional[List[str]] = None,
                recovery_mode: bool = False
-               ) -> list[str]:
+               ) -> List[str]:
     """
     Run selected expert to generate solutions for all pre-generated environments
     Expert type supported: 'tp'

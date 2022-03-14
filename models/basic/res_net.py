@@ -14,7 +14,7 @@ import torch
 import torch.nn as nn
 
 from functools import partial
-from typing import Any, Type
+from typing import Any, Type, Tuple
 
 
 class ResNet(nn.Module):
@@ -124,7 +124,7 @@ class ResidualBlock(nn.Module):
                  out_channels: int,
                  activation: str = 'relu',
                  expansion: int = 1,
-                 down_sampling: tuple[int, int] = (1, 1)):
+                 down_sampling: Tuple[int, int] = (1, 1)):
         """
         :param in_channels: input planes
         :param out_channels: output planes
@@ -351,8 +351,8 @@ class ResNetEncoder(nn.Module):
 
     def __init__(self,
                  in_channels: int,
-                 blocks_size: tuple[int, ...] = (64, 128, 256, 512),
-                 depths: tuple[int, ...] = (2, 2, 2, 2),
+                 blocks_size: Tuple[int, ...] = (64, 128, 256, 512),
+                 depths: Tuple[int, ...] = (2, 2, 2, 2),
                  activation: str = 'relu',
                  block: Type[BasicBlock] = BasicBlock,
                  use_down_sampling: bool = True,

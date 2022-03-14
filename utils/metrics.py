@@ -8,6 +8,7 @@ import utils.multi_agent_simulator as ma_sim
 
 from dataclasses import dataclass
 from collections import deque
+from typing import List, Tuple, Dict
 
 
 @dataclass(order=True)
@@ -74,8 +75,8 @@ class PerformanceRecorder:
                            makespan_difference=makespan_diff)
 
 
-def count_collision(agent_schedule: dict[int, deque[tuple[int, int, int]]]
-                    ) -> tuple[int, list[int]]:
+def count_collision(agent_schedule: Dict[int, deque[Tuple[int, int, int]]]
+                    ) -> Tuple[int, List[int]]:
     """
     Get all agent's path for a MAPD instance solution and count collisions
     Collision is caused by either node or swap constraint violations
@@ -120,8 +121,8 @@ def count_collision(agent_schedule: dict[int, deque[tuple[int, int, int]]]
     return coll_count, collision_time_list
 
 
-def __drop_ts(input_list: list[tuple[int, int, int]]
-              ) -> list[tuple[int, int]]:
+def __drop_ts(input_list: List[Tuple[int, int, int]]
+              ) -> List[Tuple[int, int]]:
     """
     Drop timesteps from passed list of steps
     :param input_list: list of steps, (x, y, t)

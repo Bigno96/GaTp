@@ -22,15 +22,15 @@ import utils.transform_data as tf_data
 import utils.file_utils as f_utils
 
 from p_tqdm import p_map
-from typing import Optional
+from typing import Optional, List
 from easydict import EasyDict
 
 
 def get_nn_data(config: EasyDict,
                 dataset_dir: str,
-                bad_instances_list: list[Optional[str]] = (),
+                bad_instances_list: List[Optional[str]] = (),
                 recovery_mode: bool = False,
-                file_path_list: Optional[list[str]] = None
+                file_path_list: Optional[List[str]] = None
                 ) -> None:
     """
     Get NN compatible data out of environment and expert solution files

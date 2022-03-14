@@ -11,10 +11,10 @@ import numpy as np
 from PIL import Image
 from PIL.ImageOps import invert, colorize
 from easydict import EasyDict
-from typing import Any
+from typing import Any, List, Tuple
 
 
-def create_dirs(dirs: list[str]) -> None:
+def create_dirs(dirs: List[str]) -> None:
     """
     Create directories in the system if not found
     :param: directory paths to create
@@ -30,7 +30,7 @@ def create_dirs(dirs: list[str]) -> None:
 
 def save_image(file_path: str,
                input_map: np.array,
-               start_pos_list: list[tuple[int, int]]
+               start_pos_list: List[Tuple[int, int]]
                ) -> None:
     """
     Save image of the map (black and white) with agent starting positions (red)
@@ -65,7 +65,7 @@ def dump_data(file_path: str,
                     protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def get_all_files(directory: str) -> list[str]:
+def get_all_files(directory: str) -> List[str]:
     """
     Collect and return the list of all files in a directory and its subdirectories
     :param directory: path to the dataset directory
@@ -79,7 +79,7 @@ def get_all_files(directory: str) -> list[str]:
 
 def load_basename_list(data_path: str,
                        mode: str
-                       ) -> list[str]:
+                       ) -> List[str]:
     """
     Load a file basename list
     File basename -> 'mapID_caseID'

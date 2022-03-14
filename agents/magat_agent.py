@@ -28,7 +28,7 @@ from statistics import mean
 from easydict import EasyDict
 from torchinfo import summary
 from multiprocessing import Process, Manager
-from typing import Callable
+from typing import Callable, List
 
 
 class MagatAgent(agents.Agent):
@@ -435,7 +435,7 @@ class MagatAgent(agents.Agent):
                                  f'{performance}')
 
     @staticmethod
-    def get_avg_performance(performance_list: list[metrics.Performance]
+    def get_avg_performance(performance_list: List[metrics.Performance]
                             ) -> metrics.Performance:
         """
         Internal method to compute average performance over a list of performances

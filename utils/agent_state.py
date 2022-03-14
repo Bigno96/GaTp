@@ -30,6 +30,7 @@ Respectively:
 import numpy as np
 
 from easydict import EasyDict
+from typing import Tuple
 
 
 class AgentState:
@@ -140,8 +141,8 @@ class AgentState:
 
     def project_goal(self,
                      goal_map_FOV: np.array,
-                     agent_pos: tuple[int, int],
-                     goal_pos: tuple[int, int]
+                     agent_pos: Tuple[int, int],
+                     goal_pos: Tuple[int, int]
                      ) -> np.array:
         """
         Add goal projection to the goal FOV map of the agent, centered around its current position
@@ -184,8 +185,8 @@ class AgentState:
         return padded_goal_map_FOV
 
     def build_agent_input_state(self,
-                                load_state: tuple[np.array, np.array, np.array, int]
-                                ) -> tuple[tuple[np.array, np.array, np.array], np.array]:
+                                load_state: Tuple[np.array, np.array, np.array, int]
+                                ) -> Tuple[Tuple[np.array, np.array, np.array], np.array]:
         """
         Build a padded, FOV version of the 3 input channels (maps): obstacle map, goal map, agents pos map
         Update local objective list with global coordinates of each agent goal

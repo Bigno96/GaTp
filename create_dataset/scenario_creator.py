@@ -21,14 +21,14 @@ import numpy as np
 
 from random import sample
 from easydict import EasyDict
-from typing import Optional
+from typing import Optional, List, Tuple, Set
 
 
 def create_scenario(config: EasyDict,
                     input_map: np.array
-                    ) -> tuple[list[tuple[int, int]],
-                               list[tuple[int, int]],
-                               list[tuple[tuple[int, int], tuple[int, int]]]]:
+                    ) -> Tuple[List[Tuple[int, int]],
+                               List[Tuple[int, int]],
+                               list[Tuple[Tuple[int, int], Tuple[int, int]]]]:
     """
     Create a scenario
     :param config: Namespace of dataset configurations
@@ -62,8 +62,8 @@ def create_scenario(config: EasyDict,
 def create_starting_pos(input_map: np.array,
                         agent_num: int,
                         mode: str = 'random',
-                        fixed_pos_list: Optional[list[tuple[int, int]]] = None
-                        ) -> list[tuple[int, int]]:
+                        fixed_pos_list: Optional[List[Tuple[int, int]]] = None
+                        ) -> List[Tuple[int, int]]:
     """
     Get starting position, one for each agent, and collect them
     :param input_map: shape = (H, W), matrix of 0 and 1
@@ -99,9 +99,9 @@ def create_starting_pos(input_map: np.array,
 
 def create_task(input_map: np.array,
                 mode: str = 'avoid_non_task_rep',
-                non_task_ep_list: Optional[list[tuple[int, int]]] = None,
-                task_list: Optional[list[tuple[tuple[int, int], tuple[int, int]]]] = None
-                ) -> tuple[tuple[int, int], tuple[int, int]]:
+                non_task_ep_list: Optional[List[Tuple[int, int]]] = None,
+                task_list: Optional[List[Tuple[Tuple[int, int], Tuple[int, int]]]] = None
+                ) -> Tuple[Tuple[int, int], Tuple[int, int]]:
     """
     Return a task for the given map and starting positions
     Task endpoints cannot be on map borders, to increase probabilities of well-formed MAPD instances
@@ -126,7 +126,7 @@ def create_task(input_map: np.array,
     """
     # filters out obstacles coords
     where_res = np.nonzero(input_map == 0)
-    free_cell_pool: set[tuple[int, int]] = set(zip(where_res[0], where_res[1]))
+    free_cell_pool: Set[Tuple[int, int]] = set(zip(where_res[0], where_res[1]))
 
     # filters out borders
     free_cell_pool = set(filter(lambda c: c[0] != 0 and c[1] != 0

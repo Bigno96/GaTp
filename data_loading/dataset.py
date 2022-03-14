@@ -36,6 +36,7 @@ import utils.file_utils as f_utils
 from p_tqdm import p_map
 from torch.utils.data import Dataset
 from easydict import EasyDict
+from typing import List, Tuple, Dict
 
 
 class GaTpDataset(Dataset):
@@ -112,7 +113,7 @@ class GaTpDataset(Dataset):
 
     def __load_cache_data(self,
                           basename: str
-                          ) -> tuple[np.array or int or float, ...]:
+                          ) -> Tuple[np.array or int or float, ...]:
         """
         Used to read already transformed data from file path
         :param basename: case file name
@@ -126,7 +127,7 @@ class GaTpDataset(Dataset):
 
     def __getitem__(self,
                     index: int
-                    ) -> tuple[torch.FloatTensor, ...]:
+                    ) -> Tuple[torch.FloatTensor, ...]:
         """
         :param index: int
         :return: training -> (step_input_tensor, step_GSO, step_target, basename)
@@ -157,7 +158,7 @@ class GaTpDataset(Dataset):
 
     def get_train_data(self,
                        **kwargs: int or str
-                       ) -> tuple[torch.FloatTensor, ...]:
+                       ) -> Tuple[torch.FloatTensor, ...]:
         """
         Retrieve training data from data cache
         :param **kwargs
@@ -186,7 +187,7 @@ class GaTpDataset(Dataset):
 
     def get_test_data(self,
                       **kwargs: int or str,
-                      ) -> tuple[torch.FloatTensor, ...]:
+                      ) -> Tuple[torch.FloatTensor, ...]:
         """
         Retrieve testing data from data cache
         :param **kwargs
@@ -226,8 +227,8 @@ class BasenameSwitch:
     """
 
     def __init__(self,
-                 basename_list: list[str],
-                 data_cache: dict[str, tuple[np.array, ...]],
+                 basename_list: List[str],
+                 data_cache: Dict[str, Tuple[np.array, ...]],
                  mode: str):
         """
         :param basename_list: all case file's names
@@ -262,7 +263,7 @@ class BasenameSwitch:
 
     def get_item(self,
                  idx: int
-                 ) -> tuple[str, int]:
+                 ) -> Tuple[str, int]:
         """
         Return basename and timestep (of the corresponding solution) selected by index
         :param idx: index of __getitem__

@@ -24,15 +24,16 @@ import utils.expert_utils as exp_utils
 import numpy as np
 
 from collections import deque
+from typing import List, Tuple, Dict
 
 
 def tp(input_map: np.array,
-       start_pos_list: list[tuple[int, int]],
-       task_list: list[tuple[tuple[int, int], tuple[int, int]]],
-       parking_spot_list: list[tuple[int, int]],
-       agent_schedule: dict[int, deque[tuple[int, int, int]]],
-       goal_schedule: dict[int, deque[tuple[int, int, int]]],
-       metrics: dict['str', list[int or float]],
+       start_pos_list: List[Tuple[int, int]],
+       task_list: List[Tuple[Tuple[int, int], Tuple[int, int]]],
+       parking_spot_list: List[Tuple[int, int]],
+       agent_schedule: Dict[int, deque[Tuple[int, int, int]]],
+       goal_schedule: Dict[int, deque[Tuple[int, int, int]]],
+       metrics: Dict['str', List[int or float]],
        execution: exp_utils.StopToken,
        imm_task_split: float = 0.,
        new_task_per_insertion: int = 1,
@@ -41,7 +42,7 @@ def tp(input_map: np.array,
     """
     Token Passing algorithm
     :param input_map: matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
-    :param start_pos_list: (x,y), coordinates over the map
+    :param start_pos_list: [(x,y), ...] coordinates over the map
     :param task_list: [(task1), (task2), ...]
                       task: tuple ((x_p,y_p),(x_d,y_d)) -> ((pickup),(delivery))
     :param parking_spot_list: (x,y) -> coordinates over the map

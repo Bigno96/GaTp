@@ -10,7 +10,7 @@ import random
 import numpy as np
 
 from collections import deque
-from typing import Optional
+from typing import Optional, List, Tuple, Dict, Set
 
 # moves dictionary
 DELTA = [(-1, 0),  # go up
@@ -19,7 +19,7 @@ DELTA = [(-1, 0),  # go up
          (0, 1)]  # go right
 
 
-def create_random_grid_map(map_shape: tuple[int, int],
+def create_random_grid_map(map_shape: Tuple[int, int],
                            map_density: float,
                            connected: bool
                            ) -> np.array:
@@ -96,8 +96,8 @@ def is_connected(input_map: np.array,
 
 
 def create_adj_list(input_map: np.array,
-                    free_cell_list: list[tuple[int, int]]
-                    ) -> dict[tuple[int, int], Optional[list[tuple[int, int]]]]:
+                    free_cell_list: List[Tuple[int, int]]
+                    ) -> Dict[Tuple[int, int], Optional[List[Tuple[int, int]]]]:
     """
     Create adjacency list for graph representation of input_map
     :param input_map: shape=(H, W) -> '1' in obstacles places, '0' elsewhere
@@ -123,9 +123,9 @@ def create_adj_list(input_map: np.array,
     return graph
 
 
-def dfs(visited: set[tuple[int, int]],
-        graph: dict[tuple[int, int], Optional[list[tuple[int, int]]]],
-        start_node: tuple[int, int]) -> None:
+def dfs(visited: Set[Tuple[int, int]],
+        graph: Dict[Tuple[int, int], Optional[List[Tuple[int, int]]]],
+        start_node: Tuple[int, int]) -> None:
     """
     Implement depth first search on an adjacency list
     :param visited: already visited nodes

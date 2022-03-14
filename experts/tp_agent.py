@@ -10,7 +10,7 @@ import experts.a_star as a_s
 import utils.expert_utils as exp_utils
 
 from collections import deque
-from typing import Optional
+from typing import Optional, Dict, List, Tuple
 
 
 class TpAgent:
@@ -21,8 +21,8 @@ class TpAgent:
     def __init__(self,
                  name: int,
                  input_map: np.array,
-                 start_pos: tuple[int, int],
-                 h_coll: dict[tuple[int, int], np.array]):
+                 start_pos: Tuple[int, int],
+                 h_coll: Dict[Tuple[int, int], np.array]):
         """
         :param name: unique identifier
         :param input_map: matrix of 0s and 1s, 0 -> free cell, 1 -> obstacles
@@ -71,11 +71,11 @@ class TpAgent:
                 self.goal = self.path[-1][:-1]  # update with delivery position
 
     def receive_token(self,
-                      token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]],
-                      task_list: list[tuple[tuple[int, int], tuple[int, int]]],
-                      non_task_ep_list: list[tuple[int, int]],
+                      token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]],
+                      task_list: List[Tuple[Tuple[int, int], Tuple[int, int]]],
+                      non_task_ep_list: List[Tuple[int, int]],
                       sys_timestep: int
-                      ) -> Optional[tuple[tuple[int, int], tuple[int, int]]]:
+                      ) -> Optional[Tuple[Tuple[int, int], Tuple[int, int]]]:
         """
         Agent receives token and assigns himself to a new task
         Add its new path to the token, remove assigned task from task_list
@@ -171,9 +171,9 @@ class TpAgent:
             return None
 
     def go_to_resting_pos(self,
-                          token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]],
-                          task_list: list[tuple[tuple[int, int], tuple[int, int]]],
-                          non_task_ep_list: list[tuple[int, int]],
+                          token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]],
+                          task_list: List[Tuple[Tuple[int, int], Tuple[int, int]]],
+                          non_task_ep_list: List[Tuple[int, int]],
                           sys_timestep: int) -> None:
         """
         Pick the nearest endpoint s.t. delivery locations of all tasks are different from the chosen endpoint,
@@ -241,7 +241,7 @@ class TpAgent:
                             'path': self.path}
 
     def collision_shielding(self,
-                            token: dict[int, dict[str, tuple[int, int] or deque[tuple[int, int, int]]]],
+                            token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]],
                             sys_timestep: int,
                             agent_pool: set[TpAgent],
                             _time_horizon: int = 3

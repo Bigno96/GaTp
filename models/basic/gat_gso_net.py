@@ -23,7 +23,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as f
 
-from typing import Optional
+from typing import Optional, Tuple, List
 
 ZERO_TOLERANCE = 1e-9    # values below this number are considered zero
 INF_NUMBER = 1e12       # infinity equals this number
@@ -37,9 +37,9 @@ class GatGSO(nn.Module):
     def __init__(self,
                  in_features: int,
                  out_features: int,
-                 hidden_features: Optional[tuple[int, ...]] = (),
-                 graph_filter_taps: Optional[tuple[int, ...]] = (3,),
-                 attention_heads: Optional[tuple[int, ...]] = (1,),
+                 hidden_features: Optional[List[int, ...]] = (),
+                 graph_filter_taps: Optional[Tuple[int, ...]] = (3,),
+                 attention_heads: Optional[Tuple[int, ...]] = (1,),
                  attention_concat: bool = True):
         """
         :param in_features: input features
@@ -317,7 +317,7 @@ def graph_attention_lsigf_batch_key_query(h: nn.Parameter,
                                           S: torch.FloatTensor,
                                           b: nn.Parameter = None,
                                           negative_slope: float = 0.2
-                                          ) -> tuple[torch.FloatTensor, torch.FloatTensor]:
+                                          ) -> Tuple[torch.FloatTensor, torch.FloatTensor]:
     """
     Compute graph attention with key_query
     :param h: filter weights,

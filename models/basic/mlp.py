@@ -5,7 +5,7 @@ import torch
 
 import torch.nn as nn
 
-from typing import Optional
+from typing import Optional, Tuple
 
 
 class MLP(nn.Module):
@@ -18,7 +18,7 @@ class MLP(nn.Module):
     def __init__(self,
                  in_features: int,
                  out_features: int,
-                 hidden_features: Optional[tuple[int, ...]] = (),
+                 hidden_features: Optional[Tuple[int, ...]] = (),
                  learn_bias: bool = True,
                  use_dropout: bool = False,
                  dropout_rate: float = 0.2):
