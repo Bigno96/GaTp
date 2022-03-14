@@ -37,7 +37,7 @@ class GatGSO(nn.Module):
     def __init__(self,
                  in_features: int,
                  out_features: int,
-                 hidden_features: Optional[List[int, ...]] = (),
+                 hidden_features: Optional[List[int]] = (),
                  graph_filter_taps: Optional[Tuple[int, ...]] = (3,),
                  attention_heads: Optional[Tuple[int, ...]] = (1,),
                  attention_concat: bool = True):
