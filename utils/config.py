@@ -21,7 +21,9 @@ from time import mktime
 from easydict import EasyDict
 from yaml import safe_load
 
-CONFIG_FOLDER_PATH = 'D:/Uni/TESI/GaTp/yaml_configs'
+CONFIG_FOLDER_PATH = 'GaTp/yaml_configs'
+DATA_ROOT = 'D:/Uni/TESI'
+APPEND_DATA_ROOT = False        # change this to prepend DATA_ROOT for creating data folder paths
 
 
 def setup_logging(log_dir: str) -> None:
@@ -69,7 +71,10 @@ def get_config_from_yaml(config_name: str) -> EasyDict:
     """
 
     # extend name with .yaml and the correct folder
-    yaml_file = os.path.join(CONFIG_FOLDER_PATH, f'{config_name}.yaml')
+    if APPEND_DATA_ROOT:
+        yaml_file = os.path.join(DATA_ROOT, CONFIG_FOLDER_PATH, f'{config_name}.yaml')
+    else:
+        yaml_file = os.path.join(CONFIG_FOLDER_PATH, f'{config_name}.yaml')
 
     # parse the configurations from the config yaml file provided
     with open(yaml_file, 'r') as config_file:
@@ -167,6 +172,8 @@ def process_config(args: argparse.Namespace) -> EasyDict:
                                    config.exp_time)
 
     # setup useful directories
+    if APPEND_DATA_ROOT:
+        config.exp_folder = os.path.join(DATA_ROOT, config.exp_folder)
     config.log_dir = os.path.join(config.exp_folder,
                                   config.exp_name,
                                   'logs')   # logging outputs

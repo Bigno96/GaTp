@@ -31,6 +31,8 @@ import create_dataset.run_expert as exp
 import create_dataset.nn_data_generator as nn_data_gen
 import utils.config as cfg
 
+DATA_ROOT = 'D:/Uni/TESI'
+
 
 def create_dataset() -> None:
     """
@@ -40,6 +42,8 @@ def create_dataset() -> None:
     logger = logging.getLogger("Dataset Creator")
     # get config from yaml file
     config = cfg.get_config_from_yaml('dataset_creation')
+    # data root
+    config.data_root = os.path.join(DATA_ROOT, config.data_root)
 
     # create folder for the dataset
     dataset_dir = os.path.join(config.data_root,

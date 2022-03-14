@@ -4,7 +4,7 @@ cuda: True  # device for loading tensors. If True, cuda is used, if False cpu is
 gpu_device: 0   # number of device to use when cuda is enabled
 seed: 1337  # seed for torch
 
-# folder paths
+# folder paths, only inside project scope
 data_root: "GaTp/datasets"
 exp_folder: "GaTp/experiments"
 
