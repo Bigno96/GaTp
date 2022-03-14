@@ -17,6 +17,7 @@ import utils.expert_utils as exp_utils
 from itertools import repeat
 from collections import deque
 from easydict import EasyDict
+from typing import Dict, List, Tuple, Deque
 
 
 class MultiAgentSimulator:
@@ -49,15 +50,15 @@ class MultiAgentSimulator:
         self.curr_agent_pos = np.array(())  # agent_num x 2
 
         # keeping track of task assignment, { id : shape = (2x2 or 1x2 or ()) }
-        self.task_register: dict[int, np.array] = {}
+        self.task_register: Dict[int, np.array] = {}
         self.task_list = np.array(())   # task_num x 2 x 2
-        self.active_task_list: list[np.array] = []  # tracking active tasks
-        self.new_task_pool: deque[np.array] = deque()  # new tasks still to activate
+        self.active_task_list: List[np.array] = []  # tracking active tasks
+        self.new_task_pool: Deque[np.array] = deque()  # new tasks still to activate
 
         # keeping track of agent movements
-        self.agent_schedule: dict[int, deque[tuple[int, int, int]]] = {}
+        self.agent_schedule: Dict[int, Deque[Tuple[int, int, int]]] = {}
         # precomputed distance heuristics
-        self.h_coll: dict[tuple, np.array] = {}
+        self.h_coll: Dict[Tuple, np.array] = {}
 
         '''simulation parameters'''
         self.timestep = 0  # timestep counter

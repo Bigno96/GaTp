@@ -10,7 +10,7 @@ import experts.a_star as a_s
 import utils.expert_utils as exp_utils
 
 from collections import deque
-from typing import Optional, Dict, List, Tuple
+from typing import Optional, Dict, List, Tuple, Deque
 
 
 class TpAgent:
@@ -71,7 +71,7 @@ class TpAgent:
                 self.goal = self.path[-1][:-1]  # update with delivery position
 
     def receive_token(self,
-                      token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]],
+                      token: Dict[int, Dict[str, Tuple[int, int] or Deque[Tuple[int, int, int]]]],
                       task_list: List[Tuple[Tuple[int, int], Tuple[int, int]]],
                       non_task_ep_list: List[Tuple[int, int]],
                       sys_timestep: int
@@ -171,7 +171,7 @@ class TpAgent:
             return None
 
     def go_to_resting_pos(self,
-                          token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]],
+                          token: Dict[int, Dict[str, Tuple[int, int] or Deque[Tuple[int, int, int]]]],
                           task_list: List[Tuple[Tuple[int, int], Tuple[int, int]]],
                           non_task_ep_list: List[Tuple[int, int]],
                           sys_timestep: int) -> None:
@@ -241,7 +241,7 @@ class TpAgent:
                             'path': self.path}
 
     def collision_shielding(self,
-                            token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]],
+                            token: Dict[int, Dict[str, Tuple[int, int] or Deque[Tuple[int, int, int]]]],
                             sys_timestep: int,
                             agent_pool: set[TpAgent],
                             _time_horizon: int = 3

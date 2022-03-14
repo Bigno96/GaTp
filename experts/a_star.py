@@ -25,17 +25,17 @@ import utils.expert_utils as exp_utils
 
 from collections import deque
 from math import hypot
-from typing import Optional, Tuple, Dict
+from typing import Optional, Tuple, Dict, Deque
 
 
 def a_star(input_map: np.array,
            start: Tuple[int, int],
            goal: Tuple[int, int],
            include_start_node: bool,
-           token: Optional[Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]]] = None,
+           token: Optional[Dict[int, Dict[str, Tuple[int, int] or Deque[Tuple[int, int, int]]]]] = None,
            h_map: Optional[np.array] = None,
            starting_t: int = 0
-           ) -> Tuple[deque[Tuple[int, int, int]], int]:
+           ) -> Tuple[Deque[Tuple[int, int, int]], int]:
     """
     A* Planner method
     Finds a plan from a starting node to a goal node if one exists

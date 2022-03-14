@@ -24,15 +24,15 @@ import utils.expert_utils as exp_utils
 import numpy as np
 
 from collections import deque
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Deque
 
 
 def tp(input_map: np.array,
        start_pos_list: List[Tuple[int, int]],
        task_list: List[Tuple[Tuple[int, int], Tuple[int, int]]],
        parking_spot_list: List[Tuple[int, int]],
-       agent_schedule: Dict[int, deque[Tuple[int, int, int]]],
-       goal_schedule: Dict[int, deque[Tuple[int, int, int]]],
+       agent_schedule: Dict[int, Deque[Tuple[int, int, int]]],
+       goal_schedule: Dict[int, Deque[Tuple[int, int, int]]],
        metrics: Dict['str', List[int or float]],
        execution: exp_utils.StopToken,
        imm_task_split: float = 0.,

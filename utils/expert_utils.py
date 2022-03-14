@@ -4,8 +4,7 @@ Utility functions for experts algorithms
 
 import numpy as np
 
-from typing import Any, Optional, Set, Tuple, Dict, List
-from collections import deque
+from typing import Any, Optional, Set, Tuple, Dict, List, Deque
 
 
 # delta dictionary
@@ -66,7 +65,7 @@ def is_valid_expansion(next_node: Tuple[int, int, int],
     return True
 
 
-def check_token_conflicts(token: Optional[Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]]],
+def check_token_conflicts(token: Optional[Dict[int, Dict[str, Tuple[int, int] or Deque[Tuple[int, int, int]]]]],
                           next_node: Optional[Tuple[int, int, int]],
                           curr_node: Optional[Tuple[int, int, int]],
                           starting_t: int = 0
@@ -129,7 +128,7 @@ def get_next_node_list(curr_node: Tuple[int, int, int],
                        starting_t: int,
                        input_map: np.array,
                        closed_list: Set[Tuple[int, int, int]],
-                       token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]]
+                       token: Dict[int, Dict[str, Tuple[int, int] or Deque[Tuple[int, int, int]]]]
                        ) -> List[Tuple[int, int, int]]:
     """
     Get list of nodes available for A* expansion
@@ -222,7 +221,7 @@ def preprocess_heuristics(input_map: np.ndarray,
 
 def free_cell_heuristic(target: Tuple[int, int],
                         input_map: np.array,
-                        token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]],
+                        token: Dict[int, Dict[str, Tuple[int, int] or Deque[Tuple[int, int, int]]]],
                         target_timestep: int
                         ) -> int:
     """
@@ -256,8 +255,8 @@ def free_cell_heuristic(target: Tuple[int, int],
 
 def drop_idle(agent_pool: Set[Any],
               curr_agent: Any,
-              token: Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]]
-              ) -> Dict[int, Dict[str, Tuple[int, int] or deque[Tuple[int, int, int]]]]:
+              token: Dict[int, Dict[str, Tuple[int, int] or Deque[Tuple[int, int, int]]]]
+              ) -> Dict[int, Dict[str, Tuple[int, int] or Deque[Tuple[int, int, int]]]]:
     """
     Drop idle agents' path from the token, excluding calling agent
     :param agent_pool: set of Agent instances

@@ -7,8 +7,7 @@ import sys
 import utils.multi_agent_simulator as ma_sim
 
 from dataclasses import dataclass
-from collections import deque
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Deque
 
 
 @dataclass(order=True)
@@ -75,7 +74,7 @@ class PerformanceRecorder:
                            makespan_difference=makespan_diff)
 
 
-def count_collision(agent_schedule: Dict[int, deque[Tuple[int, int, int]]]
+def count_collision(agent_schedule: Dict[int, Deque[Tuple[int, int, int]]]
                     ) -> Tuple[int, List[int]]:
     """
     Get all agent's path for a MAPD instance solution and count collisions
