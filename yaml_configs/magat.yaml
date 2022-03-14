@@ -5,8 +5,8 @@ gpu_device: 0   # number of device to use when cuda is enabled
 seed: 1337  # seed for torch
 
 # folder paths, only inside project scope
-data_root: "GaTp/datasets"
-exp_folder: "GaTp/experiments"
+data_root: "GaTp\\datasets"
+exp_folder: "GaTp\\experiments"
 
 
 # model hyper parameters

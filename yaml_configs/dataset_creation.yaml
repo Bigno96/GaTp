@@ -1,5 +1,5 @@
 # Datasets root folder, only inside project scope
-data_root: "GaTp/datasets"
+data_root: "GaTp\\datasets"
 
 # Agent config
 FOV: 9  # agents Field of View, has to be an ODD number
