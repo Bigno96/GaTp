@@ -62,7 +62,7 @@ def dump_data(file_path: str,
     with open(file_path, 'wb') as f:
         pickle.dump(obj=data,
                     file=f,
-                    protocol=pickle.HIGHEST_PROTOCOL)
+                    protocol=pickle.DEFAULT_PROTOCOL)
 
 
 def get_all_files(directory: str) -> List[str]:

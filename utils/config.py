@@ -196,7 +196,7 @@ def process_config(args: argparse.Namespace) -> EasyDict:
     # print out processed configuration
     time.sleep(1)  # aligning prints
     print('Selected configuration is the following:')
-    pprint.pprint(config, sort_dicts=False)
+    pprint.pprint(config)
     sys.stdout.flush()
 
     time.sleep(1)   # aligning prints
