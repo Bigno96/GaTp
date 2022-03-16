@@ -185,7 +185,7 @@ class MultiAgentSimulator:
         goal_list = self.get_goal_list()
 
         # get an input for the model
-        # intTensor -> (num_agents, 3 (channels), FOV+2*border, FOV+2*border)
+        # np array -> (num_agents, 3 (channels), FOV+2*border, FOV+2*border)
         input_tensor = self.agent_state.get_input_state(goal_pos_list=goal_list,
                                                         agent_pos_list=self.curr_agent_pos)
         # shape = 1 x N x 3 x F_H x F_W
@@ -200,8 +200,15 @@ class MultiAgentSimulator:
         # predict with model
         model_output = self.model(input_tensor)  # B*N x 5 -> since B=1, N x 5
 
+        # free memory to avoid leaks
+        del input_tensor
+        del GSO
+
         # exp_multinorm for getting predicted action
         action_idx_predict = self.exp_multinorm(model_output)  # 1*N x 1 (since B=1)
+
+        # free memory to avoid leaks
+        del model_output
 
         # move agents
         self.move_agents(action_idx_predict)

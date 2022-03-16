@@ -23,11 +23,12 @@ import data_loading.data_loader as loader
 import models.magat_net as magat
 import utils.multi_agent_simulator as sim
 import utils.metrics as metrics
+import torch.multiprocessing as mp
 
 from statistics import mean
 from easydict import EasyDict
 from torchinfo import summary
-from multiprocessing import Process, Manager
+from torch.multiprocessing.queue import SimpleQueue
 from typing import Callable, List
 
 
@@ -86,7 +87,7 @@ class MagatAgent(agents.Agent):
             self.logger.info('Program will run on ***CPU***\n')
 
         # set agent simulation function
-        if self.config.sim_num_process == 0 or os.name == 'nt':    # single process or Windows
+        if self.config.sim_num_process == 1 or os.name == 'nt':    # single process or Windows
             self.simulate_agent_exec = self.sim_agent_exec_single
         else:
             self.simulate_agent_exec = self.sim_agent_exec_multi
@@ -306,21 +307,30 @@ class MagatAgent(agents.Agent):
             # get model prediction, B*N x 5
             predict = self.model(batch_input)
 
+            # free memory to avoid leaks
+            del batch_input
+            del batch_GSO
+
             # compute loss
             # torch.max returns both values and indices
             # torch.max axis = 1 -> find the index of the chosen action for each agent
             loss = loss + self.loss(predict, torch.max(batch_target, 1)[1])     # [1] to unpack indices
 
+            # free memory to avoid leaks
+            del batch_target
+
             # update gradient with backward pass
             loss.backward()
+            # update learning rate
             self.optimizer.step()
 
             # log progress
             if batch_idx % self.config.log_interval == 0:
                 self.logger.info(f'Epoch {self.current_epoch}:'
-                                 f'[{batch_idx * len(batch_input)}/{len(self.data_loader.train_loader.dataset)}'
+                                 f'[{batch_idx * self.config.batch_size}/{len(self.data_loader.train_loader.dataset)}'
                                  f'({100 * batch_idx / len(self.data_loader.train_loader):.0f}%)]\t'
                                  f'Loss: {loss.item():.6f}')
+
         # always last batch logged
         self.logger.info(f'Epoch {self.current_epoch}:'
                          f'[{len(self.data_loader.train_loader.dataset)}/{len(self.data_loader.train_loader.dataset)}'
@@ -338,7 +348,7 @@ class MagatAgent(agents.Agent):
         """
         self.logger.info('Starting single process MAPD simulations')
 
-        performance_list: list[metrics.Performance] = []
+        performance_list: List[metrics.Performance] = []
         with torch.no_grad():
             # loop over all cases in the test/valid data loader
             for case_idx, (obstacle_map, start_pos_list, task_list, makespan, service_time) \
@@ -359,6 +369,10 @@ class MagatAgent(agents.Agent):
                                        case_idx=case_idx,
                                        max_size=len(data_loader))
 
+                # clean GPU cache to avoid leaks
+                if 'cuda' in self.config.device:
+                    torch.cuda.empty_cache()
+
         # return average performances
         return self.get_avg_performance(performance_list=performance_list)
 
@@ -375,41 +389,84 @@ class MagatAgent(agents.Agent):
 
         # useful variables
         data_size = len(data_loader)
-        manager = Manager()
 
         # load data from data loader
         with torch.no_grad():
-            data_queue = manager.Queue(maxsize=data_size)
+            # set up queues
+            performance_queue = SimpleQueue()
+            data_queue = SimpleQueue()
             for i, data_ in enumerate(data_loader):
-                data_queue.put((i, data_), block=True)
+                data_queue.put((i, data_))
+            # collect args for multiprocessing
+            args = (data_queue, performance_queue, self.print_performance, data_size)
 
-            # set up workers
-            performance_queue = manager.Queue(maxsize=data_size)
-            sim_worker = SimWorker(config=self.config,
-                                   model=self.model,
-                                   print_function=self.print_performance,
-                                   data_size=data_size,
-                                   data_queue=data_queue,
-                                   performance_queue=performance_queue)
+            # spawn and run processes, wait all to finish
+            mp.spawn(fn=self.sim_worker,
+                     args=args,
+                     nprocs=self.config.sim_num_process,
+                     join=True)
 
-            # spawn processes
-            pool = [Process(target=sim_worker)
-                    for _ in range(self.config.sim_num_process)]
-            # run processes
-            for p in pool:
-                p.start()
-            # wait all processes
-            for p in pool:
-                p.join()
+            # release data queue
+            data_queue.close()
 
             # get performance list
             performance_queue.put('STOP')   # termination sentinel
-            performance_list = [p in iter(performance_queue.get, 'STOP')]
+            performance_list = [p for p in iter(performance_queue.get, 'STOP')]
             time.sleep(.1)      # release the GIL
+
+            # release performance queue
+            performance_queue.close()
+
+            # clean GPU cache to avoid leaks
+            if 'cuda' in self.config.device:
+                torch.cuda.empty_cache()
 
         # return average performances
         # noinspection PyTypeChecker
         return self.get_avg_performance(performance_list=performance_list)
+
+    def sim_worker(self,
+                   data_queue: SimpleQueue,
+                   performance_queue: SimpleQueue,
+                   print_function: Callable,
+                   data_size: int,
+                   ):
+        """
+        Class for multiprocessing simulation
+        Simulate MAPD execution and record performances over input data taken from iterating over a dataloader,
+        :param data_queue: contains shared input data to run simulation over
+        :param performance_queue: shared queue to put simulation results
+        :param print_function: a function to print performance results, when needed
+        :param data_size: total length of the dataset, needed for print purposes
+        """
+        with torch.no_grad():
+            while not data_queue.empty():
+                # unpack tensors from input data queue
+                case_idx, (obstacle_map, start_pos_list,
+                           task_list, makespan, service_time) = data_queue.get()
+
+                # simulate the MAPD execution
+                # batch size = 1 -> unpack all tensors
+                self.simulator.simulate(obstacle_map=obstacle_map[0],
+                                        start_pos_list=start_pos_list[0],
+                                        task_list=task_list[0],
+                                        model=self.model,
+                                        target_makespan=makespan.item(),
+                                        device=self.config.device)
+
+                # collect metrics
+                performance = self.recorder.evaluate_performance(target_makespan=makespan.item())
+                # print metrics
+                print_function(performance=performance,
+                               case_idx=case_idx,
+                               max_size=data_size)
+
+                # add metrics
+                performance_queue.put(performance)
+
+                # clean GPU cache to avoid leaks
+                if 'cuda' in self.config.device:
+                    torch.cuda.empty_cache()
 
     def print_performance(self,
                           performance: metrics.Performance,
@@ -451,59 +508,3 @@ class MagatAgent(agents.Agent):
         return metrics.Performance(completed_task=mean(compl_task),
                                    collisions_difference=mean(coll),
                                    makespan_difference=mean(mks))
-
-
-class SimWorker:
-    """
-    Class for multiagent multiprocess simulation
-    """
-
-    def __init__(self,
-                 config: EasyDict,
-                 model: nn.Module,
-                 print_function: Callable,
-                 data_size: int,
-                 data_queue: Manager,
-                 performance_queue: Manager
-                 ):
-        # set up variables
-        self.config = config
-        self.print_function = print_function
-        self.model = model
-        # set data and performance manager queues
-        self.data_queue = data_queue
-        self.performance_queue = performance_queue
-        # length of the dataset
-        self.data_size = data_size
-        # simulation handling classes and variables, unique for each process
-        self.simulator = sim.MultiAgentSimulator(config=self.config)
-        self.recorder = metrics.PerformanceRecorder(simulator=self.simulator)
-
-    def __call__(self) -> None:
-        """
-        Given input data taken from iterating over a dataloader, simulate MAPD execution and record performances
-        """
-        with torch.no_grad():
-            while self.data_queue.qsize() > 0:
-                # unpack tensors from input data queue
-                (case_idx, obstacle_map, start_pos_list,
-                 task_list, makespan, service_time) = self.data_queue.get(block=False)
-
-                # simulate the MAPD execution
-                # batch size = 1 -> unpack all tensors
-                self.simulator.simulate(obstacle_map=obstacle_map[0],
-                                        start_pos_list=start_pos_list[0],
-                                        task_list=task_list[0],
-                                        model=self.model,
-                                        target_makespan=makespan.item(),
-                                        device=self.config.device)
-
-                # collect metrics
-                performance = self.recorder.evaluate_performance(target_makespan=makespan.item())
-                # print metrics
-                self.print_function(performance=performance,
-                                    case_idx=case_idx,
-                                    max_size=self.data_size)
-
-                # add metrics
-                self.performance_queue.put(performance)

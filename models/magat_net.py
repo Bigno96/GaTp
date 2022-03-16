@@ -221,6 +221,9 @@ class MAGATNet(nn.Module):
         # B*N x F (cnn_out_feature)
         extracted_features = self.cnn(input_current_agent).to(self.config.device)
 
+        # free memory to avoid leaks
+        del input_current_agent
+
         # additional reduction of features
         if self.feature_compression:
             # B*N x F (compr_out_feature)
@@ -229,7 +232,7 @@ class MAGATNet(nn.Module):
         # add skip connection
         if self.skip_connection:
             # B*N x F
-            residual = extracted_features
+            residual = extracted_features.detach().clone()
 
         # first, B*N x F -> B x N x F, with F that can be either cnn_out_feature or compr_out_feature
         # second, reshape B x N x F -> B x F x N, gnn input ordering
@@ -239,6 +242,9 @@ class MAGATNet(nn.Module):
         # pass through gnn to get information from other agents
         # B x G (gnn_features) x N
         shared_features = self.gnn(extracted_features)
+
+        # free memory to avoid leaks
+        del extracted_features
 
         # reshape to allow concatenation with skip connection
         # B x G x N -> B*N x G
@@ -253,5 +259,13 @@ class MAGATNet(nn.Module):
         # pass through mlp to map features to action
         # B*N x 5
         action_vector = self.mlp(shared_features)
+
+        # free memory to avoid leaks
+        del shared_features
+        del residual
+
+        # clean GPU cache to avoid leaks
+        if 'cuda' in str(self.config.device):
+            torch.cuda.empty_cache()
 
         return action_vector

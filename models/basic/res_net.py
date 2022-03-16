@@ -49,9 +49,9 @@ class ResNet(nn.Module):
         """
         Forward pass
         """
-        x = self.encoder(x)
-        x = self.decoder(x)
-        return x
+        out = self.encoder(x)
+        out = self.decoder(out)
+        return out
 
 
 class Conv2dAuto(nn.Conv2d):
@@ -175,16 +175,20 @@ class ResidualBlock(nn.Module):
         """
         Forward pass
         """
-        residual = x
         # if needed to apply skip connection
         if self.should_apply_shortcut:
             residual = self.shortcut(x)     # apply shortcut
+        else:
+            residual = x
 
-        x = self.blocks(x)
-        x += residual   # sum back skip connection
-        x = self.activation_func(x)
+        out = self.blocks(x)
+        out += residual   # sum back skip connection
+        out = self.activation_func(out)
 
-        return x
+        # free memory
+        del residual
+
+        return out
 
 
 class BasicBlock(ResidualBlock):
@@ -334,8 +338,7 @@ class ResNetLayer(nn.Module):
         """
         Forward pass
         """
-        x = self.blocks(x)
-        return x
+        return self.blocks(x)
 
 
 class ResNetEncoder(nn.Module):
@@ -408,10 +411,10 @@ class ResNetEncoder(nn.Module):
         """
         Forward pass
         """
-        x = self.gate(x)
+        out = self.gate(x)
         for block in self.blocks:
-            x = block(x)
-        return x
+            out = block(out)
+        return out
 
 
 class ResnetDecoder(nn.Module):
@@ -438,10 +441,10 @@ class ResnetDecoder(nn.Module):
         """
         Forward pass
         """
-        x = self.avg(x)
-        x = self.flat(x)
-        x = self.fc(x)
-        return x
+        out = self.avg(x)
+        out = self.flat(out)
+        out = self.fc(out)
+        return out
 
 
 def init_res_net_weight(m: nn.Module) -> None:
