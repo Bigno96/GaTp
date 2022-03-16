@@ -282,7 +282,6 @@ class DataTransformer:
                          for (a, b) in zip_offset]
 
             # get corresponding index in moves dictionary
-            diff: tuple[int, int]
             move_idx_list = [exp_utils.MOVE_LIST.index(diff)
                              for diff in diff_list]
 

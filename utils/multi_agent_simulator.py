@@ -72,6 +72,9 @@ class MultiAgentSimulator:
         self.new_task_per_timestep: int = self.config.new_task_per_timestep  # tasks to add at each timestep
         self.step_between_insertion: int = self.config.step_between_insertion  # timestep between each insertion
 
+        # device
+        self.device = self.config.device
+
         '''pre-define directions'''
         self.up = np.array([-1, 0], dtype=np.int8)
         self.down = np.array([1, 0], dtype=np.int8)
@@ -85,12 +88,11 @@ class MultiAgentSimulator:
         self.stop_idx = 4
 
     def simulate(self,
-                 obstacle_map: torch.FloatTensor,
-                 start_pos_list: torch.FloatTensor,
-                 task_list: torch.FloatTensor,
+                 obstacle_map: torch.Tensor,
+                 start_pos_list: torch.Tensor,
+                 task_list: torch.Tensor,
                  model: torch.nn.Module,
                  target_makespan: int,
-                 device: str,
                  ) -> None:
         """
         :param obstacle_map: shape = (H, W)
@@ -98,7 +100,6 @@ class MultiAgentSimulator:
         :param task_list: shape = (task_num, 2, 2)
         :param model: trained model
         :param target_makespan: makespan of the expert solution
-        :param device: device on which to operate the simulation, 'cuda:id' or 'cpu'
         """
         # maximum step allowed for the simulation
         max_step = int(target_makespan * self.max_step_factor)
@@ -110,12 +111,12 @@ class MultiAgentSimulator:
 
         # loop until termination or max step is reached
         while not self.terminate and self.timestep < (max_step-1):   # -1 since timestep update is at the start
-            self.execute_one_timestep(device=device)
+            self.execute_one_timestep()
 
     def set_up_simulation(self,
-                          obstacle_map: torch.FloatTensor,
-                          ag_start_pos: torch.FloatTensor,
-                          task_list: torch.FloatTensor,
+                          obstacle_map: torch.Tensor,
+                          ag_start_pos: torch.Tensor,
+                          task_list: torch.Tensor,
                           model: torch.nn.Module,
                           ) -> None:
         """
@@ -161,12 +162,9 @@ class MultiAgentSimulator:
                                                       # agents don't use parking positions
                                                       non_task_ep_list=[])
 
-    def execute_one_timestep(self,
-                             device: str
-                             ) -> None:
+    def execute_one_timestep(self) -> None:
         """
         Execute one timestep of the simulation
-        :param device: device on which to operate the simulation, 'cuda:id' or 'cpu'
         """
         # update timestep
         self.timestep += 1
@@ -189,12 +187,12 @@ class MultiAgentSimulator:
         input_tensor = self.agent_state.get_input_state(goal_pos_list=goal_list,
                                                         agent_pos_list=self.curr_agent_pos)
         # shape = 1 x N x 3 x F_H x F_W
-        input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).to(device).float()   # add batch = 1
+        input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).to(self.device).float()   # add batch = 1
 
         # obtain and set gso
         GSO = g_utils.compute_adj_matrix(agent_pos_list=self.curr_agent_pos,
                                          comm_radius=self.config.comm_radius)
-        GSO = torch.from_numpy(GSO).unsqueeze(0).to(device).float()     # add batch = 1
+        GSO = torch.from_numpy(GSO).unsqueeze(0).to(self.device).float()     # add batch = 1
         self.model.set_gso(GSO)
 
         # predict with model
@@ -341,7 +339,7 @@ class MultiAgentSimulator:
                                            self.timestep))  # timestep
 
     @staticmethod
-    def exp_multinorm(action_vector: torch.FloatTensor) -> np.array:
+    def exp_multinorm(action_vector: torch.Tensor) -> np.array:
         """
         Get action index prediction
         Use action vector as weights for exponential multinomial distribution

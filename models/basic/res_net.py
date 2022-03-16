@@ -44,8 +44,8 @@ class ResNet(nn.Module):
         self.apply(init_res_net_weight)
 
     def forward(self,
-                x: torch.FloatTensor
-                ) -> torch.FloatTensor:
+                x: torch.Tensor
+                ) -> torch.Tensor:
         """
         Forward pass
         """
@@ -170,8 +170,8 @@ class ResidualBlock(nn.Module):
         return self.in_channels != self.expanded_channels
 
     def forward(self,
-                x: torch.FloatTensor
-                ) -> torch.FloatTensor:
+                x: torch.Tensor
+                ) -> torch.Tensor:
         """
         Forward pass
         """
@@ -333,8 +333,8 @@ class ResNetLayer(nn.Module):
         )
 
     def forward(self,
-                x: torch.FloatTensor
-                ) -> torch.FloatTensor:
+                x: torch.Tensor
+                ) -> torch.Tensor:
         """
         Forward pass
         """
@@ -406,8 +406,8 @@ class ResNetEncoder(nn.Module):
         ])
 
     def forward(self,
-                x: torch.FloatTensor
-                ) -> torch.FloatTensor:
+                x: torch.Tensor
+                ) -> torch.Tensor:
         """
         Forward pass
         """
@@ -436,8 +436,8 @@ class ResnetDecoder(nn.Module):
                             out_features=out_features)
 
     def forward(self,
-                x: torch.FloatTensor
-                ) -> torch.FloatTensor:
+                x: torch.Tensor
+                ) -> torch.Tensor:
         """
         Forward pass
         """

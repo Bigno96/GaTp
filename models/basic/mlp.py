@@ -62,8 +62,8 @@ class MLP(nn.Module):
         self.apply(init_mlp_weight)
 
     def forward(self,
-                x: torch.FloatTensor
-                ) -> torch.FloatTensor:
+                x: torch.Tensor
+                ) -> torch.Tensor:
         """
         Forward pass
         """

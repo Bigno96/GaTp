@@ -9,6 +9,7 @@ Main execution file
 
 import argparse
 import time
+import os
 
 import agents.magat_agent as ag
 import utils.config as cfg

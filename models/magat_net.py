@@ -196,7 +196,7 @@ class MAGATNet(nn.Module):
             )
 
     def set_gso(self,
-                S: torch.FloatTensor) -> None:
+                S: torch.Tensor) -> None:
         """
         Set given GSO to the graph neural network
         """
@@ -204,8 +204,8 @@ class MAGATNet(nn.Module):
 
     # noinspection PyUnboundLocalVariable
     def forward(self,
-                input_tensor: torch.FloatTensor
-                ) -> torch.FloatTensor:
+                input_tensor: torch.Tensor
+                ) -> torch.Tensor:
         """
         Forward pass
         """
@@ -219,7 +219,7 @@ class MAGATNet(nn.Module):
 
         # extract feature through cnn,
         # B*N x F (cnn_out_feature)
-        extracted_features = self.cnn(input_current_agent).to(self.config.device)
+        extracted_features = self.cnn(input_current_agent)
 
         # free memory to avoid leaks
         del input_current_agent
@@ -232,12 +232,12 @@ class MAGATNet(nn.Module):
         # add skip connection
         if self.skip_connection:
             # B*N x F
-            residual = extracted_features.detach().clone()
+            residual = extracted_features
 
         # first, B*N x F -> B x N x F, with F that can be either cnn_out_feature or compr_out_feature
         # second, reshape B x N x F -> B x F x N, gnn input ordering
         # using view to guarantee copy, to not affect residual
-        extracted_features = extracted_features.view(B, N, -1).permute([0, 2, 1]).to(self.config.device)
+        extracted_features = extracted_features.view(B, N, -1).permute([0, 2, 1])
 
         # pass through gnn to get information from other agents
         # B x G (gnn_features) x N
@@ -248,7 +248,7 @@ class MAGATNet(nn.Module):
 
         # reshape to allow concatenation with skip connection
         # B x G x N -> B*N x G
-        shared_features = shared_features.permute([0, 2, 1]).reshape(B*N, -1).to(self.config.device)
+        shared_features = shared_features.permute([0, 2, 1]).reshape(B*N, -1)
 
         # if residual was set, add it
         if self.skip_connection:

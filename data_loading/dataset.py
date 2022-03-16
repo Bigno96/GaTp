@@ -127,7 +127,7 @@ class GaTpDataset(Dataset):
 
     def __getitem__(self,
                     index: int
-                    ) -> Tuple[torch.FloatTensor, ...]:
+                    ) -> Tuple[torch.Tensor, ...]:
         """
         :param index: int
         :return: training -> (step_input_tensor, step_GSO, step_target, basename)
@@ -158,7 +158,7 @@ class GaTpDataset(Dataset):
 
     def get_train_data(self,
                        **kwargs: int or str
-                       ) -> Tuple[torch.FloatTensor, ...]:
+                       ) -> Tuple[torch.Tensor, ...]:
         """
         Retrieve training data from data cache
         :param **kwargs
@@ -187,7 +187,7 @@ class GaTpDataset(Dataset):
 
     def get_test_data(self,
                       **kwargs: int or str,
-                      ) -> Tuple[torch.FloatTensor, ...]:
+                      ) -> Tuple[torch.Tensor, ...]:
         """
         Retrieve testing data from data cache
         :param **kwargs

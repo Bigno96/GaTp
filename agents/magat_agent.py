@@ -55,6 +55,13 @@ class MagatAgent(agents.Agent):
                                                               T_max=self.config.max_epoch,  # max number of iteration
                                                               eta_min=1e-6)     # min learning rate
 
+        # set agent simulation function
+        if self.config.sim_num_process <= 1 or os.name == 'nt':    # single process or Windows
+            # pytorch does not support sharing GPU resources between processes on Windows
+            self.simulate_agent_exec = self.sim_agent_exec_single
+        else:
+            self.simulate_agent_exec = self.sim_agent_exec_multi
+
         # initialize counters
         self.current_epoch = 0
         self.performance = metrics.Performance()
@@ -65,32 +72,19 @@ class MagatAgent(agents.Agent):
         self.cuda: bool = torch.cuda.is_available()   # check availability
         if self.cuda and not self.config.cuda:  # user has cuda available, but not enabled
             self.logger.info('WARNING: You have a CUDA device, you should probably enable CUDA')
-
+        if not self.cuda and self.config.cuda:  # user has selected cuda, but it is not available
+            self.logger.info(f'WARNING: You have selected CUDA device, but no available CUDA device was found'
+                             f'Switching to CPU instead')
         self.cuda = self.cuda and self.config.cuda  # prevent setting cuda True if not available
 
         # set the manual seed for torch
         self.manual_seed: int = self.config.seed
-        # cuda enabled
-        if self.cuda:
-            torch.cuda.manual_seed_all(self.manual_seed)
 
-            self.config.device = torch.device(f'cuda:{self.config.gpu_device}')
-            torch.cuda.set_device(self.config.gpu_device)
+        # set up device for model, loss and pytorch seed
+        self.setup_device()
 
-            self.model = self.model.to(self.config.device)
-            self.loss = self.loss.to(self.config.device)
-            self.logger.info('Program will run on ***GPU-CUDA***\n')
-        # cpu is used
-        else:
-            self.config.device = torch.device('cpu')
-            torch.manual_seed(self.manual_seed)
-            self.logger.info('Program will run on ***CPU***\n')
-
-        # set agent simulation function
-        if self.config.sim_num_process == 1 or os.name == 'nt':    # single process or Windows
-            self.simulate_agent_exec = self.sim_agent_exec_single
-        else:
-            self.simulate_agent_exec = self.sim_agent_exec_multi
+        # scaler for AMP acceleration
+        self.scaler = torch.cuda.amp.GradScaler(enabled=self.cuda)
 
         # load checkpoint if necessary
         if config.load_checkpoint:
@@ -99,25 +93,51 @@ class MagatAgent(agents.Agent):
                                  latest=config.load_ckp_mode == 'latest')
 
         # simulation handling classes and variables
-        self.simulator = sim.MultiAgentSimulator(config=self.config)
+        self.simulator = sim.MultiAgentSimulator(config=self.config)    # needs config.device set in setup_device()
         self.recorder = metrics.PerformanceRecorder(simulator=self.simulator)
 
-        # print the model
+        '''print summary of the model'''
         batch_size = self.config.batch_size
         agent_num = self.config.agent_number
         channel_num = 3
         H, W = self.config.FOV + 2, self.config.FOV + 2
-        dummy_GSO = torch.ones((batch_size, agent_num, agent_num)).to(self.config.device).float()
+        dummy_GSO = torch.ones(size=(batch_size, agent_num, agent_num),
+                               device=self.config.device,
+                               dtype=torch.float)
         self.model.set_gso(dummy_GSO)
         summary(model=self.model,
                 input_size=(batch_size, agent_num, channel_num, H, W),
                 device=self.config.device,
                 col_names=["input_size", "output_size", "num_params"])
 
+    def setup_device(self) -> None:
+        """
+        Move model and losses accordingly to chosen device
+        Set also random seed
+        """
+        # cuda enabled
+        if self.cuda:
+            self.config.device = torch.device(f'cuda:{self.config.gpu_device}')
+            torch.cuda.set_device(self.config.gpu_device)
+
+            self.model = self.model.to(self.config.device)
+            self.loss = self.loss.to(self.config.device)
+
+            torch.cuda.manual_seed_all(self.manual_seed)
+            self.logger.info('Program will run on ***GPU-CUDA***\n')
+
+        # cpu is used
+        else:
+            self.config.device = torch.device('cpu')
+
+            torch.manual_seed(self.manual_seed)
+            self.logger.info('Program will run on ***CPU***\n')
+
     def save_checkpoint(self,
                         epoch: int = 0,
                         is_best: bool = False,
-                        latest: bool = True):
+                        latest: bool = True
+                        ) -> None:
         """
         Checkpoint saver
         :param epoch: current epoch being saved
@@ -146,7 +166,8 @@ class MagatAgent(agents.Agent):
     def load_checkpoint(self,
                         epoch: int = 0,
                         best: bool = False,
-                        latest: bool = True):
+                        latest: bool = True
+                        ) -> None:
         """
         Checkpoint loader
         Priority: latest -> best -> epoch
@@ -182,7 +203,7 @@ class MagatAgent(agents.Agent):
         except OSError:
             self.logger.info(f'No checkpoint exists from "{self.config.checkpoint_dir}". Skipping.')
 
-    def run(self):
+    def run(self) -> None:
         """
         The main operator
         """
@@ -200,7 +221,7 @@ class MagatAgent(agents.Agent):
         except KeyboardInterrupt:
             self.logger.info("Entered CTRL+C. Wait to finalize")
 
-    def train(self):
+    def train(self) -> None:
         """
         Main training loop
         """
@@ -243,7 +264,7 @@ class MagatAgent(agents.Agent):
         # return mean performance of the simulation
         return self.simulate_agent_exec(data_loader=data_loader)
 
-    def test(self):
+    def test(self) -> None:
         """
         Main testing loop
         """
@@ -254,7 +275,7 @@ class MagatAgent(agents.Agent):
         # set mean performance for printing
         self.best_performance = mean_performance
 
-    def finalize(self):
+    def finalize(self) -> None:
         """
         Concluding all operations and printing results
         """
@@ -267,7 +288,7 @@ class MagatAgent(agents.Agent):
             print("################## End of training ################## ")
             print(f'Best Validation {self.best_performance}')
 
-    def train_one_epoch(self):
+    def train_one_epoch(self) -> None:
         """
         One epoch of training
         """
@@ -299,29 +320,32 @@ class MagatAgent(agents.Agent):
             # reshape for compatibility with model output
             batch_target = batch_target.reshape(B * N, 5)
 
-            # init model, optimizer and loss
+            # init model and loss
             self.model.set_gso(batch_GSO)
-            self.optimizer.zero_grad()
             loss = 0
 
-            # get model prediction, B*N x 5
-            predict = self.model(batch_input)
+            # AMP optimization
+            with torch.cuda.amp.autocast(enabled=self.cuda):
+                # get model prediction, B*N x 5
+                predict = self.model(batch_input)
+                # compute loss
+                # torch.max returns both values and indices
+                # torch.max axis = 1 -> find the index of the chosen action for each agent
+                loss = loss + self.loss(predict, torch.max(batch_target, 1)[1])  # [1] to unpack indices
 
             # free memory to avoid leaks
             del batch_input
             del batch_GSO
 
-            # compute loss
-            # torch.max returns both values and indices
-            # torch.max axis = 1 -> find the index of the chosen action for each agent
-            loss = loss + self.loss(predict, torch.max(batch_target, 1)[1])     # [1] to unpack indices
-
             # free memory to avoid leaks
             del batch_target
 
-            # update gradient with backward pass
-            loss.backward()
-            # update learning rate
+            # update gradient with backward pass using AMP scaler
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
+
+            self.optimizer.zero_grad(set_to_none=True)
             self.optimizer.step()
 
             # log progress
@@ -359,8 +383,7 @@ class MagatAgent(agents.Agent):
                                         start_pos_list=start_pos_list[0],
                                         task_list=task_list[0],
                                         model=self.model,
-                                        target_makespan=makespan.item(),
-                                        device=self.config.device)
+                                        target_makespan=makespan.item())
 
                 # collect metrics
                 performance = self.recorder.evaluate_performance(target_makespan=makespan.item())
@@ -430,7 +453,7 @@ class MagatAgent(agents.Agent):
                    performance_queue: SimpleQueue,
                    print_function: Callable,
                    data_size: int,
-                   ):
+                   ) -> None:
         """
         Class for multiprocessing simulation
         Simulate MAPD execution and record performances over input data taken from iterating over a dataloader,
@@ -451,8 +474,7 @@ class MagatAgent(agents.Agent):
                                         start_pos_list=start_pos_list[0],
                                         task_list=task_list[0],
                                         model=self.model,
-                                        target_makespan=makespan.item(),
-                                        device=self.config.device)
+                                        target_makespan=makespan.item())
 
                 # collect metrics
                 performance = self.recorder.evaluate_performance(target_makespan=makespan.item())
