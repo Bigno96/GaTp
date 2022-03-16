@@ -416,8 +416,8 @@ class MagatAgent(agents.Agent):
         # load data from data loader
         with torch.no_grad():
             # set up queues
-            performance_queue = SimpleQueue()
-            data_queue = SimpleQueue()
+            performance_queue = SimpleQueue(ctx=mp.get_context())
+            data_queue = SimpleQueue(ctx=mp.get_context())
             for i, data_ in enumerate(data_loader):
                 data_queue.put((i, data_))
             # collect args for multiprocessing
