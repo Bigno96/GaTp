@@ -392,6 +392,10 @@ class MagatAgent(agents.Agent):
                                        case_idx=case_idx,
                                        max_size=len(data_loader))
 
+                # clean GPU cache to avoid leaks
+                if 'cuda' in self.config.device:
+                    torch.cuda.empty_cache()
+
         # return average performances
         return self.get_avg_performance(performance_list=performance_list)
 
@@ -436,6 +440,10 @@ class MagatAgent(agents.Agent):
             # release performance queue
             performance_queue.close()
 
+            # clean GPU cache to avoid leaks
+            if 'cuda' in self.config.device:
+                torch.cuda.empty_cache()
+
         # return average performances
         # noinspection PyTypeChecker
         return self.get_avg_performance(performance_list=performance_list)
@@ -479,6 +487,10 @@ class MagatAgent(agents.Agent):
 
                 # add metrics
                 performance_queue.put(performance)
+
+                # clean GPU cache to avoid leaks
+                if 'cuda' in self.config.device:
+                    torch.cuda.empty_cache()
 
     def print_performance(self,
                           performance: metrics.Performance,
