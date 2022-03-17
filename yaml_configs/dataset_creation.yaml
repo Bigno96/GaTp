@@ -13,14 +13,14 @@ keep_expert_solutions: True
 
 # Map specifications
 map_type: 'random_grid'   # supported values: random_grid
-map_number: 200    # how many unique maps
+map_number: 150    # how many unique maps
 map_shape: [20, 20]   # (H, W)
 map_density: 0.1  # % of obstacles in the map
 force_conn: True  # whether to generate only fully connected maps or not
 
 
 # Scenario specifications
-scenario_number: 20   # how many unique scenarios for each map
+scenario_number: 10   # how many unique scenarios for each map
 agent_number: 20  # how many agents in each scenario
 task_number: 500  # how many tasks in each scenario
 # how to create starting positions for agents -> 'random' or 'fixed'
@@ -38,8 +38,8 @@ step_between_insertion: 1
 
 
 # Dataset split specifications
-train_split: 0.7
-valid_split: 0.15
+train_split: 0.8
+valid_split: 0.05
 test_split: 1 - train_split - valid_split
 
 

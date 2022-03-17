@@ -28,7 +28,7 @@ def create_scenario(config: EasyDict,
                     input_map: np.array
                     ) -> Tuple[List[Tuple[int, int]],
                                List[Tuple[int, int]],
-                               list[Tuple[Tuple[int, int], Tuple[int, int]]]]:
+                               List[Tuple[Tuple[int, int], Tuple[int, int]]]]:
     """
     Create a scenario
     :param config: Namespace of dataset configurations
