@@ -45,7 +45,7 @@ class MagatAgent(agents.Agent):
         self.model = magat.MAGATNet(config=self.config)
 
         # define loss
-        self.loss = nn.CrossEntropyLoss(label_smoothing=self.config.label_smoothing)
+        self.loss = nn.CrossEntropyLoss()
 
         # define optimizers
         self.optimizer = optim.Adam(params=self.model.parameters(),
@@ -393,7 +393,7 @@ class MagatAgent(agents.Agent):
                                        max_size=len(data_loader))
 
                 # clean GPU cache to avoid leaks
-                if 'cuda' in self.config.device:
+                if 'cuda' in str(self.config.device):
                     torch.cuda.empty_cache()
 
         # return average performances
@@ -441,7 +441,7 @@ class MagatAgent(agents.Agent):
             performance_queue.close()
 
             # clean GPU cache to avoid leaks
-            if 'cuda' in self.config.device:
+            if 'cuda' in str(self.config.device):
                 torch.cuda.empty_cache()
 
         # return average performances
@@ -489,7 +489,7 @@ class MagatAgent(agents.Agent):
                 performance_queue.put(performance)
 
                 # clean GPU cache to avoid leaks
-                if 'cuda' in self.config.device:
+                if 'cuda' in str(self.config.device):
                     torch.cuda.empty_cache()
 
     def print_performance(self,
