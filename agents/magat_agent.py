@@ -449,6 +449,7 @@ class MagatAgent(agents.Agent):
         return self.get_avg_performance(performance_list=performance_list)
 
     def sim_worker(self,
+                   process_id: int,     # needed because of spawn implementation
                    data_queue: SimpleQueue,
                    performance_queue: SimpleQueue,
                    print_function: Callable,
@@ -457,6 +458,7 @@ class MagatAgent(agents.Agent):
         """
         Class for multiprocessing simulation
         Simulate MAPD execution and record performances over input data taken from iterating over a dataloader,
+        :param process_id: id of the process that executes the function, automatically passed by mp spawn
         :param data_queue: contains shared input data to run simulation over
         :param performance_queue: shared queue to put simulation results
         :param print_function: a function to print performance results, when needed
