@@ -72,9 +72,6 @@ class MultiAgentSimulator:
         self.new_task_per_timestep: int = self.config.new_task_per_timestep  # tasks to add at each timestep
         self.step_between_insertion: int = self.config.step_between_insertion  # timestep between each insertion
 
-        # device
-        self.device = self.config.device
-
         '''pre-define directions'''
         self.up = np.array([-1, 0], dtype=np.int8)
         self.down = np.array([1, 0], dtype=np.int8)
@@ -127,7 +124,7 @@ class MultiAgentSimulator:
         :param model: trained model
         """
         # fix model for evaluation mode
-        self.model = model
+        self.model = model.cpu()
         self.model.eval()
 
         # init map and set it for agent state
@@ -187,26 +184,19 @@ class MultiAgentSimulator:
         input_tensor = self.agent_state.get_input_state(goal_pos_list=goal_list,
                                                         agent_pos_list=self.curr_agent_pos)
         # shape = 1 x N x 3 x F_H x F_W
-        input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).to(self.device).float()   # add batch = 1
+        input_tensor = torch.from_numpy(input_tensor).unsqueeze(0).cpu().float()   # add batch = 1
 
         # obtain and set gso
         GSO = g_utils.compute_adj_matrix(agent_pos_list=self.curr_agent_pos,
                                          comm_radius=self.config.comm_radius)
-        GSO = torch.from_numpy(GSO).unsqueeze(0).to(self.device).float()     # add batch = 1
+        GSO = torch.from_numpy(GSO).unsqueeze(0).cpu().float()     # add batch = 1
         self.model.set_gso(GSO)
 
         # predict with model
         model_output = self.model(input_tensor)  # B*N x 5 -> since B=1, N x 5
 
-        # free memory to avoid leaks
-        del input_tensor
-        del GSO
-
         # exp_multinorm for getting predicted action
         action_idx_predict = self.exp_multinorm(model_output)  # 1*N x 1 (since B=1)
-
-        # free memory to avoid leaks
-        del model_output
 
         # move agents
         self.move_agents(action_idx_predict)
