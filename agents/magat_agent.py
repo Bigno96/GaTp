@@ -38,30 +38,6 @@ class MagatAgent(agents.Agent):
                  config: EasyDict):
         super(MagatAgent, self).__init__(config)
 
-        # initialize data loader
-        self.data_loader = loader.GaTpDataLoader(config=self.config)
-
-        # initialize the model
-        self.model = magat.MAGATNet(config=self.config)
-
-        # define loss
-        self.loss = nn.CrossEntropyLoss()
-
-        # define optimizers
-        self.optimizer = optim.Adam(params=self.model.parameters(),
-                                    lr=self.config.learning_rate,
-                                    weight_decay=self.config.weight_decay)  # L2 regularize
-        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer,
-                                                              T_max=self.config.max_epoch,  # max number of iteration
-                                                              eta_min=1e-6)     # min learning rate
-
-        # set agent simulation function
-        if self.config.sim_num_process <= 1 or os.name == 'nt':    # single process or Windows
-            # pytorch does not support sharing GPU resources between processes on Windows
-            self.simulate_agent_exec = self.sim_agent_exec_single
-        else:
-            self.simulate_agent_exec = self.sim_agent_exec_multi
-
         # initialize counters
         self.current_epoch = 0
         self.performance = metrics.Performance()
@@ -73,28 +49,53 @@ class MagatAgent(agents.Agent):
         if self.cuda and not self.config.cuda:  # user has cuda available, but not enabled
             self.logger.info('WARNING: You have a CUDA device, you should probably enable CUDA')
         if not self.cuda and self.config.cuda:  # user has selected cuda, but it is not available
-            self.logger.info(f'WARNING: You have selected CUDA device, but no available CUDA device was found'
+            self.logger.info(f'WARNING: You have selected CUDA device, but no available CUDA device was found\n'
                              f'Switching to CPU instead')
         self.cuda = self.cuda and self.config.cuda  # prevent setting cuda True if not available
 
         # set the manual seed for torch
         self.manual_seed: int = self.config.seed
 
-        # set up device for model, loss and pytorch seed
+        # set up device
         self.setup_device()
 
         # scaler for AMP acceleration
         self.scaler = torch.cuda.amp.GradScaler(enabled=self.cuda)
+
+        # initialize data loader
+        self.data_loader = loader.GaTpDataLoader(config=self.config)
+
+        # initialize the model
+        self.model = magat.MAGATNet(config=self.config).to(self.config.device)
+
+        # define loss
+        self.loss = nn.CrossEntropyLoss().to(self.config.device)
+
+        # define optimizers
+        self.optimizer = optim.Adam(params=self.model.parameters(),
+                                    lr=self.config.learning_rate,
+                                    weight_decay=self.config.weight_decay)  # L2 regularize
+        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer,
+                                                              # max number of iteration
+                                                              T_max=self.config.max_epoch,
+                                                              eta_min=1e-6)  # min learning rate
+
+        # set agent simulation function
+        if self.config.sim_num_process <= 1 or os.name == 'nt':  # single process or Windows
+            # pytorch does not support sharing GPU resources between processes on Windows
+            self.simulate_agent_exec = self.sim_agent_exec_single
+        else:
+            self.simulate_agent_exec = self.sim_agent_exec_multi
+
+        # simulation handling classes and variables
+        self.simulator = sim.MultiAgentSimulator(config=self.config)    # needs config.device set in setup_device()
+        self.recorder = metrics.PerformanceRecorder(simulator=self.simulator)
 
         # load checkpoint if necessary
         if config.load_checkpoint:
             self.load_checkpoint(epoch=config.epoch_id,
                                  best=config.load_ckp_mode == 'best',
                                  latest=config.load_ckp_mode == 'latest')
-
-        # simulation handling classes and variables
-        self.simulator = sim.MultiAgentSimulator(config=self.config)    # needs config.device set in setup_device()
-        self.recorder = metrics.PerformanceRecorder(simulator=self.simulator)
 
         '''print summary of the model'''
         batch_size = self.config.batch_size
@@ -119,9 +120,6 @@ class MagatAgent(agents.Agent):
         if self.cuda:
             self.config.device = torch.device(f'cuda:{self.config.gpu_device}')
             torch.cuda.set_device(self.config.gpu_device)
-
-            self.model = self.model.to(self.config.device)
-            self.loss = self.loss.to(self.config.device)
 
             torch.cuda.manual_seed_all(self.manual_seed)
             self.logger.info('Program will run on ***GPU-CUDA***\n')

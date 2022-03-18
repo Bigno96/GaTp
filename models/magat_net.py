@@ -215,7 +215,7 @@ class MAGATNet(nn.Module):
         # H, W = height, width of the input
         B, N, C, H, W = input_tensor.shape
         # reshape for current agent
-        x = input_tensor.reshape(B * N, C, H, W).to(self.config.device)
+        x = input_tensor.reshape(B * N, C, H, W)
 
         # extract feature through cnn,
         # B*N x F (cnn_out_feature)
