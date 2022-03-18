@@ -198,15 +198,8 @@ class MultiAgentSimulator:
         # predict with model
         model_output = self.model(input_tensor)  # B*N x 5 -> since B=1, N x 5
 
-        # free memory to avoid leaks
-        del input_tensor
-        del GSO
-
         # exp_multinorm for getting predicted action
         action_idx_predict = self.exp_multinorm(model_output)  # 1*N x 1 (since B=1)
-
-        # free memory to avoid leaks
-        del model_output
 
         # move agents
         self.move_agents(action_idx_predict)

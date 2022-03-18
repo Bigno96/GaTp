@@ -181,14 +181,11 @@ class ResidualBlock(nn.Module):
         else:
             residual = x
 
-        out = self.blocks(x)
-        out += residual   # sum back skip connection
-        out = self.activation_func(out)
+        x = self.blocks(x)
+        x += residual   # sum back skip connection
+        x = self.activation_func(x)
 
-        # free memory
-        del residual
-
-        return out
+        return x
 
 
 class BasicBlock(ResidualBlock):
@@ -411,10 +408,10 @@ class ResNetEncoder(nn.Module):
         """
         Forward pass
         """
-        out = self.gate(x)
+        x = self.gate(x)
         for block in self.blocks:
-            out = block(out)
-        return out
+            x = block(x)
+        return x
 
 
 class ResnetDecoder(nn.Module):
@@ -441,10 +438,10 @@ class ResnetDecoder(nn.Module):
         """
         Forward pass
         """
-        out = self.avg(x)
-        out = self.flat(out)
-        out = self.fc(out)
-        return out
+        x = self.avg(x)
+        x = self.flat(x)
+        x = self.fc(x)
+        return x
 
 
 def init_res_net_weight(m: nn.Module) -> None:

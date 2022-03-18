@@ -124,9 +124,7 @@ class GatGSO(nn.Module):
             self.model[i].add_gso(self.S)  # add GSO for GraphFilter
 
         # B x F x N - > B x G x N,
-        out = self.model(x)
-
-        return out
+        return self.model(x)
 
 
 class GraphFilterBatchAttentional(nn.Module):

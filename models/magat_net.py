@@ -215,57 +215,41 @@ class MAGATNet(nn.Module):
         # H, W = height, width of the input
         B, N, C, H, W = input_tensor.shape
         # reshape for current agent
-        input_current_agent = input_tensor.reshape(B * N, C, H, W).to(self.config.device)
+        x = input_tensor.reshape(B * N, C, H, W).to(self.config.device)
 
         # extract feature through cnn,
         # B*N x F (cnn_out_feature)
-        extracted_features = self.cnn(input_current_agent)
-
-        # free memory to avoid leaks
-        del input_current_agent
+        x = self.cnn(x)
 
         # additional reduction of features
         if self.feature_compression:
             # B*N x F (compr_out_feature)
-            extracted_features = self.feature_compressor(extracted_features)
+            x = self.feature_compressor(x)
 
         # add skip connection
         if self.skip_connection:
             # B*N x F
-            residual = extracted_features
+            residual = x
 
         # first, B*N x F -> B x N x F, with F that can be either cnn_out_feature or compr_out_feature
         # second, reshape B x N x F -> B x F x N, gnn input ordering
         # using view to guarantee copy, to not affect residual
-        extracted_features = extracted_features.view(B, N, -1).permute([0, 2, 1])
+        x = x.view(B, N, -1).permute([0, 2, 1])
 
         # pass through gnn to get information from other agents
         # B x G (gnn_features) x N
-        shared_features = self.gnn(extracted_features)
-
-        # free memory to avoid leaks
-        del extracted_features
+        x = self.gnn(x)
 
         # reshape to allow concatenation with skip connection
         # B x G x N -> B*N x G
-        shared_features = shared_features.permute([0, 2, 1]).reshape(B*N, -1)
+        x = x.permute([0, 2, 1]).reshape(B*N, -1)
 
         # if residual was set, add it
         if self.skip_connection:
             # concat B*N x G + B*N x F on dimension 1
             # B*N x G+F
-            shared_features = torch.cat((shared_features, residual), dim=1)
+            x = torch.cat((x, residual), dim=1)
 
         # pass through mlp to map features to action
         # B*N x 5
-        action_vector = self.mlp(shared_features)
-
-        # free memory to avoid leaks
-        del shared_features
-        del residual
-
-        # clean GPU cache to avoid leaks
-        if 'cuda' in str(self.config.device):
-            torch.cuda.empty_cache()
-
-        return action_vector
+        return self.mlp(x)

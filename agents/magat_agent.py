@@ -333,13 +333,6 @@ class MagatAgent(agents.Agent):
                 # torch.max axis = 1 -> find the index of the chosen action for each agent
                 loss = loss + self.loss(predict, torch.max(batch_target, 1)[1])  # [1] to unpack indices
 
-            # free memory to avoid leaks
-            del batch_input
-            del batch_GSO
-
-            # free memory to avoid leaks
-            del batch_target
-
             # update gradient with backward pass using AMP scaler
             self.scaler.scale(loss).backward()
             self.scaler.step(self.optimizer)
@@ -392,10 +385,6 @@ class MagatAgent(agents.Agent):
                                        case_idx=case_idx,
                                        max_size=len(data_loader))
 
-                # clean GPU cache to avoid leaks
-                if 'cuda' in str(self.config.device):
-                    torch.cuda.empty_cache()
-
         # return average performances
         return self.get_avg_performance(performance_list=performance_list)
 
@@ -440,10 +429,6 @@ class MagatAgent(agents.Agent):
             # release performance queue
             performance_queue.close()
 
-            # clean GPU cache to avoid leaks
-            if 'cuda' in str(self.config.device):
-                torch.cuda.empty_cache()
-
         # return average performances
         # noinspection PyTypeChecker
         return self.get_avg_performance(performance_list=performance_list)
@@ -487,10 +472,6 @@ class MagatAgent(agents.Agent):
 
                 # add metrics
                 performance_queue.put(performance)
-
-                # clean GPU cache to avoid leaks
-                if 'cuda' in str(self.config.device):
-                    torch.cuda.empty_cache()
 
     def print_performance(self,
                           performance: metrics.Performance,
