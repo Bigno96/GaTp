@@ -29,13 +29,13 @@ class GaTpDataLoader:
             self.train_dataset = dataset.GaTpDataset(self.config, 'train')
             self.valid_dataset = dataset.GaTpDataset(self.config, 'valid')
 
-            self.train_loader = DataLoader(self.train_dataset,
+            self.train_loader = DataLoader(dataset=self.train_dataset,
                                            batch_size=self.config.batch_size,
                                            shuffle=True,
-                                           num_workers=self.config.data_loader_workers,     # num of processes
+                                           num_workers=self.config.data_loader_workers,  # num of processes
                                            pin_memory=self.config.pin_memory)
 
-            self.valid_loader = DataLoader(self.valid_dataset,
+            self.valid_loader = DataLoader(dataset=self.valid_dataset,
                                            batch_size=self.config.valid_batch_size,
                                            shuffle=False,   # don't shuffle valid set
                                            num_workers=self.config.data_loader_workers,
@@ -46,7 +46,7 @@ class GaTpDataLoader:
 
             self.test_dataset = dataset.GaTpDataset(self.config, 'test')
 
-            self.test_loader = DataLoader(self.test_dataset,
+            self.test_loader = DataLoader(dataset=self.test_dataset,
                                           batch_size=self.config.test_batch_size,
                                           shuffle=False,    # don't shuffle valid set
                                           num_workers=self.config.data_loader_workers,

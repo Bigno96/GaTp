@@ -69,7 +69,7 @@ class MagatAgent(agents.Agent):
         self.model = magat.MAGATNet(config=self.config).to(self.config.device)
 
         # define loss
-        self.loss = nn.CrossEntropyLoss().to(self.config.device)
+        self.loss_f = nn.CrossEntropyLoss().to(self.config.device)
 
         # define optimizers
         self.optimizer = optim.Adam(params=self.model.parameters(),
@@ -230,7 +230,7 @@ class MagatAgent(agents.Agent):
             self.current_epoch = epoch      # update epoch
             self.logger.info(f'Begin Epoch {self.current_epoch} - Learning Rate: {self.scheduler.get_last_lr()}')
 
-            self.train_one_epoch()          # train the epoch
+            self.train_one_epoch()  # train the epoch
 
             # always validate first 4 epochs
             if epoch <= 4:
@@ -329,7 +329,7 @@ class MagatAgent(agents.Agent):
                 # compute loss
                 # torch.max returns both values and indices
                 # torch.max axis = 1 -> find the index of the chosen action for each agent
-                loss = loss + self.loss(predict, torch.max(batch_target, 1)[1])  # [1] to unpack indices
+                loss = loss + self.loss_f(predict, torch.max(batch_target, 1)[1])  # [1] to unpack indices
 
             # update gradient with backward pass using AMP scaler
             self.scaler.scale(loss).backward()

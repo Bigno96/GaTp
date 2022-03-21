@@ -449,12 +449,10 @@ def learn_attention_gso_batch_key_query(x: torch.Tensor,
     # first, get places where we have edges
     maskEdges = torch.sum(torch.abs(S.data), dim=1).reshape([B, 1, 1, N, N])    # B x 1 x 1 x N x N
     # make it a binary matrix
-    maskEdges = torch.tensor(data=maskEdges > ZERO_TOLERANCE,
-                             dtype=x.dtype,
-                             device=eij.device)  # B x 1 x 1 x N x N
+    maskEdges = (maskEdges > ZERO_TOLERANCE).type(x.dtype).to(eij.device)   # B x 1 x 1 x N x N
     # make it -infinity where there are zeros
-    infinityMask = torch.tensor(data=(1 - maskEdges) * INF_NUMBER,
-                                device=eij.device)
+    infinityMask = (1 - maskEdges) * INF_NUMBER
+    infinityMask = infinityMask.to(eij.device)
 
     # compute the softmax plus the -infinity (we first force the places where there is no edge to be zero,
     # and then we add -infinity to them)
