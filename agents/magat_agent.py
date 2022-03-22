@@ -14,7 +14,6 @@ In 2017 IEEE winter conference on applications of computer vision (WACV), pp. 46
 
 import shutil
 import time
-import apex
 import torch
 import os
 import timeit
@@ -78,15 +77,9 @@ class MagatAgent(agents.Agent):
         self.loss_f = nn.CrossEntropyLoss().to(self.config.device)
 
         # define optimizer
-        if self.cuda and os.name != 'nt':   # cuda apex optimization not supported on Windows
-            self.optimizer = apex.optimizers.FusedAdam(params=self.model.parameters(),
-                                                       lr=self.config.learning_rate,
-                                                       adam_w_mode=True,    # AdamW algorithm
-                                                       weight_decay=self.config.weight_decay)  # L2 regularize
-        else:
-            self.optimizer = optim.AdamW(params=self.model.parameters(),
-                                         lr=self.config.learning_rate,
-                                         weight_decay=self.config.weight_decay)  # L2 regularize
+        self.optimizer = optim.AdamW(params=self.model.parameters(),
+                                     lr=self.config.learning_rate,
+                                     weight_decay=self.config.weight_decay)  # L2 regularize
 
         # define scheduler
         steps_per_epoch = math.ceil(len(self.data_loader.train_loader) / self.config.batch_size)
