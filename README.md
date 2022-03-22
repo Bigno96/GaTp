@@ -14,5 +14,5 @@ To run a training session from scratch, with default params:\
 Model parameters are configured in 'GaTp/yaml_configs/magat.yaml'
 
 If a path error at the start is raised (no config file found), change in GaTp/utils/config.py:\
-DATA_ROOT -> path to the 'GaTp/' folder\
-APPEND_DATA_ROOT -> set to True
+PROJECT_ROOT -> path to the 'GaTp/' folder\
+APPEND_PROJECT_ROOT -> set to True
