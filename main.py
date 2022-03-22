@@ -74,7 +74,7 @@ def main():
                             help='Radius of agents FOV. Has to be odd')
     arg_parser.add_argument('-comm_radius', type=int, default=7,
                             help='Maximum communication distance between agents')
-    arg_parser.add_argument('-sim_num_process', type=int, default=4,
+    arg_parser.add_argument('-sim_num_process', type=int, default=1,
                             help='Number of separate processes for running agent simulation')
     arg_parser.add_argument('-load_ckp', action='store_true',
                             help='Add this flag if you want to load a pretrained checkpoint')

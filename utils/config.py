@@ -23,7 +23,7 @@ from yaml import safe_load
 
 CONFIG_FOLDER_PATH = 'GaTp/yaml_configs'
 DATA_ROOT = 'D:/Uni/TESI'
-APPEND_DATA_ROOT = True       # change this to prepend DATA_ROOT for creating data folder paths
+APPEND_DATA_ROOT = False       # change this to prepend DATA_ROOT for creating data folder paths
 
 
 def setup_logging(log_dir: str) -> None:
