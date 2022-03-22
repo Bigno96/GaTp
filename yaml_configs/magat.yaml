@@ -2,6 +2,7 @@
 # arXiv:2011.13219v2
 cuda: True  # device for loading tensors. If True, cuda is used, if False cpu is used instead
 gpu_device: 0   # number of device to use when cuda is enabled
+cuda_benchmark: True  # if True, use cuDNN benchmarking to select fastest convolution algorithm
 
 seed: 1337  # seed for torch
 
@@ -47,7 +48,7 @@ mlp_dropout_rate: 0.3   # ratio of dropout, if used
 
 
 # training parameters
-batch_size: 1024  # batch size for training
+batch_size: 1024  # batch size for training (on Colab -> 8192)
 valid_batch_size: 1   # batch size for validation (simulation)
 test_batch_size: 1  # batch size for testing (simulation)
 
@@ -56,7 +57,7 @@ pin_memory: True  # if True, data loader will copy Tensors into CUDA pinned memo
 
 learning_rate: 0.001  # learning rate of optimizer
 weight_decay: 0.0001   # weight decay of optimizer (implemented as L2 penalty)
-max_epoch: 300  # maximum number of epochs of training
+max_epoch: 200  # maximum number of epochs of training
 
 validate_every: 8   # how many epochs between each validation
 log_interval: 1    # how many batches passes between screen updates

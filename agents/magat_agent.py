@@ -17,9 +17,8 @@ import time
 import torch
 import os
 import timeit
-import math
+import logging
 
-import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as data
@@ -30,11 +29,10 @@ import utils.multi_agent_simulator as sim
 import utils.metrics as metrics
 import torch.multiprocessing as mp
 
-from statistics import mean
 from easydict import EasyDict
 from torchinfo import summary
 from torch.multiprocessing.queue import SimpleQueue
-from typing import Callable, List
+from typing import List
 
 
 class MagatAgent(agents.Agent):
@@ -82,12 +80,10 @@ class MagatAgent(agents.Agent):
                                      weight_decay=self.config.weight_decay)  # L2 regularize
 
         # define scheduler
-        steps_per_epoch = math.ceil(len(self.data_loader.train_loader) / self.config.batch_size)
         self.scheduler = optim.lr_scheduler.OneCycleLR(optimizer=self.optimizer,
                                                        max_lr=self.config.learning_rate*10,
                                                        epochs=self.config.max_epoch,
-                                                       steps_per_epoch=steps_per_epoch,
-                                                       )
+                                                       steps_per_epoch=len(self.data_loader.train_loader))
 
         # set agent simulation function
         if self.config.sim_num_process <= 1 or os.name == 'nt':  # single process or Windows
@@ -108,7 +104,11 @@ class MagatAgent(agents.Agent):
             # index of the last batch, used when resuming a training job
             # this number represents the total number of batches computed,
             # not the total number of epochs computed
-            self.scheduler.last_epoch = self.current_epoch * steps_per_epoch
+            self.scheduler.last_epoch = self.current_epoch
+
+        # use cuDNN benchmarking
+        if self.cuda:
+            torch.backends.cudnn.benchmark = True
 
         '''print summary of the model'''
         batch_size = self.config.batch_size
@@ -389,12 +389,14 @@ class MagatAgent(agents.Agent):
                 # collect metrics
                 performance = self.recorder.evaluate_performance(target_makespan=makespan.item())
                 performance_list.append(performance)
-                self.print_performance(performance=performance,
-                                       case_idx=case_idx,
-                                       max_size=len(data_loader))
+                metrics.print_performance(performance=performance,
+                                          mode=self.config.mode,
+                                          logger=self.logger,
+                                          case_idx=case_idx,
+                                          max_size=len(data_loader))
 
         # return average performances
-        return self.get_avg_performance(performance_list=performance_list)
+        return metrics.get_avg_performance(performance_list=performance_list)
 
     def sim_agent_exec_multi(self,
                              data_loader: data.DataLoader
@@ -418,10 +420,18 @@ class MagatAgent(agents.Agent):
             for i, data_ in enumerate(data_loader):
                 data_queue.put((i, data_))
             # collect args for multiprocessing
-            args = (data_queue, performance_queue, self.print_performance, data_size)
+            # model, simulator, recorder, data queue, mode, logger, performance queue, data size
+            args = (self.model,
+                    self.simulator,
+                    self.recorder,
+                    data_queue,
+                    self.config.mode,
+                    self.logger,
+                    performance_queue,
+                    data_size)
 
             # spawn and run processes, wait all to finish
-            mp.spawn(fn=self.sim_worker,
+            mp.spawn(fn=sim_worker,
                      args=args,
                      nprocs=self.config.sim_num_process,
                      join=True)
@@ -439,85 +449,55 @@ class MagatAgent(agents.Agent):
 
         # return average performances
         # noinspection PyTypeChecker
-        return self.get_avg_performance(performance_list=performance_list)
+        return metrics.get_avg_performance(performance_list=performance_list)
 
-    def sim_worker(self,
-                   process_id: int,     # needed because of spawn implementation
-                   data_queue: SimpleQueue,
-                   performance_queue: SimpleQueue,
-                   print_function: Callable,
-                   data_size: int,
-                   ) -> None:
-        """
-        Class for multiprocessing simulation
-        Simulate MAPD execution and record performances over input data taken from iterating over a dataloader,
-        :param process_id: id of the process that executes the function, automatically passed by mp spawn
-        :param data_queue: contains shared input data to run simulation over
-        :param performance_queue: shared queue to put simulation results
-        :param print_function: a function to print performance results, when needed
-        :param data_size: total length of the dataset, needed for print purposes
-        """
-        with torch.no_grad():
-            while not data_queue.empty():
-                # unpack tensors from input data queue
-                case_idx, (obstacle_map, start_pos_list,
-                           task_list, makespan, service_time) = data_queue.get()
 
-                # simulate the MAPD execution
-                # batch size = 1 -> unpack all tensors
-                self.simulator.simulate(obstacle_map=obstacle_map[0],
-                                        start_pos_list=start_pos_list[0],
-                                        task_list=task_list[0],
-                                        model=self.model,
-                                        target_makespan=makespan.item())
+# noinspection PyUnusedLocal
+def sim_worker(process_id: int,     # needed because of spawn implementation
+               model: nn.Module,
+               simulator: sim.MultiAgentSimulator,
+               recorder: metrics.PerformanceRecorder,
+               data_queue: SimpleQueue,
+               mode: str,
+               logger: logging.Logger,
+               performance_queue: SimpleQueue,
+               data_size: int,
+               ) -> None:
+    """
+    Class for multiprocessing simulation
+    Simulate MAPD execution and record performances over input data taken from iterating over a dataloader
+    :param process_id: id of the process that executes the function, automatically passed by mp spawn
+    :param model: model used to simulate movements
+    :param simulator: instance of multiagent simulator to carry on the simulation
+    :param recorder: used to compute performance of a simulation
+    :param data_queue: contains shared input data to run simulation over
+    :param mode: 'test' or 'train'
+    :param logger: logger used to print the info on
+    :param performance_queue: shared queue to put simulation results
+    :param data_size: total length of the dataset, needed for print purposes
+    """
+    with torch.no_grad():
+        while not data_queue.empty():
+            # unpack tensors from input data queue
+            case_idx, (obstacle_map, start_pos_list,
+                       task_list, makespan, service_time) = data_queue.get()
 
-                # collect metrics
-                performance = self.recorder.evaluate_performance(target_makespan=makespan.item())
-                # print metrics
-                print_function(performance=performance,
-                               case_idx=case_idx,
-                               max_size=data_size)
+            # simulate the MAPD execution
+            # batch size = 1 -> unpack all tensors
+            simulator.simulate(obstacle_map=obstacle_map[0],
+                               start_pos_list=start_pos_list[0],
+                               task_list=task_list[0],
+                               model=model,
+                               target_makespan=makespan.item())
 
-                # add metrics
-                performance_queue.put(performance)
+            # collect metrics
+            performance = recorder.evaluate_performance(target_makespan=makespan.item())
+            # print metrics
+            metrics.print_performance(performance=performance,
+                                      mode=mode,
+                                      logger=logger,
+                                      case_idx=case_idx,
+                                      max_size=data_size)
 
-    def print_performance(self,
-                          performance: metrics.Performance,
-                          case_idx: int,
-                          max_size: int
-                          ) -> None:
-        """
-        Internal method to print information about performance
-        :param performance: Performance instance to print
-        :param case_idx: index of case referred to the performance
-        :param max_size: length of the dataset
-        """
-        # if testing, update at each simulation
-        if self.config.mode == 'test':
-            self.logger.info(f'Case {case_idx + 1}: [{case_idx + 1}/{max_size}'
-                             f'({100 * (case_idx + 1) / max_size:.0f}%)]\t'
-                             f'{performance}')
-        # else, validation, update every 50 sim
-        else:
-            if case_idx % 50 == 0:
-                self.logger.info(f'Case {case_idx}: [{case_idx}/{max_size}'
-                                 f'({100 * case_idx / max_size:.0f}%)]\t'
-                                 f'{performance}')
-
-    @staticmethod
-    def get_avg_performance(performance_list: List[metrics.Performance]
-                            ) -> metrics.Performance:
-        """
-        Internal method to compute average performance over a list of performances
-        """
-        # collect all the metrics
-        m = np.array([(p.completed_task, p.collisions_difference, p.makespan_difference)
-                      for p in performance_list])
-        compl_task = m[:, 0]
-        coll = m[:, 1]
-        mks = m[:, 2]
-
-        # return a Performance instance
-        return metrics.Performance(completed_task=mean(compl_task),
-                                   collisions_difference=mean(coll),
-                                   makespan_difference=mean(mks))
+            # add metrics
+            performance_queue.put(performance)

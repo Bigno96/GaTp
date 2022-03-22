@@ -3,9 +3,12 @@ FIle for computing metrics and evaluating quality of solutions
 """
 
 import sys
+import logging
 
 import utils.multi_agent_simulator as ma_sim
+import numpy as np
 
+from statistics import mean
 from dataclasses import dataclass
 from typing import List, Tuple, Dict, Deque
 
@@ -72,6 +75,51 @@ class PerformanceRecorder:
         return Performance(completed_task=task_percentage,
                            collisions_difference=-collisions,  # negative, check explanation in Performance
                            makespan_difference=makespan_diff)
+
+
+def get_avg_performance(performance_list: List[Performance]
+                        ) -> Performance:
+    """
+    Internal method to compute average performance over a list of performances
+    """
+    # collect all the metrics
+    m = np.array([(p.completed_task, p.collisions_difference, p.makespan_difference)
+                  for p in performance_list])
+    compl_task = m[:, 0]
+    coll = m[:, 1]
+    mks = m[:, 2]
+
+    # return a Performance instance
+    return Performance(completed_task=mean(compl_task),
+                       collisions_difference=mean(coll),
+                       makespan_difference=mean(mks))
+
+
+def print_performance(performance: Performance,
+                      mode: str,
+                      logger: logging.Logger,
+                      case_idx: int,
+                      max_size: int
+                      ) -> None:
+    """
+    Internal method to print information about performance
+    :param performance: Performance instance to print
+    :param mode: 'test' or 'train'
+    :param logger: logger used to print the info on
+    :param case_idx: index of case referred to the performance
+    :param max_size: length of the dataset
+    """
+    # if testing, update at each simulation
+    if mode == 'test':
+        logger.info(f'Case {case_idx + 1}: [{case_idx + 1}/{max_size}'
+                    f'({100 * (case_idx + 1) / max_size:.0f}%)]\t'
+                    f'{performance}')
+    # else, validation, update every 5 sim
+    else:
+        if case_idx % 5 == 0:
+            logger.info(f'Case {case_idx}: [{case_idx}/{max_size}'
+                        f'({100 * case_idx / max_size:.0f}%)]\t'
+                        f'{performance}')
 
 
 def count_collision(agent_schedule: Dict[int, Deque[Tuple[int, int, int]]]
