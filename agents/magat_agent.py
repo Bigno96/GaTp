@@ -5,14 +5,20 @@ The model was proposed by us in the below paper:
 Q. Li, W. Lin, Z. Liu and A. Prorok,
 "Message-Aware Graph Attention Networks for Large-Scale Multi-Robot Path Planning"
 in IEEE Robotics and Automation Letters, vol. 6, no. 3, pp. 5533-5540, July 2021, doi: 10.1109/LRA.2021.3077863.
+
+Cyclic Learning Rate as proposed in:
+L.N. Smith,
+"Cyclical learning rates for training neural networks"
+In 2017 IEEE winter conference on applications of computer vision (WACV), pp. 464-472.
 """
 
 import shutil
 import time
-
+import apex
 import torch
 import os
 import timeit
+import math
 
 import numpy as np
 import torch.nn as nn
@@ -71,14 +77,24 @@ class MagatAgent(agents.Agent):
         # define loss
         self.loss_f = nn.CrossEntropyLoss().to(self.config.device)
 
-        # define optimizers
-        self.optimizer = optim.Adam(params=self.model.parameters(),
-                                    lr=self.config.learning_rate,
-                                    weight_decay=self.config.weight_decay)  # L2 regularize
-        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer,
-                                                              # max number of iteration
-                                                              T_max=self.config.max_epoch,
-                                                              eta_min=1e-6)  # min learning rate
+        # define optimizer
+        if self.cuda and os.name != 'nt':   # cuda apex optimization not supported on Windows
+            self.optimizer = apex.optimizers.FusedAdam(params=self.model.parameters(),
+                                                       lr=self.config.learning_rate,
+                                                       adam_w_mode=True,    # AdamW algorithm
+                                                       weight_decay=self.config.weight_decay)  # L2 regularize
+        else:
+            self.optimizer = optim.AdamW(params=self.model.parameters(),
+                                         lr=self.config.learning_rate,
+                                         weight_decay=self.config.weight_decay)  # L2 regularize
+
+        # define scheduler
+        steps_per_epoch = math.ceil(len(self.data_loader.train_loader) / self.config.batch_size)
+        self.scheduler = optim.lr_scheduler.OneCycleLR(optimizer=self.optimizer,
+                                                       max_lr=self.config.learning_rate*10,
+                                                       epochs=self.config.max_epoch,
+                                                       steps_per_epoch=steps_per_epoch,
+                                                       )
 
         # set agent simulation function
         if self.config.sim_num_process <= 1 or os.name == 'nt':  # single process or Windows
@@ -96,6 +112,10 @@ class MagatAgent(agents.Agent):
             self.load_checkpoint(epoch=config.epoch_id,
                                  best=config.load_ckp_mode == 'best',
                                  latest=config.load_ckp_mode == 'latest')
+            # index of the last batch, used when resuming a training job
+            # this number represents the total number of batches computed,
+            # not the total number of epochs computed
+            self.scheduler.last_epoch = self.current_epoch * steps_per_epoch
 
         '''print summary of the model'''
         batch_size = self.config.batch_size
@@ -228,17 +248,12 @@ class MagatAgent(agents.Agent):
         # start from current_epoch -> in case of loaded checkpoint
         for epoch in range(self.current_epoch, self.config.max_epoch+1):
             self.current_epoch = epoch      # update epoch
-            self.logger.info(f'Begin Epoch {self.current_epoch} - Learning Rate: {self.scheduler.get_last_lr()}')
+            self.logger.info(f'Begin Epoch {self.current_epoch}')
 
             self.train_one_epoch()  # train the epoch
 
-            # always validate first 4 epochs
-            if epoch <= 4:
-                self.performance = self.validate()
-                self.save_checkpoint(epoch, is_best=False, latest=False)
-                self.logger.info(f'Validation {self.performance}')
-            # else validate only every n epochs
-            elif epoch % self.config.validate_every == 0:
+            # validate only every n epochs
+            if epoch % self.config.validate_every == 0:
                 self.performance = self.validate()
                 self.save_checkpoint(epoch, is_best=False, latest=False)
                 self.logger.info(f'Validation {self.performance}')
@@ -249,8 +264,6 @@ class MagatAgent(agents.Agent):
                 # save performance value and best checkpoint
                 self.best_performance = self.performance.copy()
                 self.save_checkpoint(epoch=epoch, is_best=is_best, latest=True)
-
-            self.scheduler.step()
 
     def validate(self) -> metrics.Performance:
         """
@@ -339,11 +352,15 @@ class MagatAgent(agents.Agent):
             self.optimizer.zero_grad(set_to_none=True)
             self.optimizer.step()
 
+            # scheduler step, cyclic lr scheduling -> step after each batch
+            self.scheduler.step()
+
             # log progress
             if batch_idx % self.config.log_interval == 0:
                 self.logger.info(f'Epoch {self.current_epoch}:'
                                  f'[{batch_idx * self.config.batch_size}/{len(self.data_loader.train_loader.dataset)}'
-                                 f'({100 * batch_idx / len(self.data_loader.train_loader):.0f}%)]\t'
+                                 f'({100 * batch_idx / len(self.data_loader.train_loader):.0f}%)] '
+                                 f'- Learning Rate: {self.scheduler.get_last_lr()}\t'
                                  f'Loss: {loss.item():.6f}')
 
         # always last batch logged
