@@ -23,7 +23,7 @@ from yaml import safe_load
 
 CONFIG_FOLDER_PATH = 'GaTp/yaml_configs'
 PROJECT_ROOT = 'D:/Uni/TESI'
-APPEND_PROJECT_ROOT = False       # change this to prepend PROJECT_ROOT for creating folder paths
+APPEND_PROJECT_ROOT = True       # change this to prepend PROJECT_ROOT for creating folder paths
 
 
 def setup_logging(log_dir: str) -> None:
@@ -46,13 +46,13 @@ def setup_logging(log_dir: str) -> None:
 
     # handler for DEBUG level information during execution of experiments
     # dump into a file: log_dir/exp_debug.log
-    exp_file_handler = RotatingFileHandler(f'{log_dir}\\exp_debug.log', maxBytes=10 ** 6, backupCount=5)
+    exp_file_handler = RotatingFileHandler(f'{log_dir}/exp_debug.log', maxBytes=10 ** 6, backupCount=5)
     exp_file_handler.setLevel(logging.DEBUG)
     exp_file_handler.setFormatter(Formatter(log_file_format))
 
     # handler for errors (WARNING level) during execution of experiments
     # dump into a file: log_dir/exp_error.log
-    exp_errors_file_handler = RotatingFileHandler(f'{log_dir}\\exp_error.log', maxBytes=10 ** 6, backupCount=5)
+    exp_errors_file_handler = RotatingFileHandler(f'{log_dir}/exp_error.log', maxBytes=10 ** 6, backupCount=5)
     exp_errors_file_handler.setLevel(logging.WARNING)
     exp_errors_file_handler.setFormatter(Formatter(log_file_format))
 
