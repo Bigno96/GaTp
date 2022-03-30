@@ -3,7 +3,7 @@
 Python Version: >= 3.8
 
 For required libraries -> 'pip install -r GaTp/scripts/requirements.txt'\
-In addition, pytorch == 1.11.0 with cuda toolkit == 11.3 is required
+In addition, pytorch == 1.11.0 with cuda toolkit == 11.3 is required\
 For pytorch -> pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
 
 Datasets folder is in the Shared Drive Folder.\
