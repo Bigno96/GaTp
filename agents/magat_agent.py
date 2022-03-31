@@ -248,15 +248,15 @@ class MagatAgent(agents.Agent):
             # validate only every n epochs
             if epoch % self.config.validate_every == 0:
                 self.performance = self.validate()
-                self.save_checkpoint(epoch, is_best=False, latest=False)
+                self.save_checkpoint(epoch=epoch, is_best=False, latest=False)
                 self.logger.info(f'Validation {self.performance}')
 
-            # if performance was instanced
-            is_best = self.performance > self.best_performance   # check if it is the best one
+            # check if it is the best one
+            is_best = self.performance > self.best_performance
             if is_best:     # if so
                 # save performance value and best checkpoint
                 self.best_performance = self.performance.copy()
-                self.save_checkpoint(epoch=epoch, is_best=is_best, latest=True)
+                self.save_checkpoint(epoch=epoch, is_best=True, latest=True)
 
     def validate(self) -> metrics.Performance:
         """

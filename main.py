@@ -8,6 +8,7 @@ Main execution file
 """
 
 import argparse
+import logging
 import time
 
 import agents.magat_agent as ag
@@ -93,12 +94,16 @@ def main():
     # parse the config json file
     config = cfg.process_config(args)
 
-    # run the agent
-    agent = ag.MagatAgent(config)
-    time.sleep(1)   # print coordination
-    agent.run()
-    time.sleep(1)   # print coordination
-    agent.finalize()
+    try:
+        # run the agent
+        agent = ag.MagatAgent(config)
+        time.sleep(1)   # print coordination
+        agent.run()
+        time.sleep(1)   # print coordination
+        agent.finalize()
+
+    except Exception as err:
+        logging.getLogger().warning(err)
 
 
 def __check_odd(v):
