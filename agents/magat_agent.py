@@ -239,7 +239,7 @@ class MagatAgent(agents.Agent):
         self.logger.info('Start training')
         # loop over epochs 
         # start from current_epoch -> in case of loaded checkpoint
-        for epoch in range(self.current_epoch, self.config.max_epoch+1):
+        for epoch in range(self.current_epoch, self.config.max_epoch):
             self.current_epoch = epoch      # update epoch
             self.logger.info(f'Begin Epoch {self.current_epoch}')
 
