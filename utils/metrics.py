@@ -116,7 +116,7 @@ def print_performance(performance: Performance,
                     f'{performance}')
     # else, validation, update every 5 sim
     else:
-        if case_idx % 5 == 0:
+        if case_idx % 20 == 0:
             logger.info(f'Case {case_idx}: [{case_idx}/{max_size}'
                         f'({100 * case_idx / max_size:.0f}%)]\t'
                         f'{performance}')
