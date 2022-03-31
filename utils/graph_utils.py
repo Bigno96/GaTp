@@ -8,7 +8,7 @@ The Adjacency Matrix is normalized using node degree and max eigenvalue
 import numpy as np
 import scipy.spatial as sc
 
-ZERO_TOLERANCE = 1e-9
+ZERO_TOLERANCE = 1e-4
 
 
 def compute_adj_matrix(agent_pos_list: np.array,

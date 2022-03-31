@@ -24,8 +24,8 @@ import torch.nn.functional as f
 
 from typing import Optional, Tuple, List
 
-ZERO_TOLERANCE = 1e-9    # values below this number are considered zero
-INF_NUMBER = 1e12       # infinity equals this number
+ZERO_TOLERANCE = 1e-4   # values below this number are considered zero, consider FP16
+INF_NUMBER = 1e4    # infinity equals this number, consider FP16
 
 
 class GatGSO(nn.Module):
@@ -447,15 +447,15 @@ def learn_attention_gso_batch_key_query(x: torch.Tensor,
     # so we need to set them to -infinity so that they will be assigned a zero.
 
     # first, get places where we have edges
-    maskEdges = torch.sum(torch.abs(S.data), dim=1).reshape([B, 1, 1, N, N])    # B x 1 x 1 x N x N
+    mask_edges = torch.sum(torch.abs(S.data), dim=1).reshape([B, 1, 1, N, N])    # B x 1 x 1 x N x N
     # make it a binary matrix
-    maskEdges = (maskEdges > ZERO_TOLERANCE).type(x.dtype).to(eij.device)   # B x 1 x 1 x N x N
+    mask_edges = (mask_edges > ZERO_TOLERANCE).type(x.dtype).to(eij.device)   # B x 1 x 1 x N x N
     # make it -infinity where there are zeros
-    infinityMask = (1 - maskEdges) * INF_NUMBER
-    infinityMask = infinityMask.to(eij.device)
+    infinity_mask = (1 - mask_edges) * INF_NUMBER
+    infinity_mask = infinity_mask.to(eij.device)
 
     # compute the softmax plus the -infinity (we first force the places where there is no edge to be zero,
     # and then we add -infinity to them)
-    aij_tmp = nn.functional.softmax(eij * maskEdges - infinityMask, dim=4)
+    aij_tmp = nn.functional.softmax(eij * mask_edges - infinity_mask, dim=4)
 
-    return aij_tmp * maskEdges
+    return aij_tmp * mask_edges

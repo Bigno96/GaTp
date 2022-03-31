@@ -179,7 +179,7 @@ class ResidualBlock(nn.Module):
         if self.should_apply_shortcut:
             residual = self.shortcut(x)     # apply shortcut
         else:
-            residual = x
+            residual = x.clone()
 
         x = self.blocks(x)
         x += residual   # sum back skip connection

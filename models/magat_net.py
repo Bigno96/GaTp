@@ -227,13 +227,11 @@ class MAGATNet(nn.Module):
             x = self.feature_compressor(x)
 
         # add skip connection
-        if self.skip_connection:
-            # B*N x F
-            residual = x
+        # B*N x F
+        residual = x.clone()
 
         # first, B*N x F -> B x N x F, with F that can be either cnn_out_feature or compr_out_feature
         # second, reshape B x N x F -> B x F x N, gnn input ordering
-        # using view to guarantee copy, to not affect residual
         x = x.view(B, N, -1).permute([0, 2, 1])
 
         # pass through gnn to get information from other agents
