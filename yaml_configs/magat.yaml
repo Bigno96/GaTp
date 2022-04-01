@@ -57,7 +57,7 @@ pin_memory: True  # if True, data loader will copy Tensors into CUDA pinned memo
 
 learning_rate: 0.0001  # learning rate of optimizer
 weight_decay: 0.00001   # weight decay of optimizer (implemented as L2 penalty)
-max_epoch: 200  # maximum number of epochs of training
+max_epoch: 300  # maximum number of epochs of training
 
 validate_every: 8   # how many epochs between each validation
 log_interval: 20    # how many batches passes between screen updates
