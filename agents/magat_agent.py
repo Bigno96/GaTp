@@ -434,7 +434,7 @@ class MagatAgent(agents.Agent):
             mp.spawn(fn=sim_worker,
                      args=args,
                      nprocs=self.config.sim_num_process,
-                     join=False)
+                     join=True)
 
             # release data queue
             data_queue.close()
