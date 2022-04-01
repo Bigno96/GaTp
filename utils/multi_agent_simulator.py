@@ -30,9 +30,11 @@ class MultiAgentSimulator:
     """
 
     def __init__(self,
-                 config: EasyDict):
+                 config: EasyDict,
+                 device: str):
         """
         :param config: configuration Namespace
+        :param device: device on which to execute computation
         """
         self.config = config
 
@@ -73,7 +75,7 @@ class MultiAgentSimulator:
         self.step_between_insertion: int = self.config.step_between_insertion  # timestep between each insertion
 
         # device
-        self.device = self.config.device
+        self.device = device
 
         '''pre-define directions'''
         self.up = np.array([-1, 0], dtype=np.int8)

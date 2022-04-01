@@ -18,6 +18,7 @@ import torch
 import os
 import timeit
 import logging
+import logging.handlers
 
 import torch.nn as nn
 import torch.optim as optim
@@ -32,6 +33,7 @@ import torch.multiprocessing as mp
 from easydict import EasyDict
 from torchinfo import summary
 from torch.multiprocessing.queue import Queue
+from multiprocessing import Process
 from typing import List
 
 
@@ -86,15 +88,10 @@ class MagatAgent(agents.Agent):
                                                        steps_per_epoch=len(self.data_loader.train_loader))
 
         # set agent simulation function
-        if self.config.sim_num_process <= 1 or os.name == 'nt':  # single process or Windows
-            # pytorch does not support sharing GPU resources between processes on Windows
+        if self.config.sim_num_process <= 1:    # single process
             self.simulate_agent_exec = self.sim_agent_exec_single
         else:
             self.simulate_agent_exec = self.sim_agent_exec_multi
-
-        # simulation handling classes and variables
-        self.simulator = sim.MultiAgentSimulator(config=self.config)    # needs config.device set in setup_device()
-        self.recorder = metrics.PerformanceRecorder(simulator=self.simulator)
 
         # load checkpoint if necessary
         if config.load_checkpoint:
@@ -244,6 +241,8 @@ class MagatAgent(agents.Agent):
             self.logger.info(f'Begin Epoch {self.current_epoch}')
 
             self.train_one_epoch()  # train the epoch
+            # save the model checkpoint for eventual validation or restarting
+            self.save_checkpoint(epoch=epoch, is_best=False, latest=True)
 
             # validate only every n epochs
             if epoch % self.config.validate_every == 0:
@@ -373,6 +372,11 @@ class MagatAgent(agents.Agent):
         """
         self.logger.info('Starting single process MAPD simulations')
 
+        # simulation handling classes and variables
+        simulator = sim.MultiAgentSimulator(config=self.config,
+                                            device=self.config.device)
+        recorder = metrics.PerformanceRecorder(simulator=simulator)
+
         performance_list: List[metrics.Performance] = []
         with torch.no_grad():
             # loop over all cases in the test/valid data loader
@@ -380,14 +384,14 @@ class MagatAgent(agents.Agent):
                     in enumerate(data_loader):
                 # simulate the MAPD execution
                 # batch size = 1 -> unpack all tensors
-                self.simulator.simulate(obstacle_map=obstacle_map[0],
-                                        start_pos_list=start_pos_list[0],
-                                        task_list=task_list[0],
-                                        model=self.model,
-                                        target_makespan=makespan.item())
+                simulator.simulate(obstacle_map=obstacle_map[0],
+                                   start_pos_list=start_pos_list[0],
+                                   task_list=task_list[0],
+                                   model=self.model,
+                                   target_makespan=makespan.item())
 
                 # collect metrics
-                performance = self.recorder.evaluate_performance(target_makespan=makespan.item())
+                performance = recorder.evaluate_performance(target_makespan=makespan.item())
                 performance_list.append(performance)
                 metrics.print_performance(performance=performance,
                                           mode=self.config.mode,
@@ -417,16 +421,21 @@ class MagatAgent(agents.Agent):
             # set up queues
             performance_queue = Queue(ctx=mp.get_context())
             data_queue = Queue(ctx=mp.get_context())
+            logging_queue = Queue(-1)
+
+            # listener for logging
+            listener = Process(target=listener_process,
+                               args=(logging_queue,))
+            listener.start()
+
+            # fill data queue
             for i, data_ in enumerate(data_loader):
                 data_queue.put((i, data_), block=True)
             # collect args for multiprocessing
-            # model, simulator, recorder, data queue, mode, logger, performance queue, data size
-            args = (self.model,
-                    self.simulator,
-                    self.recorder,
+            # config, data queue, mode, performance queue, data size
+            args = (self.config,
                     data_queue,
                     self.config.mode,
-                    self.logger,
                     performance_queue,
                     data_size)
 
@@ -448,18 +457,32 @@ class MagatAgent(agents.Agent):
             performance_queue.close()
 
         # return average performances
-        # noinspection PyTypeChecker
         return metrics.get_avg_performance(performance_list=performance_list)
 
 
-# noinspection PyUnusedLocal
+# TODO
+def listener_process(queue):
+    while True:
+        record = queue.get()
+        if record is None:  # we send this as a sentinel to tell the listener to quit.
+            break
+        logger = logging.getLogger(record.name)
+        logger.handle(record)  # no level or filter logic applied
+
+
+# TODO
+def worker_config(queue):
+    h = logging.handlers.QueueHandler(queue)  # just the one handler needed
+    root = logging.getLogger()
+    root.addHandler(h)
+    # send all messages
+    root.setLevel(logging.DEBUG)
+
+
 def sim_worker(process_id: int,     # needed because of spawn implementation
-               model: nn.Module,
-               simulator: sim.MultiAgentSimulator,
-               recorder: metrics.PerformanceRecorder,
+               config: EasyDict,
                data_queue: Queue,
                mode: str,
-               logger: logging.Logger,
                performance_queue: Queue,
                data_size: int,
                ) -> None:
@@ -467,20 +490,32 @@ def sim_worker(process_id: int,     # needed because of spawn implementation
     Class for multiprocessing simulation
     Simulate MAPD execution and record performances over input data taken from iterating over a dataloader
     :param process_id: id of the process that executes the function, automatically passed by mp spawn
-    :param model: model used to simulate movements
-    :param simulator: instance of multiagent simulator to carry on the simulation
-    :param recorder: used to compute performance of a simulation
+    :param config: Namespace of configurations
     :param data_queue: contains shared input data to run simulation over
     :param mode: 'test' or 'train'
-    :param logger: logger used to print the info on
     :param performance_queue: shared queue to put simulation results
     :param data_size: total length of the dataset, needed for print purposes
     """
+    # simulation handling class and performance recorder
+    simulator = sim.MultiAgentSimulator(config=config,
+                                        device=config.device)
+    recorder = metrics.PerformanceRecorder(simulator=simulator)
+    # logger
+    logger = logging.getLogger(f'Process {process_id}')
+
     with torch.no_grad():
         while not data_queue.empty():
             # unpack tensors from input data queue
             case_idx, (obstacle_map, start_pos_list,
                        task_list, makespan, service_time) = data_queue.get(block=True)
+
+            # load the model parameters
+            file_path = os.path.join(config.checkpoint_dir, 'checkpoint.pth.tar')
+            checkpoint = torch.load(f=file_path,
+                                    map_location=torch.device(f'{config.device}'))
+
+            model = magat.MAGATNet(config=config).to(config.device)
+            model.load_state_dict(checkpoint['state_dict'])
 
             # simulate the MAPD execution
             # batch size = 1 -> unpack all tensors

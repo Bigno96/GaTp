@@ -52,7 +52,7 @@ batch_size: 8192  # batch size for training (on Colab -> 8192)
 valid_batch_size: 1   # batch size for validation (simulation)
 test_batch_size: 1  # batch size for testing (simulation)
 
-data_loader_workers: 4  # num of processes for data loading
+data_loader_workers: 8  # num of processes for data loading
 pin_memory: True  # if True, data loader will copy Tensors into CUDA pinned memory before returning them
 
 learning_rate: 0.0001  # learning rate of optimizer

@@ -24,7 +24,7 @@ def create_dirs(dirs: List[str]) -> None:
             if not os.path.exists(dir_):
                 os.makedirs(dir_)
     except Exception as err:
-        logging.getLogger('Dirs Creator').info(f'Creating directories error: {err}')
+        logging.getLogger('Dirs Creator').warning(f'Creating directories error: {err}')
         exit(-1)
 
 
