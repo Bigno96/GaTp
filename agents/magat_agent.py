@@ -31,7 +31,7 @@ import torch.multiprocessing as mp
 
 from easydict import EasyDict
 from torchinfo import summary
-from torch.multiprocessing.queue import SimpleQueue
+from torch.multiprocessing.queue import Queue
 from typing import List
 
 
@@ -415,10 +415,10 @@ class MagatAgent(agents.Agent):
         # load data from data loader
         with torch.no_grad():
             # set up queues
-            performance_queue = SimpleQueue(ctx=mp.get_context())
-            data_queue = SimpleQueue(ctx=mp.get_context())
+            performance_queue = Queue(ctx=mp.get_context())
+            data_queue = Queue(ctx=mp.get_context())
             for i, data_ in enumerate(data_loader):
-                data_queue.put((i, data_))
+                data_queue.put((i, data_), block=True)
             # collect args for multiprocessing
             # model, simulator, recorder, data queue, mode, logger, performance queue, data size
             args = (self.model,
@@ -440,7 +440,7 @@ class MagatAgent(agents.Agent):
             data_queue.close()
 
             # get performance list
-            performance_queue.put('STOP')   # termination sentinel
+            performance_queue.put('STOP', block=True)   # termination sentinel
             performance_list = [p for p in iter(performance_queue.get, 'STOP')]
             time.sleep(.1)      # release the GIL
 
@@ -457,10 +457,10 @@ def sim_worker(process_id: int,     # needed because of spawn implementation
                model: nn.Module,
                simulator: sim.MultiAgentSimulator,
                recorder: metrics.PerformanceRecorder,
-               data_queue: SimpleQueue,
+               data_queue: Queue,
                mode: str,
                logger: logging.Logger,
-               performance_queue: SimpleQueue,
+               performance_queue: Queue,
                data_size: int,
                ) -> None:
     """
@@ -480,7 +480,7 @@ def sim_worker(process_id: int,     # needed because of spawn implementation
         while not data_queue.empty():
             # unpack tensors from input data queue
             case_idx, (obstacle_map, start_pos_list,
-                       task_list, makespan, service_time) = data_queue.get()
+                       task_list, makespan, service_time) = data_queue.get(block=True)
 
             # simulate the MAPD execution
             # batch size = 1 -> unpack all tensors
@@ -500,4 +500,4 @@ def sim_worker(process_id: int,     # needed because of spawn implementation
                                       max_size=data_size)
 
             # add metrics
-            performance_queue.put(performance)
+            performance_queue.put(performance, block=True)
