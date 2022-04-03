@@ -33,7 +33,6 @@ import torch.multiprocessing as mp
 from easydict import EasyDict
 from torchinfo import summary
 from torch.multiprocessing.queue import Queue
-from multiprocessing import Process
 from typing import List
 
 
@@ -421,22 +420,16 @@ class MagatAgent(agents.Agent):
             # set up queues
             performance_queue = Queue(ctx=mp.get_context())
             data_queue = Queue(ctx=mp.get_context())
-            logging_queue = Queue(-1)
-
-            # listener for logging
-            listener = Process(target=listener_process,
-                               args=(logging_queue,))
-            listener.start()
 
             # fill data queue
             for i, data_ in enumerate(data_loader):
                 data_queue.put((i, data_), block=True)
             # collect args for multiprocessing
-            # config, data queue, mode, performance queue, data size
+            # config, data queue, performance queue, mode, data size
             args = (self.config,
                     data_queue,
-                    self.config.mode,
                     performance_queue,
+                    self.config.mode,
                     data_size)
 
             # spawn and run processes, wait all to finish
@@ -460,30 +453,11 @@ class MagatAgent(agents.Agent):
         return metrics.get_avg_performance(performance_list=performance_list)
 
 
-# TODO
-def listener_process(queue):
-    while True:
-        record = queue.get()
-        if record is None:  # we send this as a sentinel to tell the listener to quit.
-            break
-        logger = logging.getLogger(record.name)
-        logger.handle(record)  # no level or filter logic applied
-
-
-# TODO
-def worker_config(queue):
-    h = logging.handlers.QueueHandler(queue)  # just the one handler needed
-    root = logging.getLogger()
-    root.addHandler(h)
-    # send all messages
-    root.setLevel(logging.DEBUG)
-
-
 def sim_worker(process_id: int,     # needed because of spawn implementation
                config: EasyDict,
                data_queue: Queue,
-               mode: str,
                performance_queue: Queue,
+               mode: str,
                data_size: int,
                ) -> None:
     """
@@ -492,8 +466,8 @@ def sim_worker(process_id: int,     # needed because of spawn implementation
     :param process_id: id of the process that executes the function, automatically passed by mp spawn
     :param config: Namespace of configurations
     :param data_queue: contains shared input data to run simulation over
-    :param mode: 'test' or 'train'
     :param performance_queue: shared queue to put simulation results
+    :param mode: 'test' or 'train'
     :param data_size: total length of the dataset, needed for print purposes
     """
     # simulation handling class and performance recorder
