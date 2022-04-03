@@ -3,6 +3,7 @@
 cuda: True  # device for loading tensors. If True, cuda is used, if False cpu is used instead
 gpu_device: 0   # number of device to use when cuda is enabled
 cuda_benchmark: True  # if True, use cuDNN benchmarking to select fastest convolution algorithm
+amp: False   # if True, Automatic Mixed Precision cuda acceleration is active
 
 seed: 1337  # seed for torch
 

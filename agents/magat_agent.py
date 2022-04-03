@@ -56,6 +56,8 @@ class MagatAgent(agents.Agent):
             self.logger.info(f'WARNING: You have selected CUDA device, but no available CUDA device was found\n'
                              f'Switching to CPU instead')
         self.cuda = self.cuda and self.config.cuda  # prevent setting cuda True if not available
+        # set amp flag
+        self.amp = self.config.amp and self.cuda    # no amp if cpu is used
 
         # set the manual seed for torch
         self.manual_seed: int = self.config.seed
@@ -64,7 +66,7 @@ class MagatAgent(agents.Agent):
         self.setup_device()
 
         # scaler for AMP acceleration
-        self.scaler = torch.cuda.amp.GradScaler(enabled=self.cuda)
+        self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
 
         # initialize data loader
         self.data_loader = loader.GaTpDataLoader(config=self.config)
@@ -327,7 +329,7 @@ class MagatAgent(agents.Agent):
             loss = 0
 
             # AMP optimization
-            with torch.cuda.amp.autocast(enabled=self.cuda):
+            with torch.cuda.amp.autocast(enabled=self.amp):
                 # get model prediction, B*N x 5
                 predict = self.model(batch_input)
                 # compute loss
@@ -340,7 +342,7 @@ class MagatAgent(agents.Agent):
             self.scaler.step(self.optimizer)
             self.scaler.update()
 
-            self.optimizer.zero_grad(set_to_none=True)
+            self.optimizer.zero_grad()
             self.optimizer.step()
 
             # scheduler step, cyclic lr scheduling -> step after each batch
