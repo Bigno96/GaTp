@@ -13,7 +13,6 @@ In 2017 IEEE winter conference on applications of computer vision (WACV), pp. 46
 """
 
 import shutil
-import time
 import torch
 import os
 import timeit
@@ -440,16 +439,16 @@ class MagatAgent(agents.Agent):
                      nprocs=self.config.sim_num_process,
                      join=True)
 
-            # release data queue
-            data_queue.close()
-
             # get performance list
             performance_queue.put('STOP', block=True)   # termination sentinel
             performance_list = [p for p in iter(performance_queue.get, 'STOP')]
-            time.sleep(.1)      # release the GIL
 
+            # release data queue
+            data_queue.close()
+            data_queue.join_thread()
             # release performance queue
             performance_queue.close()
+            performance_queue.join_thread()
 
         # return average performances
         return metrics.get_avg_performance(performance_list=performance_list)
