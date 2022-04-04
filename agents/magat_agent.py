@@ -419,8 +419,10 @@ class MagatAgent(agents.Agent):
         # load data from data loader
         with torch.no_grad():
             # set up queues
-            performance_queue = Queue(ctx=mp.get_context('spawn'))
-            data_queue = Queue(ctx=mp.get_context('spawn'))
+            performance_queue = Queue(ctx=mp.get_context('spawn'),
+                                      maxsize=data_size+1)
+            data_queue = Queue(ctx=mp.get_context('spawn'),
+                               maxsize=data_size+1)
 
             # fill data queue
             for i, data_ in enumerate(data_loader):
