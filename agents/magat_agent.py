@@ -503,6 +503,7 @@ def sim_worker(process_id: int,     # needed because of spawn implementation
             # collect metrics
             performance = recorder.evaluate_performance(target_makespan=makespan.item())
             # print metrics
+            print(f'Process {process_id} simulated case {case_idx}')
             metrics.print_performance(performance=performance,
                                       mode=mode,
                                       logger=logger,
