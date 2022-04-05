@@ -14,6 +14,7 @@ import os
 
 import agents.magat_agent as ag
 import utils.config as cfg
+import torch.multiprocessing as mp
 
 from argparse import ArgumentParser
 
@@ -116,4 +117,5 @@ def __check_odd(v):
 if __name__ == '__main__':
     __spec__ = None
     os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
+    mp.set_start_method(method='spawn')
     main()
