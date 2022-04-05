@@ -10,6 +10,7 @@ Main execution file
 import argparse
 import logging
 import time
+import os
 
 import agents.magat_agent as ag
 import utils.config as cfg
@@ -114,4 +115,5 @@ def __check_odd(v):
 
 if __name__ == '__main__':
     __spec__ = None
+    os.environ['CUDA_LAUNCH_BLOCKING'] = '1'
     main()

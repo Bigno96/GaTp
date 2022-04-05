@@ -428,12 +428,10 @@ class MagatAgent(agents.Agent):
             for i, data_ in enumerate(data_loader):
                 data_queue.put((i, data_), block=True)
             # collect args for multiprocessing
-            # config, data queue, performance queue, mode, data size
+            # config, data queue, performance queue
             args = (self.config,
                     data_queue,
-                    performance_queue,
-                    self.config.mode,
-                    data_size)
+                    performance_queue)
 
             # spawn and run processes, wait all to finish
             mp.spawn(fn=sim_worker,
@@ -459,9 +457,7 @@ class MagatAgent(agents.Agent):
 def sim_worker(process_id: int,     # needed because of spawn implementation
                config: EasyDict,
                data_queue: Queue,
-               performance_queue: Queue,
-               mode: str,
-               data_size: int,
+               performance_queue: Queue
                ) -> None:
     """
     Class for multiprocessing simulation
@@ -470,15 +466,11 @@ def sim_worker(process_id: int,     # needed because of spawn implementation
     :param config: Namespace of configurations
     :param data_queue: contains shared input data to run simulation over
     :param performance_queue: shared queue to put simulation results
-    :param mode: 'test' or 'train'
-    :param data_size: total length of the dataset, needed for print purposes
     """
     # simulation handling class and performance recorder
     simulator = sim.MultiAgentSimulator(config=config,
                                         device=config.device)
     recorder = metrics.PerformanceRecorder(simulator=simulator)
-    # logger
-    logger = logging.getLogger(f'Process {process_id}')
 
     with torch.no_grad():
         while not data_queue.empty():
@@ -506,11 +498,6 @@ def sim_worker(process_id: int,     # needed because of spawn implementation
             performance = recorder.evaluate_performance(target_makespan=makespan.item())
             # print metrics
             print(f'Process {process_id} simulated case {case_idx}')
-            metrics.print_performance(performance=performance,
-                                      mode=mode,
-                                      logger=logger,
-                                      case_idx=case_idx,
-                                      max_size=data_size)
 
             # add metrics
             performance_queue.put(performance, block=True)
