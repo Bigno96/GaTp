@@ -16,8 +16,6 @@ import shutil
 import torch
 import os
 import timeit
-import logging
-import logging.handlers
 
 import torch.nn as nn
 import torch.optim as optim
