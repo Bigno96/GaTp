@@ -148,8 +148,9 @@ def process_config(args: argparse.Namespace) -> EasyDict:
     config.exp_hyper_para = f'{config.attention_heads}heads+{config.attention_concat}_concat' \
                             f'+{config.comm_radius}comm_radius+{config.FOV}FOV'
 
-    # testing always load a trained checkpoint
-    config.load_checkpoint = config.load_checkpoint or config.mode == 'test'
+    # initial checkpoint loading only for train mode
+    # test and valid always load their checkpoints automatically
+    config.load_checkpoint = config.load_checkpoint and config.mode == 'train'
 
     # if loading an existing checkpoint
     if config.load_checkpoint:
@@ -161,9 +162,15 @@ def process_config(args: argparse.Namespace) -> EasyDict:
         if config.load_ckp_mode == 'epoch' and config.epoch_id is None:
             print('Error: No epoch specified when trying to load checkpoint!')
             exit(-1)
-        # for testing, put load_mode == 'best'
-        if config.mode == 'test':
-            config.load_ckp_mode = 'best'
+
+        config.exp_time = config.checkpoint_timestamp
+
+    # test and valid only modes do load model checkpoints
+    elif config.mode == 'test' or config.mode == 'valid':
+        # checkpoint to load not specified
+        if not config.checkpoint_timestamp:
+            print('Error: No checkpoint to load!')
+            exit(-1)
 
         config.exp_time = config.checkpoint_timestamp
 

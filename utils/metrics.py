@@ -99,7 +99,8 @@ def print_performance(performance: Performance,
                       mode: str,
                       logger: logging.Logger,
                       case_idx: int,
-                      max_size: int
+                      max_size: int,
+                      print_valid_every: int
                       ) -> None:
     """
     Internal method to print information about performance
@@ -108,6 +109,7 @@ def print_performance(performance: Performance,
     :param logger: logger used to print the info on
     :param case_idx: index of case referred to the performance
     :param max_size: length of the dataset
+    :param print_valid_every: how many timesteps between each validation print update
     """
     # if testing, update at each simulation
     if mode == 'test':
@@ -116,7 +118,7 @@ def print_performance(performance: Performance,
                     f'{performance}')
     # else, validation, update every 5 sim
     else:
-        if case_idx % 20 == 0:
+        if case_idx % print_valid_every == 0:
             logger.info(f'Case {case_idx}: [{case_idx}/{max_size}'
                         f'({100 * case_idx / max_size:.0f}%)]\t'
                         f'{performance}')

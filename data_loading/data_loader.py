@@ -41,6 +41,17 @@ class GaTpDataLoader:
                                            num_workers=self.config.data_loader_workers,
                                            pin_memory=self.config.pin_memory)
 
+        # # data loader for validation only mode
+        elif self.config.mode == 'valid':
+
+            self.valid_dataset = dataset.GaTpDataset(self.config, 'valid')
+
+            self.valid_loader = DataLoader(dataset=self.valid_dataset,
+                                           batch_size=self.config.valid_batch_size,
+                                           shuffle=False,  # don't shuffle valid set
+                                           num_workers=self.config.data_loader_workers,
+                                           pin_memory=self.config.pin_memory)
+
         # data loader for testing
         elif self.config.mode == 'test':
 

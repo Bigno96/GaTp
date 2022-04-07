@@ -15,6 +15,7 @@ In 2017 IEEE winter conference on applications of computer vision (WACV), pp. 46
 import torch
 import os
 import timeit
+import shutil
 
 import torch.nn as nn
 import torch.optim as optim
@@ -60,62 +61,61 @@ class MagatAgent(agents.Agent):
         # set up device
         self.setup_device()
 
-        # scaler for AMP acceleration
-        self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
-
         # initialize data loader
         self.data_loader = loader.GaTpDataLoader(config=self.config)
 
-        # initialize the model
-        self.model = magat.MAGATNet(config=self.config).to(self.config.device)
+        # set up training variables
+        if self.config.mode == 'train':
+            # scaler for AMP acceleration
+            self.scaler = torch.cuda.amp.GradScaler(enabled=self.amp)
 
-        # define loss
-        self.loss_f = nn.CrossEntropyLoss().to(self.config.device)
+            # initialize the model
+            self.model = magat.MAGATNet(config=self.config).to(self.config.device)
 
-        # define optimizer
-        self.optimizer = optim.AdamW(params=self.model.parameters(),
-                                     lr=self.config.learning_rate,
-                                     weight_decay=self.config.weight_decay)  # L2 regularize
+            # define loss
+            self.loss_f = nn.CrossEntropyLoss().to(self.config.device)
 
-        # define scheduler
-        self.scheduler = optim.lr_scheduler.OneCycleLR(optimizer=self.optimizer,
-                                                       max_lr=self.config.learning_rate*10,
-                                                       epochs=self.config.max_epoch,
-                                                       steps_per_epoch=len(self.data_loader.train_loader))
+            # define optimizer
+            self.optimizer = optim.AdamW(params=self.model.parameters(),
+                                         lr=self.config.learning_rate,
+                                         weight_decay=self.config.weight_decay)  # L2 regularize
+
+            # define scheduler
+            self.scheduler = optim.lr_scheduler.OneCycleLR(optimizer=self.optimizer,
+                                                           max_lr=self.config.learning_rate*10,
+                                                           epochs=self.config.max_epoch,
+                                                           steps_per_epoch=len(self.data_loader.train_loader))
 
         # set agent simulation function
-        if self.config.sim_num_process <= 1:    # single process
+        if self.config.sim_num_process <= 1:
             self.simulate_agent_exec = self.sim_agent_exec_single
         else:
             self.simulate_agent_exec = self.sim_agent_exec_multi
 
         # load checkpoint if necessary
         if config.load_checkpoint:
-            self.load_checkpoint(best=config.load_ckp_mode == 'best',
-                                 latest=config.load_ckp_mode == 'latest',
-                                 epoch=config.epoch_id)
+            self.load_checkpoint(epoch=config.epoch_id)
             # index of the last batch, used when resuming a training job
-            # this number represents the total number of batches computed,
-            # not the total number of epochs computed
             self.scheduler.last_epoch = self.current_epoch
 
         # use cuDNN benchmarking
         if self.cuda:
             torch.backends.cudnn.benchmark = True
 
-        '''print summary of the model'''
-        batch_size = self.config.batch_size
-        agent_num = self.config.agent_number
-        channel_num = 3
-        H, W = self.config.FOV + 2, self.config.FOV + 2
-        dummy_GSO = torch.ones(size=(batch_size, agent_num, agent_num),
-                               device=self.config.device,
-                               dtype=torch.float)
-        self.model.set_gso(dummy_GSO)
-        summary(model=self.model,
-                input_size=(batch_size, agent_num, channel_num, H, W),
-                device=self.config.device,
-                col_names=['input_size', 'output_size', 'num_params'])
+        '''print summary of the model when training'''
+        if self.config.mode == 'train':
+            batch_size = self.config.batch_size
+            agent_num = self.config.agent_number
+            channel_num = 3
+            H, W = self.config.FOV + 2, self.config.FOV + 2
+            dummy_GSO = torch.ones(size=(batch_size, agent_num, agent_num),
+                                   device=self.config.device,
+                                   dtype=torch.float)
+            self.model.set_gso(dummy_GSO)
+            summary(model=self.model,
+                    input_size=(batch_size, agent_num, channel_num, H, W),
+                    device=self.config.device,
+                    col_names=['input_size', 'output_size', 'num_params'])
 
     def setup_device(self) -> None:
         """
@@ -210,18 +210,20 @@ class MagatAgent(agents.Agent):
         The main operator
         """
         try:
+            # training mode
+            if self.config.mode == 'train':
+                self.train()
+
             # testing mode
-            if self.config.mode == 'test':
+            elif self.config.mode == 'test':
                 start_time = timeit.default_timer()
                 self.test()
                 self.time_record = timeit.default_timer() - start_time
-            # training mode
-            elif self.config.mode == 'train':
-                self.train()
-            # only validation mode
+
+            # validation only mode
             else:
                 # list of all ckp names
-                ckp_list = [filename
+                ckp_list = [os.path.join(self.config.checkpoint_dir, filename)
                             for filename in os.listdir(self.config.checkpoint_dir)
                             if filename != 'checkpoint.pth.tar']
                 # for each saved model
@@ -233,7 +235,8 @@ class MagatAgent(agents.Agent):
                     if performance > self.best_performance:
                         # save performance value and best checkpoint
                         self.best_performance = performance.copy()
-                        self.save_checkpoint(best=True)
+                        shutil.copyfile(ckp_path,
+                                        os.path.join(self.config.checkpoint_dir, 'model_best.pth.tar'))
 
         # interrupting training or testing by keyboard
         except KeyboardInterrupt:
@@ -279,7 +282,8 @@ class MagatAgent(agents.Agent):
         :param checkpoint_path: path to the checkpoint to load model from
         :return: mean performance recorder during the validation simulation
         """
-        self.logger.info(f'Start validation for model loaded at {os.path.basename(checkpoint_path)}')
+        self.logger.info(f'Start validation: '
+                         f'Model loaded at {os.path.basename(checkpoint_path)}')
         data_loader = self.data_loader.valid_loader     # get valid loader
         # return mean performance of the simulation
         return self.simulate_agent_exec(data_loader=data_loader,
@@ -307,6 +311,7 @@ class MagatAgent(agents.Agent):
             self.logger.info('################## End of testing ##################')
             self.logger.info(f'Best {self.best_performance}')
             self.logger.info(f'Computation time:\t{self.time_record} ')
+
         # train mode
         elif self.config.mode == 'train':
             self.logger.info('################## End of training ##################')
@@ -314,6 +319,7 @@ class MagatAgent(agents.Agent):
                 self.logger.info(f'Best Validation {self.best_performance}')
             else:
                 self.logger.info(f'Validation was not performed as selected')
+
         # validation mode
         else:
             self.logger.info('################## End of validation ##################')
@@ -435,7 +441,8 @@ class MagatAgent(agents.Agent):
                                           mode=self.config.mode,
                                           logger=self.logger,
                                           case_idx=case_idx,
-                                          max_size=len(data_loader))
+                                          max_size=len(data_loader),
+                                          print_valid_every=self.config.print_valid_every)
 
         # return average performances
         return metrics.get_avg_performance(performance_list=performance_list)
@@ -515,6 +522,9 @@ def sim_worker(process_id: int,
                                         device=config.device)
     recorder = metrics.PerformanceRecorder(simulator=simulator)
 
+    # data size
+    data_size = data_queue.qsize()
+
     with torch.no_grad():
         while not data_queue.empty():
             # unpack tensors from input data queue
@@ -539,7 +549,8 @@ def sim_worker(process_id: int,
             # collect metrics
             performance = recorder.evaluate_performance(target_makespan=makespan.item())
             # print metrics
-            print(f'Process {process_id} simulated case {case_idx}')
+            if case_idx % config.print_valid_every == 0:
+                print(f'Validation at {100 * case_idx / data_size:.0f}%')
 
             # add metrics
             performance_queue.put(performance, block=True)

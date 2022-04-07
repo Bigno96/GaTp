@@ -8,8 +8,9 @@ Main execution file
 """
 
 import argparse
-import logging
+import os
 import time
+import traceback
 
 import agents.magat_agent as ag
 import utils.config as cfg
@@ -86,7 +87,7 @@ def main():
                             help='Mode of loading checkpoint: latest, best or specific epoch')
     arg_parser.add_argument('-epoch_id', type=int, default=None,
                             help='Number of epoch to load if load_ckp_mode = epoch')
-    # MANDATORY if config.mode == 'test' or -load_checkpoint
+    # MANDATORY if config.mode == 'test', 'valid' or for -load_checkpoint
     arg_parser.add_argument('-ckp_ts', type=str,  default=None,
                             help='Timestamp (folder name) of the checkpoint to load')
 
@@ -105,7 +106,10 @@ def main():
         agent.finalize()
 
     except Exception as err:
-        logging.getLogger().warning(err)
+        with open(os.path.join(config.log_dir, 'exp_error.log'), 'a') as fp:
+            traceback.print_exc(file=fp)
+        print(err)
+        exit(-1)
 
 
 def __check_odd(v):

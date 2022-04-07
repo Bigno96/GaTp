@@ -8,7 +8,6 @@ Supported ops:
 """
 
 import torch
-import logging
 
 import numpy as np
 import utils.agent_state as ag_state
@@ -201,35 +200,18 @@ class MultiAgentSimulator:
         # predict with model
         model_output = self.model(input_tensor)  # B*N x 5 -> since B=1, N x 5
 
-        try:
-            # exp_multinorm for getting predicted action
-            action_idx_predict = self.exp_multinorm(model_output)  # 1*N x 1 (since B=1)
+        # exp_multinorm for getting predicted action
+        action_idx_predict = self.exp_multinorm(model_output)  # 1*N x 1 (since B=1)
 
-            # move agents
-            self.move_agents(action_idx_predict)
+        # move agents
+        self.move_agents(action_idx_predict)
 
-            # check end condition
-            if (self.activated_task_count == self.task_number  # all tasks have been added
-                    and not self.active_task_list  # all tasks have been assigned
-                    and not any(
-                        arr.size for arr in self.task_register.values())):  # all agents have finished their task
-                self.terminate = True
-
-        except Exception as err:
-            logger = logging.getLogger('Agent')
-            torch.set_printoptions(threshold=100000)
-
-            logger.warning(err)
-            logger.warning(f'Printing state of variables causing the error\n')
-            logger.warning(f'AGENT POSITIONS: {self.curr_agent_pos}')
-            logger.warning(f'INPUT TENSOR')
-            logger.warning(f'Obstacle channel of input Tensor:\n {input_tensor[:,:,0,:,:]}')
-            logger.warning(f'Goal channel of input Tensor:\n {input_tensor[:, :, 1, :, :]}')
-            logger.warning(f'Agent position channel of input Tensor:\n {input_tensor[:, :, 2, :, :]}')
-            logger.warning(f'GSO: {GSO}')
-            logger.warning(f'MODEL OUTPUT: {model_output}')
-
-            exit(-1)
+        # check end condition
+        if (self.activated_task_count == self.task_number  # all tasks have been added
+                and not self.active_task_list  # all tasks have been assigned
+                and not any(
+                    arr.size for arr in self.task_register.values())):  # all agents have finished their task
+            self.terminate = True
 
     def update_task_register(self) -> None:
         """
