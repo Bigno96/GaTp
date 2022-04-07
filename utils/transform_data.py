@@ -4,7 +4,7 @@ Utilities for transforming environment data and expert solutions into neural net
 Train data:
     1- Input_state -> np.ndarray,
                       shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
-                      See GaTp/data_loading/agent_state.py for more information about input tensor composition
+                      See GaTp/utils/agent_state.py for more information about input tensor composition
     2- GSO -> np.ndarray,
               shape = (makespan, num_agent, num_agent)
               Adjacency matrix at each timestep

@@ -15,7 +15,6 @@ GraphAttentional: Creates a layer using graph attention mechanisms
 
 GatGso returns a Graph Convolution Attentional Network Module with support for dynamically adding GSO
 """
-
 import math
 import torch
 
@@ -24,8 +23,8 @@ import torch.nn.functional as f
 
 from typing import Optional, Tuple, List
 
-ZERO_TOLERANCE = 1e-4   # values below this number are considered zero, consider FP16
-INF_NUMBER = 1e4    # infinity equals this number, consider FP16
+ZERO_TOLERANCE = 1e-9   # values below this number are considered zero, consider FP16
+INF_NUMBER = 1e12    # infinity equals this number, consider FP16
 
 
 class GatGSO(nn.Module):
