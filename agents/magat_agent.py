@@ -160,6 +160,7 @@ class MagatAgent(agents.Agent):
             'epoch': self.current_epoch,
             'state_dict': self.model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
+            'scaler': self.scaler.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict(),
         }
 
@@ -196,6 +197,7 @@ class MagatAgent(agents.Agent):
 
             self.model.load_state_dict(checkpoint['state_dict'])
             self.optimizer.load_state_dict(checkpoint['optimizer'])
+            self.scaler.load_state_dict(checkpoint['scaler'])
             self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
             self.logger.info(f'Checkpoint loaded successfully from {self.config.checkpoint_dir}'
@@ -333,9 +335,6 @@ class MagatAgent(agents.Agent):
         # set the model to be in training mode
         self.model.train()
 
-        # reference this for warning on final print outside the loop
-        loss = 0
-
         # loop over various batches of training data
         for batch_idx, (batch_input, batch_GSO, batch_target) \
                 in enumerate(self.data_loader.train_loader):
@@ -359,7 +358,6 @@ class MagatAgent(agents.Agent):
 
             # init model and loss
             self.model.set_gso(batch_GSO)
-            loss = 0
 
             # AMP optimization
             with torch.cuda.amp.autocast(enabled=self.amp):
@@ -368,15 +366,13 @@ class MagatAgent(agents.Agent):
                 # compute loss
                 # torch.max returns both values and indices
                 # torch.max axis = 1 -> find the index of the chosen action for each agent
-                loss = loss + self.loss_f(predict, torch.max(batch_target, 1)[1])  # [1] to unpack indices
+                loss = self.loss_f(predict, torch.max(batch_target, 1)[1])  # [1] to unpack indices
 
             # update gradient with backward pass using AMP scaler
             self.scaler.scale(loss).backward()
             self.scaler.step(self.optimizer)
             self.scaler.update()
-
-            self.optimizer.zero_grad()
-            self.optimizer.step()
+            self.optimizer.zero_grad(set_to_none=True)
 
             # scheduler step, cyclic lr scheduling -> step after each batch
             self.scheduler.step()
