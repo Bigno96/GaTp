@@ -229,6 +229,12 @@ class MagatAgent(agents.Agent):
                     performance = self.validate(checkpoint_path=ckp_path)
                     self.logger.info(f'Validation {performance}')
 
+                    # if performance was the best
+                    if performance > self.best_performance:
+                        # save performance value and best checkpoint
+                        self.best_performance = performance.copy()
+                        self.save_checkpoint(best=True)
+
         # interrupting training or testing by keyboard
         except KeyboardInterrupt:
             self.logger.info('Entered CTRL+C. Finalizing')
