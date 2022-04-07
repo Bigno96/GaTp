@@ -371,11 +371,21 @@ class MagatAgent(agents.Agent):
             # update gradient with backward pass using AMP scaler
             self.scaler.scale(loss).backward()
             self.scaler.step(self.optimizer)
+
+            # the scale factor often causes inf / NaN to appear in gradients
+            # for the first few iterations as its value calibrates
+            # scaler.step will skip the underlying optimizer.step() for these iterations
+            # after that, step skipping should occur rarely
+            scale = self.scaler.get_scale()
             self.scaler.update()
+            skip_lr_sched = (scale > self.scaler.get_scale())
+
+            # set zero grad for the optimizer
             self.optimizer.zero_grad(set_to_none=True)
 
-            # scheduler step, cyclic lr scheduling -> step after each batch
-            self.scheduler.step()
+            # scheduler step, only if the optimizer was stepped
+            if not skip_lr_sched:
+                self.scheduler.step()
 
             # log progress
             if batch_idx % self.config.log_interval == 0:
