@@ -16,6 +16,7 @@ import torch
 import os
 import timeit
 import shutil
+import pickle
 
 import torch.nn as nn
 import torch.optim as optim
@@ -165,7 +166,9 @@ class MagatAgent(agents.Agent):
         }
 
         # save the state
-        torch.save(state, os.path.join(self.config.checkpoint_dir, file_name))
+        torch.save(obj=state,
+                   f=os.path.join(self.config.checkpoint_dir, file_name),
+                   pickle_protocol=pickle.HIGHEST_PROTOCOL)
 
     def load_checkpoint(self,
                         best: bool = False,
@@ -285,7 +288,7 @@ class MagatAgent(agents.Agent):
         :return: mean performance recorder during the validation simulation
         """
         self.logger.info(f'Start validation: '
-                         f'Model loaded at {os.path.basename(checkpoint_path)}')
+                         f'Model loaded from {os.path.basename(checkpoint_path)}')
         data_loader = self.data_loader.valid_loader     # get valid loader
         # return mean performance of the simulation
         return self.simulate_agent_exec(data_loader=data_loader,
