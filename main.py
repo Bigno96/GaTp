@@ -30,13 +30,15 @@ def main():
     '''
     See README.md for detailed explanations
     '''
-    # mandatory arguments
+    # general arguments
     arg_parser.add_argument('-agent_type', type=str, required=True,
                             choices=['magat'],
                             help='Type of agent to deploy')
     arg_parser.add_argument('-mode', type=str, required=True,
-                            choices=['train', 'test'],
-                            help='Train or test mode')
+                            choices=['train', 'test', 'valid'],
+                            help='Train, test or valid mode')
+    arg_parser.add_argument('-skip_validation', action='store_true',
+                            help='Set this flag to skip validation during training')
 
     # environment parameters, if omitted -> default values
     arg_parser.add_argument('-map_type', type=str, default='random_grid',

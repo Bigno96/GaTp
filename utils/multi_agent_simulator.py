@@ -216,7 +216,7 @@ class MultiAgentSimulator:
                 self.terminate = True
 
         except Exception as err:
-            logger = logging.getLogger()
+            logger = logging.getLogger('Agent')
             torch.set_printoptions(threshold=100000)
 
             logger.warning(err)

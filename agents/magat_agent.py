@@ -12,7 +12,6 @@ L.N. Smith,
 In 2017 IEEE winter conference on applications of computer vision (WACV), pp. 464-472.
 """
 
-import shutil
 import torch
 import os
 import timeit
@@ -41,7 +40,6 @@ class MagatAgent(agents.Agent):
 
         # initialize counters
         self.current_epoch = 0
-        self.performance = metrics.Performance()
         self.best_performance = metrics.Performance()
         self.time_record = 0.0
 
@@ -93,9 +91,9 @@ class MagatAgent(agents.Agent):
 
         # load checkpoint if necessary
         if config.load_checkpoint:
-            self.load_checkpoint(epoch=config.epoch_id,
-                                 best=config.load_ckp_mode == 'best',
-                                 latest=config.load_ckp_mode == 'latest')
+            self.load_checkpoint(best=config.load_ckp_mode == 'best',
+                                 latest=config.load_ckp_mode == 'latest',
+                                 epoch=config.epoch_id)
             # index of the last batch, used when resuming a training job
             # this number represents the total number of batches computed,
             # not the total number of epochs computed
@@ -117,7 +115,7 @@ class MagatAgent(agents.Agent):
         summary(model=self.model,
                 input_size=(batch_size, agent_num, channel_num, H, W),
                 device=self.config.device,
-                col_names=["input_size", "output_size", "num_params"])
+                col_names=['input_size', 'output_size', 'num_params'])
 
     def setup_device(self) -> None:
         """
@@ -140,17 +138,20 @@ class MagatAgent(agents.Agent):
             self.logger.info('Program will run on ***CPU***\n')
 
     def save_checkpoint(self,
+                        best: bool = False,
+                        latest: bool = False,
                         epoch: int = 0,
-                        is_best: bool = False,
-                        latest: bool = True
                         ) -> None:
         """
         Checkpoint saver
+        Default behaviour: save as epoch 0
         :param epoch: current epoch being saved
-        :param is_best: flag to indicate whether current checkpoint's metric is the best so far
+        :param best: flag to indicate whether current checkpoint's metric is the best so far
         :param latest: flag to indicate the checkpoint is the latest one trained
         """
-        if latest:
+        if best:
+            file_name = 'model_best.pth.tar'    # best checkpoint
+        elif latest:
             file_name = 'checkpoint.pth.tar'    # latest checkpoint -> unnamed
         else:
             file_name = f'checkpoint_{epoch:03d}.pth.tar'   # name checkpoint
@@ -164,36 +165,30 @@ class MagatAgent(agents.Agent):
 
         # save the state
         torch.save(state, os.path.join(self.config.checkpoint_dir, file_name))
-        # if it is the best, copy it to another file 'model_best.pth.tar'
-        if is_best:
-            shutil.copyfile(os.path.join(self.config.checkpoint_dir, file_name),
-                            os.path.join(self.config.checkpoint_dir, 'model_best.pth.tar'))
 
     def load_checkpoint(self,
-                        epoch: int = 0,
                         best: bool = False,
-                        latest: bool = True
+                        latest: bool = False,
+                        epoch: int = 0,
                         ) -> None:
         """
         Checkpoint loader
-        Priority: latest -> best -> epoch
+        Default behaviour: load epoch 0
         :param epoch: current epoch being loaded
         :param best: flag to indicate whether loading best checkpoint or not
         :param latest: flag to indicate the loaded checkpoint is the latest one trained
         """
-        # order of priority: latest -> best -> specific epoch
-        if latest:
-            file_name = 'checkpoint.pth.tar'
-        elif best:
+        if best:
             file_name = 'model_best.pth.tar'
+        elif latest:
+            file_name = 'checkpoint.pth.tar'
         else:
             file_name = f'checkpoint_{epoch:03d}.pth.tar'
 
-        file_path = os.path.join(self.config.checkpoint_dir, file_name)
         try:
-            self.logger.info(f'Loading checkpoint "{file_name}"')
+            self.logger.info(f'Loading checkpoint {file_name}')
             # load checkpoint, moving tensors onto selected device (cuda or cpu)
-            checkpoint = torch.load(f=file_path,
+            checkpoint = torch.load(f=os.path.join(self.config.checkpoint_dir, file_name),
                                     map_location=torch.device(f'{self.config.device}'))
 
             # load back parameters
@@ -203,11 +198,12 @@ class MagatAgent(agents.Agent):
             self.optimizer.load_state_dict(checkpoint['optimizer'])
             self.scheduler.load_state_dict(checkpoint['scheduler_state_dict'])
 
-            self.logger.info(f'Checkpoint loaded successfully from "{self.config.checkpoint_dir}"'
+            self.logger.info(f'Checkpoint loaded successfully from {self.config.checkpoint_dir}'
                              f'at epoch {checkpoint["epoch"]}\n')
         # no file found
         except OSError:
-            self.logger.info(f'No checkpoint exists from "{self.config.checkpoint_dir}". Skipping.')
+            self.logger.warning(f'Desired checkpoint {file_name} does not exist in {self.config.checkpoint_dir}'
+                                f'Skipping')
 
     def run(self) -> None:
         """
@@ -220,12 +216,22 @@ class MagatAgent(agents.Agent):
                 self.test()
                 self.time_record = timeit.default_timer() - start_time
             # training mode
-            else:
+            elif self.config.mode == 'train':
                 self.train()
+            # only validation mode
+            else:
+                # list of all ckp names
+                ckp_list = [filename
+                            for filename in os.listdir(self.config.checkpoint_dir)
+                            if filename != 'checkpoint.pth.tar']
+                # for each saved model
+                for ckp_path in ckp_list:
+                    performance = self.validate(checkpoint_path=ckp_path)
+                    self.logger.info(f'Validation {performance}')
 
         # interrupting training or testing by keyboard
         except KeyboardInterrupt:
-            self.logger.info("Entered CTRL+C. Wait to finalize")
+            self.logger.info('Entered CTRL+C. Finalizing')
 
     def train(self) -> None:
         """
@@ -239,40 +245,51 @@ class MagatAgent(agents.Agent):
             self.logger.info(f'Begin Epoch {self.current_epoch}')
 
             self.train_one_epoch()  # train the epoch
-            # save the model checkpoint for eventual validation or restarting
-            self.save_checkpoint(epoch=epoch, is_best=False, latest=True)
+            # save the latest model checkpoint for eventual validation or restarting
+            self.save_checkpoint(latest=True)
 
             # validate only every n epochs
             if epoch % self.config.validate_every == 0:
-                self.performance = self.validate()
-                self.save_checkpoint(epoch=epoch, is_best=False, latest=False)
-                self.logger.info(f'Validation {self.performance}')
+                # save the checkpoint corresponding to validation
+                self.save_checkpoint(epoch=epoch)
 
-            # check if it is the best one
-            is_best = self.performance > self.best_performance
-            if is_best:     # if so
-                # save performance value and best checkpoint
-                self.best_performance = self.performance.copy()
-                self.save_checkpoint(epoch=epoch, is_best=True, latest=True)
+                if not self.config.skip_valid:
+                    # do validation
+                    performance = self.validate(checkpoint_path=os.path.join(self.config.checkpoint_dir,
+                                                                             'checkpoint.pth.tar'))
+                    self.logger.info(f'Validation {performance}')
 
-    def validate(self) -> metrics.Performance:
+                    # if performance was the best
+                    if performance > self.best_performance:
+                        # save performance value and best checkpoint
+                        self.best_performance = performance.copy()
+                        self.save_checkpoint(best=True)
+
+    def validate(self,
+                 checkpoint_path: str
+                 ) -> metrics.Performance:
         """
-        Validate current model
+        Validate model saved in the given checkpoint
+        :param checkpoint_path: path to the checkpoint to load model from
         :return: mean performance recorder during the validation simulation
         """
-        self.logger.info('Start validation')
+        self.logger.info(f'Start validation for model loaded at {os.path.basename(checkpoint_path)}')
         data_loader = self.data_loader.valid_loader     # get valid loader
         # return mean performance of the simulation
-        return self.simulate_agent_exec(data_loader=data_loader)
+        return self.simulate_agent_exec(data_loader=data_loader,
+                                        checkpoint_path=checkpoint_path)
 
     def test(self) -> None:
         """
         Main testing loop
+        Uses model save in 'best_checkpoint'
         """
         self.logger.info('Start testing')
         data_loader = self.data_loader.test_loader  # get test loader
         # simulate
-        mean_performance = self.simulate_agent_exec(data_loader=data_loader)
+        mean_performance = self.simulate_agent_exec(data_loader=data_loader,
+                                                    checkpoint_path=os.path.join(self.config.checkpoint_dir,
+                                                                                 'model_best.pth.tar'))
         # set mean performance for printing
         self.best_performance = mean_performance
 
@@ -281,13 +298,20 @@ class MagatAgent(agents.Agent):
         Concluding all operations and printing results
         """
         if self.config.mode == 'test':
-            print("################## End of testing ################## ")
-            print(f'Testing Mean {self.best_performance}')
-            print(f'Computation time:\t{self.time_record} ')
+            self.logger.info('################## End of testing ##################')
+            self.logger.info(f'Best {self.best_performance}')
+            self.logger.info(f'Computation time:\t{self.time_record} ')
         # train mode
+        elif self.config.mode == 'train':
+            self.logger.info('################## End of training ##################')
+            if not self.config.skip_valid:
+                self.logger.info(f'Best Validation {self.best_performance}')
+            else:
+                self.logger.info(f'Validation was not performed as selected')
+        # validation mode
         else:
-            print("################## End of training ################## ")
-            print(f'Best Validation {self.best_performance}')
+            self.logger.info('################## End of validation ##################')
+            self.logger.info(f'Best Validation {self.best_performance}')
 
     def train_one_epoch(self) -> None:
         """
@@ -360,12 +384,14 @@ class MagatAgent(agents.Agent):
                          f'Loss: {loss.item():.6f}')
 
     def sim_agent_exec_single(self,
-                              data_loader: data.DataLoader
+                              data_loader: data.DataLoader,
+                              checkpoint_path: str,
                               ) -> metrics.Performance:
         """
         Simulate all MAPD problem in the data loader using trained model for solving it
         All the simulations are done in a single process, sequentially
         :param data_loader: pytorch Dataloader, either testing or valid DataLoader
+        :param checkpoint_path: path to the checkpoint to load model from
         :return mean performance recorder during the validation simulation
         """
         self.logger.info('Starting single process MAPD simulations')
@@ -376,6 +402,14 @@ class MagatAgent(agents.Agent):
         recorder = metrics.PerformanceRecorder(simulator=simulator)
 
         performance_list: List[metrics.Performance] = []
+
+        # load the model parameters
+        checkpoint = torch.load(f=checkpoint_path,
+                                map_location=torch.device(f'{self.config.device}'))
+
+        model = magat.MAGATNet(config=self.config).to(self.config.device)
+        model.load_state_dict(checkpoint['state_dict'])
+
         with torch.no_grad():
             # loop over all cases in the test/valid data loader
             for case_idx, (obstacle_map, start_pos_list, task_list, makespan, service_time) \
@@ -385,7 +419,7 @@ class MagatAgent(agents.Agent):
                 simulator.simulate(obstacle_map=obstacle_map[0],
                                    start_pos_list=start_pos_list[0],
                                    task_list=task_list[0],
-                                   model=self.model,
+                                   model=model,
                                    target_makespan=makespan.item())
 
                 # collect metrics
@@ -401,12 +435,14 @@ class MagatAgent(agents.Agent):
         return metrics.get_avg_performance(performance_list=performance_list)
 
     def sim_agent_exec_multi(self,
-                             data_loader: data.DataLoader
+                             data_loader: data.DataLoader,
+                             checkpoint_path: str,
                              ) -> metrics.Performance:
         """
         Simulate all MAPD problem in the data loader using trained model for solving it
         Multiprocessing simulation
         :param data_loader: pytorch Dataloader, either testing or valid DataLoader
+        :param checkpoint_path: path to the checkpoint to load model from
         :return mean performance recorder during the validation simulation
         """
         self.logger.info('Starting multi process MAPD simulations')
@@ -426,10 +462,11 @@ class MagatAgent(agents.Agent):
             for i, data_ in enumerate(data_loader):
                 data_queue.put((i, data_), block=True)
             # collect args for multiprocessing
-            # config, data queue, performance queue
+            # config, data queue, performance queue, checkpoint_path
             args = (self.config,
                     data_queue,
-                    performance_queue)
+                    performance_queue,
+                    checkpoint_path)
 
             # spawn and run processes, wait all to finish
             mp.spawn(fn=sim_worker,
@@ -452,10 +489,11 @@ class MagatAgent(agents.Agent):
         return metrics.get_avg_performance(performance_list=performance_list)
 
 
-def sim_worker(process_id: int,     # needed because of spawn implementation
+def sim_worker(process_id: int,
                config: EasyDict,
                data_queue: Queue,
-               performance_queue: Queue
+               performance_queue: Queue,
+               checkpoint_path: str,
                ) -> None:
     """
     Class for multiprocessing simulation
@@ -464,6 +502,7 @@ def sim_worker(process_id: int,     # needed because of spawn implementation
     :param config: Namespace of configurations
     :param data_queue: contains shared input data to run simulation over
     :param performance_queue: shared queue to put simulation results
+    :param checkpoint_path: path to the checkpoint to load model from
     """
     # simulation handling class and performance recorder
     simulator = sim.MultiAgentSimulator(config=config,
@@ -477,8 +516,7 @@ def sim_worker(process_id: int,     # needed because of spawn implementation
                        task_list, makespan, service_time) = data_queue.get(block=True)
 
             # load the model parameters
-            file_path = os.path.join(config.checkpoint_dir, 'checkpoint.pth.tar')
-            checkpoint = torch.load(f=file_path,
+            checkpoint = torch.load(f=checkpoint_path,
                                     map_location=torch.device(f'{config.device}'))
 
             model = magat.MAGATNet(config=config).to(config.device)
