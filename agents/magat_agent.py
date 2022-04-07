@@ -156,7 +156,7 @@ class MagatAgent(agents.Agent):
             file_name = f'checkpoint_{epoch:03d}.pth.tar'   # name checkpoint
 
         state = {
-            'epoch': self.current_epoch + 1,    # next epoch is saved, since this one is finished
+            'epoch': self.current_epoch,
             'state_dict': self.model.state_dict(),
             'optimizer': self.optimizer.state_dict(),
             'scheduler_state_dict': self.scheduler.state_dict(),

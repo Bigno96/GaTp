@@ -229,6 +229,8 @@ class MultiAgentSimulator:
             logger.warning(f'GSO: {GSO}')
             logger.warning(f'MODEL OUTPUT: {model_output}')
 
+            exit(-1)
+
     def update_task_register(self) -> None:
         """
         Check how agents are doing with their tasks
