@@ -77,7 +77,7 @@ class MagatAgent(agents.Agent):
             self.loss_f = nn.CrossEntropyLoss().to(self.config.device)
 
             # define optimizer
-            self.optimizer = optim.NAdam(params=self.model.parameters(),
+            self.optimizer = optim.AdamW(params=self.model.parameters(),
                                          lr=self.config.learning_rate,
                                          weight_decay=self.config.weight_decay)  # L2 regularize
 
