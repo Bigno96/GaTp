@@ -365,6 +365,9 @@ class MagatAgent(agents.Agent):
             # init model and loss
             self.model.set_gso(batch_GSO)
 
+            # set zero grad for the optimizer
+            self.optimizer.zero_grad()
+
             # AMP optimization
             with torch.cuda.amp.autocast(enabled=self.amp):
                 # get model prediction, B*N x 5
@@ -378,9 +381,6 @@ class MagatAgent(agents.Agent):
             self.scaler.scale(loss).backward()
             self.scaler.step(self.optimizer)
             self.scaler.update()
-
-            # set zero grad for the optimizer
-            self.optimizer.zero_grad(set_to_none=True)
 
             running_loss += loss.item()
             logged_batch += 1
