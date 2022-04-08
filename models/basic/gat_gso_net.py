@@ -188,7 +188,8 @@ class GraphFilterBatchAttentional(nn.Module):
         self.weight = nn.parameter.Parameter(torch.Tensor(P, E, G, G))
 
         '''initialize parameters'''
-        self.set_parameters()
+        # self.set_parameters()
+        self.set_parameters_constant()
 
     def set_parameters(self) -> None:
         """
@@ -201,6 +202,18 @@ class GraphFilterBatchAttentional(nn.Module):
         self.filter_weight.data.uniform_(-std_v, std_v)
         if self.bias is not None:
             self.bias.data.uniform_(-std_v, std_v)
+
+    # TODO
+    def set_parameters_constant(self) -> None:
+        """
+        Set weights and parameters
+        Taken from _ConvNd internal initialization of parameters:
+        """
+        nn.init.constant_(self.weight, 0.2)
+        nn.init.constant_(self.mixer, 0.2)
+        nn.init.constant_(self.filter_weight, 0.2)
+        if self.bias is not None:
+            torch.nn.init.zeros_(self.bias)
 
     def add_gso(self,
                 S: torch.Tensor

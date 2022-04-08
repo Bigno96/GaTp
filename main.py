@@ -9,6 +9,17 @@ Main execution file
 
 import argparse
 import os
+
+# TODO
+os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":16:8"
+import random
+random.seed(10)
+import numpy as np
+np.random.seed(23)
+
+import torch
+torch.use_deterministic_algorithms(True)
+
 import time
 import traceback
 

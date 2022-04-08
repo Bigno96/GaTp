@@ -55,10 +55,11 @@ class MagatAgent(agents.Agent):
         self.cuda = self.cuda and self.config.cuda  # prevent setting cuda True if not available
         # set amp flag
         self.amp = self.config.amp and self.cuda    # no amp if cpu is used
+        # set cuDNN benchmarking flag
+        torch.backends.cudnn.benchmark = self.config.cuda_benchmark and self.cuda
 
         # set the manual seed for torch
         self.manual_seed: int = self.config.seed
-
         # set up device
         self.setup_device()
 
@@ -79,7 +80,7 @@ class MagatAgent(agents.Agent):
             # define optimizer
             self.optimizer = optim.AdamW(params=self.model.parameters(),
                                          lr=self.config.learning_rate,
-                                         weight_decay=self.config.weight_decay)  # L2 regularize
+                                         weight_decay=self.config.weight_decay)
 
             # define scheduler
             self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer,
@@ -97,10 +98,6 @@ class MagatAgent(agents.Agent):
             self.load_checkpoint(epoch=config.epoch_id)
             # index of the last epoch, used when resuming a training job
             self.scheduler.last_epoch = self.current_epoch - 1
-
-        # use cuDNN benchmarking
-        if self.cuda:
-            torch.backends.cudnn.benchmark = True
 
         '''print summary of the model when training'''
         if self.config.mode == 'train':
@@ -340,6 +337,10 @@ class MagatAgent(agents.Agent):
         # set the model to be in training mode
         self.model.train()
 
+        # loss accumulator
+        running_loss = 0.0
+        logged_batch = 0
+
         # loop over various batches of training data
         for batch_idx, (batch_input, batch_GSO, batch_target) \
                 in enumerate(self.data_loader.train_loader):
@@ -381,19 +382,23 @@ class MagatAgent(agents.Agent):
             # set zero grad for the optimizer
             self.optimizer.zero_grad(set_to_none=True)
 
+            running_loss += loss.item()
+            logged_batch += 1
             # log progress
             if batch_idx % self.config.log_interval == 0:
                 self.logger.info(f'Epoch {self.current_epoch}:'
                                  f'[{batch_idx * self.config.batch_size}/{len(self.data_loader.train_loader.dataset)}'
                                  f'({100 * batch_idx / len(self.data_loader.train_loader):.0f}%)] '
                                  f'- Learning Rate: {self.scheduler.get_last_lr()}\t'
-                                 f'Loss: {loss.item():.6f}')
+                                 f'Loss: {running_loss / logged_batch:.6f}')
+                running_loss = 0.0
+                logged_batch = 0
 
         # always last batch logged
         self.logger.info(f'Epoch {self.current_epoch}:'
                          f'[{len(self.data_loader.train_loader.dataset)}/{len(self.data_loader.train_loader.dataset)}'
                          f'({100.:.0f}%)]\t'
-                         f'Loss: {loss.item():.6f}')
+                         f'Loss: {running_loss / logged_batch:.6f}')
 
     def sim_agent_exec_single(self,
                               data_loader: data.DataLoader,

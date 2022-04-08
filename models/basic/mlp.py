@@ -71,6 +71,7 @@ class MLP(nn.Module):
         return x
 
 
+# TODO
 def init_mlp_weight(m: torch.nn.Module) -> None:
     """
     Initialize weights for MLP Network
@@ -78,4 +79,6 @@ def init_mlp_weight(m: torch.nn.Module) -> None:
     :param m: torch.nn.layer
     """
     if isinstance(m, nn.Linear):
-        nn.init.kaiming_normal_(m.weight, mode='fan_in', nonlinearity='relu')
+        nn.init.constant_(m.weight, 0.2)
+        if m.bias is not None:
+            nn.init.constant_(m.bias, 0)
