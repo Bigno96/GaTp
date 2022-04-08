@@ -77,15 +77,14 @@ class MagatAgent(agents.Agent):
             self.loss_f = nn.CrossEntropyLoss().to(self.config.device)
 
             # define optimizer
-            self.optimizer = optim.AdamW(params=self.model.parameters(),
+            self.optimizer = optim.NAdam(params=self.model.parameters(),
                                          lr=self.config.learning_rate,
                                          weight_decay=self.config.weight_decay)  # L2 regularize
 
             # define scheduler
-            self.scheduler = optim.lr_scheduler.OneCycleLR(optimizer=self.optimizer,
-                                                           max_lr=self.config.learning_rate*10,
-                                                           epochs=self.config.max_epoch,
-                                                           steps_per_epoch=len(self.data_loader.train_loader))
+            self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer,
+                                                                  T_max=self.config.max_epoch,
+                                                                  eta_min=1e-6)
 
         # set agent simulation function
         if self.config.sim_num_process <= 1:
@@ -96,8 +95,8 @@ class MagatAgent(agents.Agent):
         # load checkpoint if necessary
         if config.load_checkpoint:
             self.load_checkpoint(epoch=config.epoch_id)
-            # index of the last batch, used when resuming a training job
-            self.scheduler.last_epoch = self.current_epoch
+            # index of the last epoch, used when resuming a training job
+            self.scheduler.last_epoch = self.current_epoch - 1
 
         # use cuDNN benchmarking
         if self.cuda:
@@ -279,6 +278,9 @@ class MagatAgent(agents.Agent):
                         self.best_performance = performance.copy()
                         self.save_checkpoint(best=True)
 
+            # scheduler step
+            self.scheduler.step()
+
     def validate(self,
                  checkpoint_path: str
                  ) -> metrics.Performance:
@@ -374,21 +376,10 @@ class MagatAgent(agents.Agent):
             # update gradient with backward pass using AMP scaler
             self.scaler.scale(loss).backward()
             self.scaler.step(self.optimizer)
-
-            # the scale factor often causes inf / NaN to appear in gradients
-            # for the first few iterations as its value calibrates
-            # scaler.step will skip the underlying optimizer.step() for these iterations
-            # after that, step skipping should occur rarely
-            scale = self.scaler.get_scale()
             self.scaler.update()
-            skip_lr_sched = (scale > self.scaler.get_scale())
 
             # set zero grad for the optimizer
             self.optimizer.zero_grad(set_to_none=True)
-
-            # scheduler step, only if the optimizer was stepped
-            if not skip_lr_sched:
-                self.scheduler.step()
 
             # log progress
             if batch_idx % self.config.log_interval == 0:
@@ -533,6 +524,8 @@ def sim_worker(process_id: int,
 
     # data size
     data_size = data_queue.qsize()
+
+    print(f'Process {process_id} successfully initialized')
 
     with torch.no_grad():
         while not data_queue.empty():
