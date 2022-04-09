@@ -47,7 +47,8 @@ def check_integrity():
     # batch input shape = batch_size, num_agent, 3, fov_h, fov_w
     # batch gso shape = batch_size, num_agent, num_agent
     # batch target shape = batch_size, num_agent, 5
-    for batch_input, batch_GSO, batch_target, basename in tqdm(train_dl.train_loader):
+    for batch_input, batch_GSO, batch_target, basename \
+            in tqdm(train_dl.train_loader):
 
         check_corruption(batch_input, basename)
         check_corruption(batch_GSO, basename)
@@ -63,7 +64,8 @@ def check_integrity():
     # task list shape = batch_size, num_task, 2, 2
     # makespan shape = 1
     # service time shape = 1
-    for obstacle_map, start_pos_list, task_list, makespan, service_time, basename in tqdm(train_dl.valid_loader):
+    for obstacle_map, start_pos_list, task_list, makespan, service_time, basename \
+            in tqdm(train_dl.valid_loader):
 
         check_corruption(obstacle_map, basename)
         check_corruption(start_pos_list, basename)
@@ -76,7 +78,8 @@ def check_integrity():
     time.sleep(.1)  # printing sync
 
     # test dataset test
-    for obstacle_map, start_pos_list, task_list, makespan, service_time, basename in tqdm(test_dl.test_loader):
+    for obstacle_map, start_pos_list, task_list, makespan, service_time, basename \
+            in tqdm(test_dl.test_loader):
 
         check_corruption(obstacle_map, basename)
         check_corruption(start_pos_list, basename)
