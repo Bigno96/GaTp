@@ -382,6 +382,13 @@ class MagatAgent(agents.Agent):
             self.scaler.step(self.optimizer)
             self.scaler.update()
 
+            # TODO
+            # if loss is not finite
+            if not torch.all(torch.isfinite(loss)).tolist():
+                for p in self.model.parameters():
+                    self.logger.info(p.grad)
+                exit(-1)
+
             running_loss += loss.item()
             logged_batch += 1
             # log progress
