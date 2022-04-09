@@ -3,7 +3,6 @@ PyTorch Custom Data Loader implementation
 """
 
 import logging
-import torch
 import data_loading.dataset as dataset
 
 from torch.utils.data import DataLoader
@@ -23,10 +22,6 @@ class GaTpDataLoader:
         self.config = config
         self.logger = logging.getLogger("DataLoader")
 
-        # TODO
-        g = torch.Generator()
-        g.manual_seed(self.config.seed)
-
         # data loader for training
         if self.config.mode == 'train':
 
@@ -35,19 +30,15 @@ class GaTpDataLoader:
 
             self.train_loader = DataLoader(dataset=self.train_dataset,
                                            batch_size=self.config.batch_size,
-                                           shuffle=False,       # TODO
+                                           shuffle=True,
                                            num_workers=self.config.data_loader_workers,  # num of processes
-                                           pin_memory=self.config.pin_memory,
-                                           generator=g
-                                           )
+                                           pin_memory=self.config.pin_memory)
 
             self.valid_loader = DataLoader(dataset=self.valid_dataset,
                                            batch_size=self.config.valid_batch_size,
                                            shuffle=False,   # don't shuffle valid set
                                            num_workers=self.config.data_loader_workers,
-                                           pin_memory=self.config.pin_memory,
-                                           generator=g
-                                           )
+                                           pin_memory=self.config.pin_memory)
 
         # # data loader for validation only mode
         elif self.config.mode == 'valid':
@@ -58,9 +49,7 @@ class GaTpDataLoader:
                                            batch_size=self.config.valid_batch_size,
                                            shuffle=False,  # don't shuffle valid set
                                            num_workers=self.config.data_loader_workers,
-                                           pin_memory=self.config.pin_memory,
-                                           generator=g
-                                           )
+                                           pin_memory=self.config.pin_memory)
 
         # data loader for testing
         elif self.config.mode == 'test':
@@ -71,9 +60,7 @@ class GaTpDataLoader:
                                           batch_size=self.config.test_batch_size,
                                           shuffle=False,    # don't shuffle valid set
                                           num_workers=self.config.data_loader_workers,
-                                          pin_memory=self.config.pin_memory,
-                                          generator=g
-                                          )
+                                          pin_memory=self.config.pin_memory)
 
         else:
             self.logger.error('Incorrect operating mode was specified')

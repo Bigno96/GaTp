@@ -40,8 +40,6 @@ class ResNet(nn.Module):
         self.encoder = ResNetEncoder(in_channels=in_channels, *args, **kwargs)
         self.decoder = ResnetDecoder(in_features=self.encoder.blocks[-1].blocks[-1].expanded_channels,
                                      out_features=out_features)
-        # initialize weights
-        self.apply(init_res_net_weight)
 
     def forward(self,
                 x: torch.Tensor
@@ -442,28 +440,3 @@ class ResnetDecoder(nn.Module):
         x = self.flat(x)
         x = self.fc(x)
         return x
-
-
-# TODO
-def init_res_net_weight(m: nn.Module) -> None:
-    """
-    Initialize weights for Residual Network, following original paper initialization
-    Convolutional layer -> weights: He-normal, no bias
-    Batch Norm layer -> weights: 1, bias: 0
-    Linear layer -> weights: uniform (default), bias: 0
-    :param m: torch.nn.layer
-    """
-    if isinstance(m, nn.Conv2d):
-        nn.init.constant_(m.weight, 0.002)
-        if m.bias is not None:
-            nn.init.constant_(m.bias, 0)
-
-    elif isinstance(m, nn.BatchNorm2d):
-        nn.init.constant_(m.weight, 0.002)
-        if m.bias is not None:
-            nn.init.constant_(m.bias, 0)
-
-    elif isinstance(m, nn.Linear):
-        nn.init.constant_(m.weight, 0.002)
-        if m.bias is not None:
-            nn.init.constant_(m.bias, 0)

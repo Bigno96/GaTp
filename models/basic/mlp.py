@@ -58,9 +58,6 @@ class MLP(nn.Module):
         # create the model
         self.blocks = nn.Sequential(*layers)
 
-        # initialize weights
-        self.apply(init_mlp_weight)
-
     def forward(self,
                 x: torch.Tensor
                 ) -> torch.Tensor:
@@ -69,16 +66,3 @@ class MLP(nn.Module):
         """
         x = self.blocks(x)
         return x
-
-
-# TODO
-def init_mlp_weight(m: torch.nn.Module) -> None:
-    """
-    Initialize weights for MLP Network
-    Linear layer -> weights: He-normal, no bias
-    :param m: torch.nn.layer
-    """
-    if isinstance(m, nn.Linear):
-        nn.init.constant_(m.weight, 0.2)
-        if m.bias is not None:
-            nn.init.constant_(m.bias, 0)
