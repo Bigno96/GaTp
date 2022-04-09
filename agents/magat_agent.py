@@ -342,7 +342,7 @@ class MagatAgent(agents.Agent):
         logged_batch = 0
 
         # loop over various batches of training data
-        for batch_idx, (batch_input, batch_GSO, batch_target) \
+        for batch_idx, (batch_input, batch_GSO, batch_target, _) \
                 in enumerate(self.data_loader.train_loader):
 
             # move all tensors to the correct device
@@ -429,7 +429,7 @@ class MagatAgent(agents.Agent):
 
         with torch.no_grad():
             # loop over all cases in the test/valid data loader
-            for case_idx, (obstacle_map, start_pos_list, task_list, makespan, service_time) \
+            for case_idx, (obstacle_map, start_pos_list, task_list, makespan, service_time, _) \
                     in enumerate(data_loader):
                 # simulate the MAPD execution
                 # batch size = 1 -> unpack all tensors
@@ -535,8 +535,8 @@ def sim_worker(process_id: int,
     with torch.no_grad():
         while not data_queue.empty():
             # unpack tensors from input data queue
-            case_idx, (obstacle_map, start_pos_list,
-                       task_list, makespan, service_time) = data_queue.get(block=True)
+            case_idx, (obstacle_map, start_pos_list, task_list,
+                       makespan, service_time, _) = data_queue.get(block=True)
 
             # load the model parameters
             checkpoint = torch.load(f=checkpoint_path,

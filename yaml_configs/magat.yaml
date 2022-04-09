@@ -50,6 +50,7 @@ mlp_dropout_rate: 0.3   # ratio of dropout, if used
 
 # training parameters
 batch_size: 4096  # batch size for training
+shuffle_train: True # if True, train dataset is shuffled
 valid_batch_size: 1   # batch size for validation (simulation)
 test_batch_size: 1  # batch size for testing (simulation)
 

@@ -5,15 +5,16 @@ Functions and methods to create torch Dataset over all solved MAPD instances
 
 DataTransformer is used to modify saved data to build tensor to feed to the model
 
-training item -> (step_input_tensor, step_GSO, step_target)
+training item -> (step_input_tensor, step_GSO, step_target, basename)
                 step_input_tensor -> input tensor with the different channels to feed to the ML model
                                      shape = (agent_num, channel_num, FOV+2*border, FOV+2*border)
                 step_GSO -> Graph Shift Operator, implemented as Normalized Adjacency Matrix
                             shape = (agent_num, agent_num)
                 step_target -> matrix form of agent's action schedule, 5 possible actions
                                shape = (num_agent, 5)
+                basename -> str, case file name
 
- valid/testing item -> (obstacle_map, start_pos_list, task_list, makespan, service_time)
+ valid/testing item -> (obstacle_map, start_pos_list, task_list, makespan, service_time, basename)
                     obstacle_map -> map of obstacles,
                                     shape = (H, W)
                     start_pos_list -> starting positions of the agents
@@ -22,6 +23,7 @@ training item -> (step_input_tensor, step_GSO, step_target)
                                  shape = (task_num, 2, 2)
                     makespan -> length of the solution found by the expert
                     service_time -> average timesteps required to complete a task by the expert
+                    basename -> str, case file name
 """
 
 import os
@@ -137,6 +139,7 @@ class GaTpDataset(Dataset):
                                     shape = (agent_num, agent_num)
                         step_target -> FloatTensor,
                                        shape = (num_agent, 5)
+                        basename -> str, case file name
 
                  valid/testing -> (obstacle_map, start_pos_list, task_list, makespan, service_time, basename)
                         obstacle_map -> FloatTensor,
@@ -147,6 +150,7 @@ class GaTpDataset(Dataset):
                                      shape = (task_num, 2, 2)
                         makespan -> int
                         service_time -> float
+                        basename -> str, case file name
         """
         # obtain corresponding case name and timestep of its solution
         basename, timestep = self.basename_switch.get_item(index)
@@ -164,13 +168,14 @@ class GaTpDataset(Dataset):
         :param **kwargs
                 'basename': str, case file name
                 'timestep': int, timestep of the solution associated to the case
-        :return: step_input_tensor, step_GSO, step_target
+        :return: step_input_tensor, step_GSO, step_target, basename
                  step_input_tensor -> FloatTensor,
                                       shape = (agent_num, channel_num, FOV+2*border, FOV+2*border)
                  step_GSO -> FloatTensor,
                              shape = (agent_num, agent_num)
                  step_target -> FloatTensor,
                                 shape = (num_agent, 5)
+                 basename -> str, case file name
         """
         basename = kwargs.get('basename')
         timestep = kwargs.get('timestep')
@@ -183,7 +188,7 @@ class GaTpDataset(Dataset):
         step_GSO = torch.from_numpy(GSO[timestep]).float()
         step_target = torch.from_numpy(target[timestep]).float()
 
-        return step_input_tensor, step_GSO, step_target
+        return step_input_tensor, step_GSO, step_target, basename
 
     def get_test_data(self,
                       **kwargs: int or str,
@@ -192,7 +197,7 @@ class GaTpDataset(Dataset):
         Retrieve testing data from data cache
         :param **kwargs
                 'basename': str, case file name
-        :return: obstacle_map, start_pos_list, task_list, makespan, service_time
+        :return: obstacle_map, start_pos_list, task_list, makespan, service_time, basename
                  obstacle_map -> FloatTensor,
                                  shape = (H, W)
                  start_pos_list -> FloatTensor,
@@ -201,6 +206,7 @@ class GaTpDataset(Dataset):
                               shape = (task_num, 2, 2)
                  makespan -> int
                  service_time -> float
+                 basename -> str, case file name
         """
         basename = kwargs.get('basename')
 
@@ -212,7 +218,7 @@ class GaTpDataset(Dataset):
         start_pos_list = torch.from_numpy(start_pos_list).float()
         task_list = torch.from_numpy(task_list).float()
 
-        return obstacle_map, start_pos_list, task_list, makespan, service_time
+        return obstacle_map, start_pos_list, task_list, makespan, service_time, basename
 
 
 class BasenameSwitch:

@@ -30,7 +30,7 @@ class GaTpDataLoader:
 
             self.train_loader = DataLoader(dataset=self.train_dataset,
                                            batch_size=self.config.batch_size,
-                                           shuffle=True,
+                                           shuffle=self.config.shuffle_train,   # usually True
                                            num_workers=self.config.data_loader_workers,  # num of processes
                                            pin_memory=self.config.pin_memory)
 
