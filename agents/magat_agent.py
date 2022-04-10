@@ -13,6 +13,7 @@ In 2017 IEEE winter conference on applications of computer vision (WACV), pp. 46
 """
 
 import torch
+torch.autograd.set_detect_anomaly(True)
 import os
 import timeit
 import shutil
@@ -377,17 +378,17 @@ class MagatAgent(agents.Agent):
                 # torch.max axis = 1 -> find the index of the chosen action for each agent
                 loss = self.loss_f(predict, torch.max(batch_target, 1)[1])  # [1] to unpack indices
 
-            # update gradient with backward pass using AMP scaler
-            self.scaler.scale(loss).backward()
-            self.scaler.step(self.optimizer)
-            self.scaler.update()
-
             # TODO
             # if loss is not finite
             if not torch.all(torch.isfinite(loss)).tolist():
                 for p in self.model.parameters():
-                    self.logger.info(p.grad)
+                    self.logger.warning(p.grad)
                 exit(-1)
+
+            # update gradient with backward pass using AMP scaler
+            self.scaler.scale(loss).backward()
+            self.scaler.step(self.optimizer)
+            self.scaler.update()
 
             running_loss += loss.item()
             logged_batch += 1
