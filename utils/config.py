@@ -22,7 +22,7 @@ from easydict import EasyDict
 from yaml import safe_load
 
 CONFIG_FOLDER_PATH = 'GaTp/yaml_configs'
-PROJECT_ROOT = 'D:/Uni/TESI'
+PROJECT_ROOT = '/home/bigno/Bigno/Uni/TESI'
 APPEND_PROJECT_ROOT = False       # change this to prepend PROJECT_ROOT for creating folder paths
 
 
