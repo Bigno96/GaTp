@@ -14,7 +14,7 @@ class AgentStateTest(unittest.TestCase):
         agent_num = 10
         FOV = 9
         return ag_st.AgentState(EasyDict({'agent_number': agent_num,
-                                             'FOV': FOV}))
+                                          'FOV': FOV}))
 
     @staticmethod
     def get_obstacle_map():
@@ -225,7 +225,7 @@ class AgentStateTest(unittest.TestCase):
         ag_state.set_obstacle_map(input_map=obs_map)
 
         input_state = ag_state.get_input_state(goal_pos_list=goal_pos_list,
-                                                agent_pos_list=agent_pos_list)
+                                               agent_pos_list=agent_pos_list)
 
         # check execution, returned type and size of tensor
         self.assertIsInstance(input_state, np.ndarray)
@@ -254,8 +254,8 @@ class AgentStateTest(unittest.TestCase):
         goal_schedule = np.tile(goal_pos_list, reps=(makespan, 1, 1))
 
         input_state = ag_state.get_sequence_input_state(goal_pos_schedule=goal_schedule,
-                                                         agent_pos_schedule=ag_schedule,
-                                                         makespan=makespan)
+                                                        agent_pos_schedule=ag_schedule,
+                                                        makespan=makespan)
 
         # check execution, returned type and size of tensor
         self.assertIsInstance(input_state, np.ndarray)

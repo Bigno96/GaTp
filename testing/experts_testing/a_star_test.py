@@ -235,7 +235,7 @@ class AStarTest(unittest.TestCase):
                               for x, y, t in val['path']]
             # start, goal
             start, goal = random.sample(population=(list(set(free_cell_list) - set(token_pos_list))),
-                                            k=2)
+                                        k=2)
             # heuristic
             h_map = compute_manhattan_heuristic(input_map=grid_map, goal=goal)
             # starting time

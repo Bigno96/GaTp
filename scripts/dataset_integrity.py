@@ -5,13 +5,14 @@ from easydict import EasyDict
 from tqdm import tqdm
 
 import data_loading.data_loader as loader
+from models.basic.mlp import MLP
 
 
 def check_integrity():
 
     # put manually values into config Namespace
     config = EasyDict()
-    config.batch_size = 1
+    config.batch_size = 10
     config.valid_batch_size = 1
     config.test_batch_size = 1
     config.data_loader_workers = 0
@@ -43,6 +44,11 @@ def check_integrity():
     print(f'Checking Train Dataset')
     time.sleep(.1)  # printing sync
 
+    # toy model
+    model = MLP(in_features=int(3 * 11 * 11),
+                out_features=5,
+                hidden_features=(5000, 500))
+
     '''training dataset test'''
     # batch input shape = batch_size, num_agent, 3, fov_h, fov_w
     # batch gso shape = batch_size, num_agent, num_agent
@@ -50,9 +56,20 @@ def check_integrity():
     for batch_input, batch_GSO, batch_target, basename \
             in tqdm(train_dl.train_loader):
 
-        check_corruption(batch_input, basename)
-        check_corruption(batch_GSO, basename)
-        check_corruption(batch_target, basename)
+        predict = model(batch_input.reshape(config.batch_size * config.agent_number, 3 * 11 * 11))
+        print(f'predict: {predict}')
+
+        batch_target = batch_target.reshape(config.batch_size * config.agent_number, 5)
+        print(f'max batch target: {torch.max(batch_target, 1)[1]}')
+
+        loss = torch.nn.CrossEntropyLoss(predict, torch.max(batch_target, 1)[1])
+        print(f'loss {loss}')
+
+        # check_corruption(batch_input, basename)
+        # check_corruption(batch_GSO, basename)
+        # check_corruption(batch_target, basename)
+
+        input('Oscar è scemoh\n')
 
     time.sleep(.1)  # printing sync
     print(f'Checking Valid Dataset')

@@ -84,7 +84,7 @@ def create_starting_pos(input_map: np.array,
         if agent_num > len(fixed_pos_list):
             raise ValueError('Not enough starting positions for all the agents')
         # select randomly from fixed pos list
-        return sample(population=fixed_pos_list, k=agent_num)    # list of tuples
+        return sample(population=fixed_pos_list, k=agent_num)  # list of tuples
 
     # defaults to random generation
     else:
@@ -130,7 +130,7 @@ def create_task(input_map: np.array,
 
     # filters out borders
     free_cell_pool = set(filter(lambda c: c[0] != 0 and c[1] != 0
-                                          and c[0] != input_map.shape[1]-1 and c[1] != input_map.shape[1]-1,
+                                and c[0] != input_map.shape[1] - 1 and c[1] != input_map.shape[1] - 1,
                                 free_cell_pool))
 
     # no tasks on other task positions

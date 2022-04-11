@@ -147,5 +147,6 @@ if __name__ == '__main__':
     __spec__ = None
     np.set_printoptions(threshold=sys.maxsize)
 
-    data_path = 'D:/Uni/TESI/GaTp/datasets/random_grid/20x20map/0.1density/20agents_500tasks_0.0split_+1_every1/random_start+avoid_non_task_rep_task'
+    data_path = 'D:/Uni/TESI/GaTp/datasets/random_grid/20x20map/0.1density/20agents_500tasks_0.0split_+1_every1/' \
+                'random_start+avoid_non_task_rep_task'
     display(dataset_path=data_path)

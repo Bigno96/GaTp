@@ -23,8 +23,8 @@ import torch.nn.functional as f
 
 from typing import Optional, Tuple, List
 
-ZERO_TOLERANCE = 1e-9   # values below this number are considered zero, consider FP16
-INF_NUMBER = 1e12    # infinity equals this number, consider FP16
+ZERO_TOLERANCE = 1e-9  # values below this number are considered zero, consider FP16
+INF_NUMBER = 1e12  # infinity equals this number, consider FP16
 
 
 class GatGSO(nn.Module):
@@ -32,6 +32,7 @@ class GatGSO(nn.Module):
     Graph Convolution Attention Network with Graph Shift Operator
     Attention Mode -> Key Query
     """
+
     def __init__(self,
                  in_features: int,
                  out_features: int,
@@ -62,26 +63,26 @@ class GatGSO(nn.Module):
         # set parameters
         self.in_features = in_features
         self.out_features = out_features
-        self.F = [in_features] + list(hidden_features) + [out_features]     # features vector
+        self.F = [in_features] + list(hidden_features) + [out_features]  # features vector
         self.L = len(graph_filter_taps)  # number of graph filtering layers
         self.K = graph_filter_taps  # number of filter taps, for each layer
-        self.P = attention_heads    # number of attention heads
+        self.P = attention_heads  # number of attention heads
         assert len(self.P) == self.L
-        assert len(self.F)-1 == self.L
+        assert len(self.F) - 1 == self.L
 
         self.E = 1  # Number of edge features
-        self.bias = True    # if True, use bias
-        self.attention_concat = attention_concat    # if True, use attention concatenation
+        self.bias = True  # if True, use bias
+        self.attention_concat = attention_concat  # if True, use attention concatenation
 
-        self.S = None   # GSO not yet defined
+        self.S = None  # GSO not yet defined
 
         # build layers, feeding to Sequential
         self.model = nn.Sequential(*[
-            GraphFilterBatchAttentional(G=self.F[i],    # input features for each layer
-                                        F=self.F[i+1],  # output features for each layer
-                                        K=self.K[i],    # attention heads
-                                        P=self.P[i],    # filter taps
-                                        E=self.E,   # edge features
+            GraphFilterBatchAttentional(G=self.F[i],  # input features for each layer
+                                        F=self.F[i + 1],  # output features for each layer
+                                        K=self.K[i],  # attention heads
+                                        P=self.P[i],  # filter taps
+                                        E=self.E,  # edge features
                                         bias=self.bias,
                                         concatenate=self.attention_concat)
             for i in range(self.L)
@@ -175,7 +176,7 @@ class GraphFilterBatchAttentional(nn.Module):
         self.concatenate = concatenate
 
         '''create parameters'''
-        self.mixer = nn.parameter.Parameter(torch.Tensor(P, E, 2*F))
+        self.mixer = nn.parameter.Parameter(torch.Tensor(P, E, 2 * F))
         self.filter_weight = nn.parameter.Parameter(torch.Tensor(P, F, E, K, G))
         # add bias if optioned
         if bias:
@@ -238,7 +239,7 @@ class GraphFilterBatchAttentional(nn.Module):
         # add the zero padding
         if N < self.N:
             x = torch.cat((x,
-                           torch.zeros(size=(B, F, self.N-N),
+                           torch.zeros(size=(B, F, self.N - N),
                                        dtype=x.dtype,
                                        device=x.device)
                            ), dim=2)
@@ -258,12 +259,12 @@ class GraphFilterBatchAttentional(nn.Module):
             y = self.non_linearity(y)
             # concatenate: make it B x PF x N such that first iterates over f
             # and then over p: (p=0,f=0), (p=0,f=1), ..., (p=0,f=F-1), (p=1,f=0), (p=1,f=1), ...
-            y = y.permute(0, 3, 1, 2)\
-                    .reshape([B, self.N, self.P*self.F])\
-                    .permute(0, 2, 1)
+            y = y.permute(0, 3, 1, 2) \
+                .reshape([B, self.N, self.P * self.F]) \
+                .permute(0, 2, 1)
         else:
             # no concatenate -> first average
-            y = torch.mean(y, dim=1)    # B x F x N
+            y = torch.mean(y, dim=1)  # B x F x N
             # then apply the non-linearity
             y = self.non_linearity(y)
 
@@ -446,9 +447,9 @@ def learn_attention_gso_batch_key_query(x: torch.Tensor,
     # so we need to set them to -infinity so that they will be assigned a zero.
 
     # first, get places where we have edges
-    mask_edges = torch.sum(torch.abs(S.data), dim=1).reshape([B, 1, 1, N, N])    # B x 1 x 1 x N x N
+    mask_edges = torch.sum(torch.abs(S.data), dim=1).reshape([B, 1, 1, N, N])  # B x 1 x 1 x N x N
     # make it a binary matrix
-    mask_edges = (mask_edges > ZERO_TOLERANCE).type(x.dtype).to(eij.device)   # B x 1 x 1 x N x N
+    mask_edges = (mask_edges > ZERO_TOLERANCE).type(x.dtype).to(eij.device)  # B x 1 x 1 x N x N
     # make it -infinity where there are zeros
     infinity_mask = (1 - mask_edges) * INF_NUMBER
     infinity_mask = infinity_mask.to(eij.device)
