@@ -381,8 +381,7 @@ class MagatAgent(agents.Agent):
             # TODO
             # if loss is not finite
             if not torch.all(torch.isfinite(loss)).tolist():
-                for p in self.model.parameters():
-                    self.logger.warning(p.grad)
+                self.logger.warning(predict)
                 exit(-1)
 
             # update gradient with backward pass using AMP scaler
