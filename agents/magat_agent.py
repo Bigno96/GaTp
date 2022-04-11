@@ -381,6 +381,7 @@ class MagatAgent(agents.Agent):
             # TODO
             # if loss is not finite
             if not torch.all(torch.isfinite(loss)).tolist():
+                torch.set_printoptions(threshold=10000)
                 self.logger.warning(predict)
                 exit(-1)
 
