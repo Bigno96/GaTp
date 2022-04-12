@@ -19,7 +19,7 @@ class MLP(nn.Module):
                  in_features: int,
                  out_features: int,
                  hidden_features: Optional[Tuple[int, ...]] = (),
-                 learn_bias: bool = True,
+                 learn_bias: bool = False,
                  use_dropout: bool = False,
                  dropout_rate: float = 0.2):
         """
@@ -38,8 +38,6 @@ class MLP(nn.Module):
         # initialize parent
         super().__init__()
         # set parameters
-        self.in_features = in_features
-        self.out_features = out_features
         self.F = [in_features] + list(hidden_features) + [out_features]     # features vector
         self.L = len(self.F)-1        # number of layers
 
@@ -48,12 +46,10 @@ class MLP(nn.Module):
         for i in range(self.L):
             # linear transformation
             layers.append(nn.Linear(in_features=self.F[i], out_features=self.F[i+1], bias=learn_bias))
-            # if not last layer
-            if i < self.L-1:
-                layers.append(nn.ReLU(inplace=True))    # activation function
-                # if dropout is used
-                if use_dropout:
-                    layers.append(nn.Dropout(p=dropout_rate))   # dropout
+            layers.append(nn.ReLU(inplace=True))  # activation function
+            # if not last layer and if dropout is used
+            if use_dropout and i < self.L-1:
+                layers.append(nn.Dropout(p=dropout_rate))
 
         # create the model
         self.blocks = nn.Sequential(*layers)
@@ -64,5 +60,4 @@ class MLP(nn.Module):
         """
         Forward pass
         """
-        x = self.blocks(x)
-        return x
+        return self.blocks(x)

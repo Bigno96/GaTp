@@ -16,19 +16,25 @@ exp_folder: "GaTp/experiments"
 # 1) CNN, feature extractor
 cnn_model: 'res'  # type of cnn: residual (network)
 cnn_in_channels: 3  # number of input channels
-cnn_out_features: 512   # number of 'extracted' features from the input FOV by the CNN
-cnn_blocks_size: [32, 64, 128, 256]  # number of channels for cnn blocks
-cnn_depths: [3, 3, 3, 3]   # number of blocks that compose each layer of the cnn
-                           # blocks in the i-th layer all have channels num = cnn_blocks_size[i]
+cnn_blocks_size: [32, 64, 128]  # number of channels for cnn blocks
+cnn_depths: [1, 1, 1]   # number of blocks that compose each layer of the cnn
+                        # blocks in the i-th layer all have channels num = cnn_blocks_size[i]
+cnn_out_features: 128   # number of 'extracted' features from the input FOV by the CNN (decoder output)
 use_down_sampling: True   # if True, down sampling is used in the res net
+cnn_dropout: True   # if True, add dropout to res net decoder
+cnn_dropout_rate: 0.2   # ratio of dropout, if used
+
 feature_compression: True   # if True, an additional MLP layer is placed at the end of the CNN
 feature_compr_out: 32   # output from features compression. These coincide with skip connection features
-feature_compr_hidden_feat: [128, 64]   # number of features of the hidden layers in the MLP
-feature_compr_dropout: True   # if True, add dropout to MLP
-feature_compr_dropout_rate: 0.5   # ratio of dropout, if used
+feature_compr_hidden_feat: []   # number of features of the hidden layers in the MLP
+feature_compr_dropout: False   # if True, add dropout to MLP
+feature_compr_dropout_rate: 0.2   # ratio of dropout, if used
+feature_compr_learn_bias: True  # if True, learn bias in the MLP
+
 
 # if True, a skip connection is added before and after the GNN
 skip_connection: True
+
 
 # 2) GNN -> GAT with GSO
 gnn_model: 'gat_gso'  # type of gnn: graph convolution attentional network
@@ -42,10 +48,11 @@ attention_heads: [4]  # tuple of int, vector with number of attention heads for 
 attention_concat: True  # if True, concatenate the output of the attention heads. False, average the output
 
 # 3) MLP, map features to actions
-mlp_hidden_features: [128, 64]   # tuple of int, vector of INPUT features of hidden layers
-                            # len = number of layers - 1
-mlp_dropout: True   # if True, add dropout to MLP
-mlp_dropout_rate: 0.3   # ratio of dropout, if used
+mlp_hidden_features: []   # tuple of int, vector of INPUT features of hidden layers
+                          # len = number of layers - 1
+mlp_dropout: False   # if True, add dropout to MLP
+mlp_dropout_rate: 0.2   # ratio of dropout, if used
+mlp_learn_bias: True  # if True, learn bias in the MLP
 
 
 # training parameters
@@ -61,7 +68,7 @@ learning_rate: 0.0001  # learning rate of optimizer
 weight_decay: 0.00001   # weight decay of optimizer (implemented as L2 penalty)
 max_epoch: 300  # maximum number of epochs of training
 
-validate_every: 8   # how many epochs between each validation
+validate_every: 4   # how many epochs between each validation
 print_valid_every: 10  # how many timesteps between each validation print update
 log_interval: 20    # how many batches passes between screen updates for training
 max_step_factor: 2  # multiplicative factor for simulation max step (target makespan * max_step_factor)

@@ -26,6 +26,8 @@ import models.basic.res_net as res_net
 
 from easydict import EasyDict
 
+ACTION_NUMBER = 5
+
 
 class MAGATNet(nn.Module):
     """
@@ -78,6 +80,10 @@ class MAGATNet(nn.Module):
         self.cnn_depths = self.config.cnn_depths
         # bool to activate down sampling
         self.use_down_sampling = self.config.use_down_sampling
+        # if True, add dropout to res net decoder
+        self.cnn_dropout = self.config.cnn_dropout
+        # ratio of dropout, if used
+        self.cnn_dropout_rate = self.config.cnn_dropout_rate
 
         if self.cnn_model.lower() == 'res':
             self.cnn = \
@@ -86,7 +92,9 @@ class MAGATNet(nn.Module):
                     out_features=self.cnn_out_features,
                     blocks_size=self.cnn_blocks_size,
                     depths=self.cnn_depths,
-                    use_down_sampling=self.use_down_sampling
+                    use_down_sampling=self.use_down_sampling,
+                    use_dropout=self.cnn_dropout,
+                    dropout_rate=self.cnn_dropout_rate
                 )
         else:
             self.logger.error('No CNN model was specified')
@@ -102,6 +110,8 @@ class MAGATNet(nn.Module):
         self.feature_compr_dropout = self.config.feature_compr_dropout
         # ratio of dropout, if used
         self.feature_compr_dropout_rate = self.config.feature_compr_dropout_rate
+        # if True, learn bias in the MLP
+        self.feature_compr_learn_bias = self.config.feature_compr_learn_bias
 
         if self.feature_compression:
             self.feature_compressor = \
@@ -111,7 +121,7 @@ class MAGATNet(nn.Module):
                     hidden_features=self.feature_compr_hidden_feat,
                     use_dropout=self.feature_compr_dropout,
                     dropout_rate=self.feature_compr_dropout_rate,
-                    learn_bias=True
+                    learn_bias=self.feature_compr_learn_bias
                 )
             # if feature compression is used, residual size = output of feature compression
             self.residual_size = self.feature_compr_out
@@ -174,6 +184,8 @@ class MAGATNet(nn.Module):
         self.mlp_dropout = self.config.mlp_dropout
         # ratio of dropout, if used
         self.mlp_dropout_rate = self.config.mlp_dropout_rate
+        # if True, learn bias in the MLP
+        self.mlp_learn_bias = self.config.mlp_learn_bias
 
         # input of action-mapper depends on residual size and attention heads (number and concat mode)
         # always add residual connection size, it's 0 if the skip connection is not used
@@ -188,11 +200,11 @@ class MAGATNet(nn.Module):
         self.mlp = \
             mlp.MLP(
                 in_features=self.mlp_in_features,
-                out_features=5,     # 5 actions available
+                out_features=ACTION_NUMBER,     # 5 actions available
                 hidden_features=self.mlp_hidden_features,
                 use_dropout=self.mlp_dropout,
                 dropout_rate=self.mlp_dropout_rate,
-                learn_bias=True
+                learn_bias=self.mlp_learn_bias
             )
 
     def set_gso(self,

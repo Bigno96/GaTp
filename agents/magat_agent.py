@@ -29,9 +29,12 @@ import utils.metrics as metrics
 import torch.multiprocessing as mp
 
 from easydict import EasyDict
-from torchinfo import summary
+from pytorch_model_summary import summary
 from torch.multiprocessing.queue import Queue
 from typing import List
+
+MIN_RL = 1e-6
+STOP_SENTINEL = 'STOP'
 
 
 class MagatAgent(agents.Agent):
@@ -85,7 +88,7 @@ class MagatAgent(agents.Agent):
             # define scheduler
             self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer=self.optimizer,
                                                                   T_max=self.config.max_epoch,
-                                                                  eta_min=1e-6)
+                                                                  eta_min=MIN_RL)
 
         # set agent simulation function
         if self.config.sim_num_process <= 1:
@@ -109,10 +112,15 @@ class MagatAgent(agents.Agent):
                                    device=self.config.device,
                                    dtype=torch.float)
             self.model.set_gso(dummy_GSO)
-            summary(model=self.model,
-                    input_size=(batch_size, agent_num, channel_num, H, W),
-                    device=self.config.device,
-                    col_names=['input_size', 'output_size', 'num_params'])
+            summary(self.model,
+                    torch.zeros((batch_size, agent_num, channel_num, H, W),
+                                device=self.config.device),
+                    batch_size=batch_size,
+                    show_input=True,
+                    max_depth=3,
+                    show_hierarchical=True,
+                    print_summary=True,
+                    show_parent_layers=True)
 
     def setup_device(self) -> None:
         """
@@ -360,7 +368,7 @@ class MagatAgent(agents.Agent):
             B, N, _, _, _ = batch_input.shape
 
             # reshape for compatibility with model output
-            batch_target = batch_target.reshape(B * N, 5)
+            batch_target = batch_target.reshape(B * N, -1)
 
             # init model and loss
             self.model.set_gso(batch_GSO)
@@ -502,8 +510,8 @@ class MagatAgent(agents.Agent):
                      join=True)
 
             # get performance list
-            performance_queue.put('STOP', block=True)   # termination sentinel
-            performance_list = [p for p in iter(performance_queue.get, 'STOP')]
+            performance_queue.put(STOP_SENTINEL, block=True)   # termination sentinel
+            performance_list = [p for p in iter(performance_queue.get, STOP_SENTINEL)]
 
             # release data queue
             data_queue.close()
