@@ -5,7 +5,7 @@ gpu_device: 0   # number of device to use when cuda is enabled
 cuda_benchmark: True  # if True, use cuDNN benchmarking to select fastest convolution algorithm
 amp: False  # if True, Automatic Mixed Precision cuda acceleration is active
 
-seed: 1337  # seed for torch
+seed: 1927  # seed for torch
 
 # folder paths, only inside project scope
 data_root: "GaTp/datasets"
@@ -17,18 +17,18 @@ exp_folder: "GaTp/experiments"
 cnn_model: 'res'  # type of cnn: residual (network)
 cnn_in_channels: 3  # number of input channels
 cnn_blocks_size: [32, 64, 128]  # number of channels for cnn blocks
-cnn_depths: [1, 1, 1]   # number of blocks that compose each layer of the cnn
-                        # blocks in the i-th layer all have channels num = cnn_blocks_size[i]
-cnn_out_features: 128   # number of 'extracted' features from the input FOV by the CNN (decoder output)
-cnn_decoder_expansion: 8  # feature expansion factor in the intermediate layer of res-net decoder
-use_down_sampling: True   # if True, down sampling is used in the res net
+cnn_depths: [3, 3, 3]   # number of blocks that compose each layer of the cnn
+                           # blocks in the i-th layer all have channels num = cnn_blocks_size[i]
+cnn_out_features: 512   # number of 'extracted' features from the input FOV by the CNN (decoder output)
+cnn_flatten_correction: 25  # factor for correcting number of features after Flatten layer
+use_down_sampling: False   # if True, down sampling is used in the res net
 cnn_dropout: True   # if True, add dropout to res net decoder
 cnn_dropout_rate: 0.2   # ratio of dropout, if used
 
 feature_compression: True   # if True, an additional MLP layer is placed at the end of the CNN
 feature_compr_out: 32   # output from features compression. These coincide with skip connection features
-feature_compr_hidden_feat: []   # number of features of the hidden layers in the MLP
-feature_compr_dropout: False   # if True, add dropout to MLP
+feature_compr_hidden_feat: [128]   # number of features of the hidden layers in the MLP
+feature_compr_dropout: True   # if True, add dropout to MLP
 feature_compr_dropout_rate: 0.2   # ratio of dropout, if used
 feature_compr_learn_bias: True  # if True, learn bias in the MLP
 
@@ -48,8 +48,9 @@ attention_heads: [4]  # tuple of int, vector with number of attention heads for 
                       # len = number of graph filtering layers
 attention_concat: True  # if True, concatenate the output of the attention heads. False, average the output
 
+
 # 3) MLP, map features to actions
-mlp_hidden_features: []   # tuple of int, vector of INPUT features of hidden layers
+mlp_hidden_features: [32]   # tuple of int, vector of INPUT features of hidden layers
                           # len = number of layers - 1
 mlp_dropout: False   # if True, add dropout to MLP
 mlp_dropout_rate: 0.2   # ratio of dropout, if used

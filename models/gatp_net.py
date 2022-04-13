@@ -29,7 +29,7 @@ from easydict import EasyDict
 ACTION_NUMBER = 5
 
 
-class MAGATNet(nn.Module):
+class GaTpNet(nn.Module):
     """
     MAGAT Model implementation
     Check yaml_configs\\magat.yaml for further model and parameter specification
@@ -74,12 +74,12 @@ class MAGATNet(nn.Module):
         self.cnn_in_channels = self.config.cnn_in_channels
         # number of 'extracted' features by the CNN
         self.cnn_out_features = self.config.cnn_out_features
+        # factor for correcting number of features after Flatten layer
+        self.cnn_flatten_correction = self.config.cnn_flatten_correction
         # number of channels for cnn blocks
         self.cnn_blocks_size = self.config.cnn_blocks_size
         # number of blocks that compose each layer of the cnn
         self.cnn_depths = self.config.cnn_depths
-        # feature expansion factor in the intermediate layer of res-net decoder
-        self.cnn_decoder_expansion = self.config.cnn_decoder_expansion
         # bool to activate down sampling
         self.use_down_sampling = self.config.use_down_sampling
         # if True, add dropout to res net decoder
@@ -94,7 +94,7 @@ class MAGATNet(nn.Module):
                     out_features=self.cnn_out_features,
                     blocks_size=self.cnn_blocks_size,
                     depths=self.cnn_depths,
-                    expansion=self.cnn_decoder_expansion,
+                    flatten_correction=self.cnn_flatten_correction,
                     use_down_sampling=self.use_down_sampling,
                     use_dropout=self.cnn_dropout,
                     dropout_rate=self.cnn_dropout_rate

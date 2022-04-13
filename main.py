@@ -12,7 +12,8 @@ import os
 import time
 import traceback
 
-import agents.magat_agent as ag
+import agents.magat_agent as magat
+import agents.gatp_agent as gatp
 import utils.config as cfg
 
 from argparse import ArgumentParser
@@ -33,7 +34,7 @@ def main():
     '''
     # general arguments
     arg_parser.add_argument('-agent_type', type=str, required=True,
-                            choices=['magat'],
+                            choices=['magat', 'gatp'],
                             help='Type of agent to deploy')
     arg_parser.add_argument('-mode', type=str, required=True,
                             choices=['train', 'test', 'valid'],
@@ -95,11 +96,15 @@ def main():
     args = arg_parser.parse_args()
 
     # parse the config json file
-    config = cfg.process_config(args)
+    config = cfg.process_config(args=args)
 
     try:
-        # run the agent
-        agent = ag.MagatAgent(config)
+        # pick the agent
+        if config.agent_type == 'magat':
+            agent = magat.MagatAgent(config=config)
+        else:   # agent == 'gatp'
+            agent = gatp.GaTpAgent(config=config)
+
         time.sleep(1)   # print coordination
         agent.run()
         time.sleep(1)   # print coordination

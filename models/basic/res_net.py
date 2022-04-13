@@ -31,6 +31,8 @@ class ResNet(nn.Module):
                  out_features: int,
                  use_dropout: bool = True,
                  dropout_rate: float = 0.2,
+                 expansion: int = 1,
+                 flatten_correction: int = 1,
                  *args: Any,
                  **kwargs: Any):
         """
@@ -38,7 +40,13 @@ class ResNet(nn.Module):
         :param decoder_in_features: number of features after the avg pool layer
         :param out_features: number of features of the output array
         :param use_dropout: if True, add Dropout
+                            (default: True)
         :param dropout_rate: ratio of Dropout when used
+                             (default: 0.2)
+        :param expansion: intermediate feature expansion factor
+                          (default: 1)
+        :param flatten_correction: factor for correcting number of features after Flatten layer
+                                   (default: 1)
         :param args: optional positional arguments for ResNet Blocks and Conv layer
         :param kwargs: optional keyword arguments for ResNet Blocks and Conv layer
         """
@@ -47,7 +55,9 @@ class ResNet(nn.Module):
         self.decoder = ResnetDecoder(in_features=self.encoder.blocks[-1].blocks[-1].get_output_features,
                                      out_features=out_features,
                                      use_dropout=use_dropout,
-                                     dropout_rate=dropout_rate)
+                                     dropout_rate=dropout_rate,
+                                     expansion=expansion,
+                                     flatten_correction=flatten_correction)
 
     def forward(self,
                 x: torch.Tensor
@@ -329,12 +339,16 @@ class ResnetDecoder(nn.Module):
                  in_features: int,
                  out_features: int,
                  use_dropout: bool = True,
-                 dropout_rate: float = 0.2):
+                 dropout_rate: float = 0.2,
+                 expansion: int = 1,
+                 flatten_correction: int = 1):
         """
         :param in_features: input planes
         :param out_features: features to output
         :param use_dropout: if True, add Dropout
         :param dropout_rate: ratio of Dropout when used
+        :param expansion: intermediate feature expansion factor
+        :param flatten_correction: factor for correcting number of features after Flatten layer
         """
         super().__init__()
         # save dropout bool
@@ -342,11 +356,11 @@ class ResnetDecoder(nn.Module):
 
         self.pool = nn.AvgPool2d(kernel_size=2, stride=2)   # global average pool with a stride of 2
         self.conv = conv1x1(in_channels=in_features,
-                            out_channels=int(in_features * 8),
+                            out_channels=int(in_features * expansion),
                             bias=True)
         self.dropout = nn.Dropout(p=dropout_rate)
         self.flat = nn.Flatten()
-        self.fc = nn.Linear(in_features=int(in_features * 8),
+        self.fc = nn.Linear(in_features=int(in_features * expansion * flatten_correction),
                             out_features=out_features,
                             bias=True)
         self.activation = nn.ReLU(inplace=True)     # always ReLu
