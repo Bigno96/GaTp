@@ -345,6 +345,7 @@ class MultiAgentSimulator:
         """
         # get exponential
         exp_action_vector = torch.exp(action_vector)
+        exp_action_vector = torch.nan_to_num(exp_action_vector)
         # 1 action sampled for each B*N
         action_idx_predict = torch.multinomial(exp_action_vector, 1)
         # shape = B*N x 1 -> B*N
