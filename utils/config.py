@@ -109,7 +109,7 @@ def process_config(args: argparse.Namespace) -> EasyDict:
     # agent type
     config.agent_type = args.agent_type
     # skip validation
-    config.skip_valid = args.skip_validation
+    config.skip_valid = args.skip_valid
 
     # prepend data root
     if APPEND_PROJECT_ROOT:
