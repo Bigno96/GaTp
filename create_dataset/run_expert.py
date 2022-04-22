@@ -65,7 +65,7 @@ def run_expert(config: EasyDict,
             raise ValueError('No environment files found')
 
     # no file paths given while recovery mode
-    if not file_path_list:
+    if file_path_list is None:
         raise ValueError('Experts launched in recovery mode with no file paths')
 
     # extract with pickle all environments

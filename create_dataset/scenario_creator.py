@@ -78,6 +78,8 @@ def create_starting_pos(input_map: np.array,
     :return: start_pos: starting positions of agents -> [(x,y), ...]
     :raise: ValueError if not enough starting positions for all the agents
     """
+    if fixed_pos_list is None:
+        fixed_pos_list = []
 
     # fixed generation
     if mode == 'fixed':

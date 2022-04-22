@@ -28,7 +28,7 @@ from easydict import EasyDict
 
 def get_nn_data(config: EasyDict,
                 dataset_dir: str,
-                bad_instances_list: List[Optional[str]] = (),
+                bad_instances_list: List[Optional[str]] = None,
                 recovery_mode: bool = False,
                 file_path_list: Optional[List[str]] = None
                 ) -> None:
@@ -43,6 +43,8 @@ def get_nn_data(config: EasyDict,
     """
 
     mode_list = ['train', 'valid', 'test']
+    if bad_instances_list is None:
+        bad_instances_list = []
 
     # get bad instances basename (mapID_caseID)
     bad_instances_basename = {os.path.basename(os.path.normpath(file_path))

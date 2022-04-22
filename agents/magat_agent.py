@@ -385,15 +385,6 @@ class MagatAgent(agents.Agent):
                 # torch.max axis = 1 -> find the index of the chosen action for each agent
                 loss = self.loss_f(predict, torch.max(batch_target, 1)[1])  # [1] to unpack indices
 
-            # TODO
-            # if loss is not finite
-            if not torch.all(torch.isfinite(loss)).tolist():
-                torch.set_printoptions(threshold=10000)
-                self.logger.warning(f'predict: {predict}')
-                self.logger.warning(f'target: {batch_target}')
-                self.logger.warning(f'max: {torch.max(batch_target, 1)[1]}')
-                exit(-1)
-
             # update gradient with backward pass using AMP scaler
             self.scaler.scale(loss).backward()
             self.scaler.step(self.optimizer)

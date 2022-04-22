@@ -78,6 +78,10 @@ def create_environment(config: EasyDict,
 
     # recovery mode
     else:
+        # no file paths given while recovery mode
+        if file_path_list is None:
+            raise ValueError('Experts launched in recovery mode with no file paths')
+
         print('Regenerating failed Environments')
         # setup multiprocessing
         worker = RecoveryWorker(config=config)

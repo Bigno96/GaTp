@@ -39,7 +39,7 @@ def main():
     arg_parser.add_argument('-mode', type=str, required=True,
                             choices=['train', 'test', 'valid'],
                             help='Train, test or valid mode')
-    arg_parser.add_argument('-skip_validation', action='store_true',
+    arg_parser.add_argument('-skip_valid', action='store_true',
                             help='Set this flag to skip validation during training')
 
     # environment parameters, if omitted -> default values
