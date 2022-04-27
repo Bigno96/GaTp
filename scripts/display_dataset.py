@@ -4,6 +4,7 @@ import sys
 
 import numpy as np
 import matplotlib.pyplot as plt
+import torch
 
 from torchvision.io import read_image
 from torch.utils.data import DataLoader, Dataset
@@ -103,8 +104,9 @@ class VisualDataset(Dataset):
         # get list of base names
         self.name_list = [filename
                           for filename in os.listdir(self.data_dir)
-                          if not filename.endswith('.png')
-                          and not filename.endswith('sol')]
+                          if not filename.endswith('png')
+                          and not filename.endswith('sol')
+                          and not filename.endswith('data')]
 
     def __len__(self):
         """
@@ -123,7 +125,8 @@ class VisualDataset(Dataset):
 
         # load image
         img_path = os.path.join(self.data_dir, f'{base_name}.png')
-        image = read_image(img_path).T
+        image = read_image(img_path)
+        image = torch.permute(image, (1, 2, 0))
 
         # load environment
         env_path = os.path.join(self.data_dir, base_name)
@@ -147,6 +150,6 @@ if __name__ == '__main__':
     __spec__ = None
     np.set_printoptions(threshold=sys.maxsize)
 
-    data_path = 'D:/Uni/TESI/GaTp/datasets/random_grid/20x20map/0.1density/20agents_500tasks_0.0split_+1_every1/' \
+    data_path = 'D:/Uni/TESI/GaTp/datasets/random_grid/20x20map/0.1density/2agents_50tasks_0.0split_+1_every1/' \
                 'random_start+avoid_non_task_rep_task'
     display(dataset_path=data_path)

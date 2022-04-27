@@ -20,21 +20,21 @@ class Performance:
     3 criteria: % of completed tasks, collision number and makespan
     """
     completed_task: float = 0.  # % of tasks completed
-    # 0 - number of agents collisions
+    # - number of agents collisions
     # negative for comparisons: smaller neg value > higher neg value -> small collision count > high coll count
-    collisions_difference: float = -sys.maxsize
+    collisions: float = -sys.maxsize
     # expert makespan - model makespan
     # higher the value, shorter the model solution is -> better
     makespan_difference: float = sys.maxsize
 
     def copy(self):
-        return Performance(self.completed_task,
-                           self.collisions_difference,
-                           self.makespan_difference)
+        return Performance(completed_task=self.completed_task,
+                           collisions=self.collisions,
+                           makespan_difference=self.makespan_difference)
 
     def __repr__(self):
         return f'Performance: completed task = {self.completed_task * 100:.2f}%, ' \
-               f'collisions = {-self.collisions_difference:.2f}, ' \
+               f'collisions = {-self.collisions if self.collisions < 0 else self.collisions:.2f}, ' \
                f'makespan degradation = {-self.makespan_difference * 100:.2f}%'
 
 
@@ -73,7 +73,7 @@ class PerformanceRecorder:
         makespan_diff = (target_makespan - len(self.simulator.agent_schedule[0])) / target_makespan
 
         return Performance(completed_task=task_percentage,
-                           collisions_difference=-collisions,  # negative, check explanation in Performance
+                           collisions=-collisions,  # negative, check explanation in Performance
                            makespan_difference=makespan_diff)
 
 
@@ -83,7 +83,7 @@ def get_avg_performance(performance_list: List[Performance]
     Internal method to compute average performance over a list of performances
     """
     # collect all the metrics
-    m = np.array([(p.completed_task, p.collisions_difference, p.makespan_difference)
+    m = np.array([(p.completed_task, p.collisions, p.makespan_difference)
                   for p in performance_list])
     compl_task = m[:, 0]
     coll = m[:, 1]
@@ -91,7 +91,7 @@ def get_avg_performance(performance_list: List[Performance]
 
     # return a Performance instance
     return Performance(completed_task=mean(compl_task),
-                       collisions_difference=mean(coll),
+                       collisions=mean(coll),
                        makespan_difference=mean(mks))
 
 
