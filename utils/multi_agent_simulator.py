@@ -181,6 +181,18 @@ class MultiAgentSimulator:
 
         # handle tasks for all agents
         self.update_task_register()
+
+        # check end condition
+        # check here, before moving but after updating task register and adding new tasks
+        if (self.activated_task_count == self.task_number  # all tasks have been added
+                and not self.active_task_list  # all tasks have been assigned
+                and not any(
+                    arr.size for arr in self.task_register.values())):  # all agents have finished their task
+            self.terminate = True
+        # if terminate -> end
+        if self.terminate:
+            return
+
         # get a goal for every agent
         goal_list = self.get_goal_list()
 
@@ -206,13 +218,6 @@ class MultiAgentSimulator:
         # move agents
         self.move_agents(action_idx_predict)
 
-        # check end condition
-        if (self.activated_task_count == self.task_number  # all tasks have been added
-                and not self.active_task_list  # all tasks have been assigned
-                and not any(
-                    arr.size for arr in self.task_register.values())):  # all agents have finished their task
-            self.terminate = True
-
     def update_task_register(self) -> None:
         """
         Check how agents are doing with their tasks
@@ -236,7 +241,7 @@ class MultiAgentSimulator:
             elif np.array_equal(agent_pos, curr_task[0]):
                 curr_task = np.delete(curr_task, 0, 0)  # remove first element
                 # 2a: the goal was delivery position -> search for a new task
-                if curr_task.size == 0:
+                if not curr_task.size:
                     curr_task = self.assign_closest_task(agent_pos=agent_pos)  # find task (ndarray, shape=2x2 or ())
                 # 2b: the goal was pickup position -> delivery pos remaining
                 # no need to do anything here
@@ -317,7 +322,8 @@ class MultiAgentSimulator:
         pred_agent_pos = self.curr_agent_pos + pred_moves
 
         # out of bound pos -> substituted with current agent pos (= stop move)
-        pred_agent_pos = np.where((pred_agent_pos < 9) & (pred_agent_pos > 0),  # condition = pos is inbound
+        pred_agent_pos = np.where((pred_agent_pos < self.map.shape)
+                                    & (pred_agent_pos >= 0),  # condition = pos is inbound
                                   pred_agent_pos,  # if condition holds
                                   self.curr_agent_pos)  # if it doesn't hold
 

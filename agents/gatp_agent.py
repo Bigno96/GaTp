@@ -234,7 +234,8 @@ class GaTpAgent(agents.Agent):
                 # list of all ckp names
                 ckp_list = [os.path.join(self.config.checkpoint_dir, filename)
                             for filename in os.listdir(self.config.checkpoint_dir)
-                            if filename != 'checkpoint.pth.tar']
+                            if filename != 'checkpoint.pth.tar'
+                            and filename != 'model_best.pth.tar']
                 # for each saved model
                 for ckp_path in ckp_list:
                     performance = self.validate(checkpoint_path=ckp_path)
