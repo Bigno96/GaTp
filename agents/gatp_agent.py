@@ -407,7 +407,7 @@ class GaTpAgent(agents.Agent):
         self.logger.info(f'Epoch {self.current_epoch}:'
                          f'[{len(self.data_loader.train_loader.dataset)}/{len(self.data_loader.train_loader.dataset)}'
                          f'({100.:.0f}%)]\t'
-                         f'Loss: {running_loss / logged_batch:.6f}')
+                         f'Loss: {running_loss / (logged_batch if logged_batch > 0 else 1):.6f}')
 
     def sim_agent_exec_single(self,
                               data_loader: data.DataLoader,
