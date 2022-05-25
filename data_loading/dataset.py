@@ -36,6 +36,7 @@ import utils.transform_data as tf_data
 import utils.file_utils as f_utils
 
 from p_tqdm import p_map
+from tqdm import tqdm
 from torch.utils.data import Dataset
 from easydict import EasyDict
 from typing import List, Tuple, Dict
@@ -104,8 +105,6 @@ class GaTpDataset(Dataset):
         self.basename_switch = BasenameSwitch(basename_list=self.basename_list,
                                               data_cache=self.data_cache,
                                               mode=self.mode)
-        # data size
-        self.data_size = self.basename_switch.data_size
 
         # item getter
         if self.mode == 'train':
@@ -158,7 +157,7 @@ class GaTpDataset(Dataset):
         return self.get_data(basename=basename, timestep=timestep)
 
     def __len__(self) -> int:
-        return self.data_size
+        return self.basename_switch.data_size
 
     def get_train_data(self,
                        **kwargs: int or str
@@ -220,6 +219,26 @@ class GaTpDataset(Dataset):
 
         return obstacle_map, start_pos_list, task_list, makespan, service_time, basename
 
+    def extend_dataset(self,
+                       input_map_list: List[np.array],
+                       expert_sol_list: List[Dict[str, Dict]],
+                       basename_list: List[str]
+                       ) -> None:
+        """
+        Used during dataset aggregation for extending training dataset with augmented entries
+        :param input_map_list: obstacle map
+        :param expert_sol_list: solutions of the problem given by an expert algorithm
+        :param basename_list: case names
+        """
+        self.logger.info('Add new Training data to the dataset')
+        for input_map, basename, expert_sol in zip(tqdm(input_map_list), basename_list, expert_sol_list):
+            # get NN-ready data and add it to the cache
+            self.data_cache[basename] = self.data_transform.get_online_train_data(input_map=input_map,
+                                                                                  expert_sol=expert_sol)
+            # index new entries
+            self.basename_switch.extend_switch(basename=basename,
+                                               data_cache=self.data_cache)
+
 
 class BasenameSwitch:
     """
@@ -242,9 +261,10 @@ class BasenameSwitch:
         :param mode: 'test', 'train' or 'valid'
         """
         self.switch = {}    # dictionary with range as keys
+        self.mode = mode
 
         # training mode
-        if mode == 'train':
+        if self.mode == 'train':
             # for each basename
             cum_makespan = 0    # sum of length up to now
             for basename in basename_list:
@@ -266,6 +286,25 @@ class BasenameSwitch:
                 self.switch[range(i, i+1)] = basename
 
             self.data_size = len(basename_list)     # each basename used once
+
+    def extend_switch(self,
+                      basename: str,
+                      data_cache: Dict[str, Tuple[np.array, ...]],
+                      ) -> None:
+        """
+        Add entry to the training basename switch during online dataset aggregation
+        :param basename: case name
+        :param data_cache: dictionary, {basename : nn_data}
+        """
+        assert self.mode == 'train'
+        # look up for makespan in the data cache
+        _, GSO, _ = data_cache[basename]
+        makespan = GSO.shape[0]  # first dim is the makespan
+
+        # basename is associated with a range
+        self.switch[range(self.data_size, self.data_size+makespan)] = basename
+
+        self.data_size += makespan
 
     def get_item(self,
                  idx: int

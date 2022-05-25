@@ -59,6 +59,10 @@ class MultiAgentSimulator:
 
         # keeping track of agent movements
         self.agent_schedule: Dict[int, Deque[Tuple[int, int, int]]] = {}
+        # keeping track of agent goals
+        self.goal_schedule: Dict[int, Deque[Tuple[int, int, int]]] = {}
+        # keeping track of agent task assignment
+        self.task_schedule: Dict[int, Deque[Tuple[object, int]]] = {}
         # precomputed distance heuristics
         self.h_coll: Dict[Tuple, np.array] = {}
 
@@ -67,10 +71,10 @@ class MultiAgentSimulator:
         self.terminate = False  # terminate boolean
         self.max_step_factor: int = self.config.max_step_factor  # maximum step factor allowed in the simulation
 
-        self.task_number: int = self.config.task_number  # total number of tasks
+        self.task_num: int = self.config.task_number  # total number of tasks
         self.activated_task_count = 0  # number of tasks activated
 
-        self.split_idx = int(self.config.imm_task_split * self.task_number)  # % of task to immediately activate
+        self.split_idx = int(self.config.imm_task_split * self.task_num)  # % of task to immediately activate
         self.new_task_per_timestep: int = self.config.new_task_per_timestep  # tasks to add at each timestep
         self.step_between_insertion: int = self.config.step_between_insertion  # timestep between each insertion
 
@@ -150,6 +154,15 @@ class MultiAgentSimulator:
             self.agent_schedule[i] = deque([(self.agent_start_pos[i, 0],
                                              self.agent_start_pos[i, 1],
                                              0)])  # timestep
+        # goal schedule init with agent start pos
+        for i in range(self.agent_num):
+            self.goal_schedule[i] = deque([(self.agent_start_pos[i, 0],
+                                            self.agent_start_pos[i, 1],
+                                            0)])  # timestep
+        # task schedule init with no task
+        for i in range(self.agent_num):
+            self.task_schedule[i] = deque([([],
+                                            0)])  # timestep
         # init goal register as empty
         self.task_register = dict(zip(range(self.agent_num), repeat(np.array(()))))
 
@@ -184,7 +197,7 @@ class MultiAgentSimulator:
 
         # check end condition
         # check here, before moving but after updating task register and adding new tasks
-        if (self.activated_task_count == self.task_number  # all tasks have been added
+        if (self.activated_task_count == self.task_num  # all tasks have been added
                 and not self.active_task_list  # all tasks have been assigned
                 and not any(
                     arr.size for arr in self.task_register.values())):  # all agents have finished their task
@@ -218,6 +231,12 @@ class MultiAgentSimulator:
         # move agents
         self.move_agents(action_idx_predict)
 
+        # update goal schedule with current goal and timestep
+        for i in range(self.agent_num):
+            self.goal_schedule[i].append((goal_list[i, 0],
+                                          goal_list[i, 1],
+                                          self.timestep))  # timestep
+
     def update_task_register(self) -> None:
         """
         Check how agents are doing with their tasks
@@ -235,6 +254,8 @@ class MultiAgentSimulator:
             # case 1: no task assigned
             if not curr_task.size:
                 curr_task = self.assign_closest_task(agent_pos=agent_pos)  # find task (ndarray, shape=2x2 or ())
+                self.task_schedule[i].append((curr_task.tolist(),
+                                              self.timestep))
 
             # case 2: agent did reach its goal
             # first position in curr task (here can have 1 or 2 positions, pickup and/or delivery)
@@ -243,10 +264,17 @@ class MultiAgentSimulator:
                 # 2a: the goal was delivery position -> search for a new task
                 if not curr_task.size:
                     curr_task = self.assign_closest_task(agent_pos=agent_pos)  # find task (ndarray, shape=2x2 or ())
+                    self.task_schedule[i].append((curr_task.tolist(),
+                                                  self.timestep))
                 # 2b: the goal was pickup position -> delivery pos remaining
                 # no need to do anything here
+                self.task_schedule[i].append((list(self.task_schedule[i][-1][:-1])[0],   # last element without timestep
+                                              self.timestep))
 
             # case 3) -> not reached its goal yet -> do nothing
+            else:
+                self.task_schedule[i].append((list(self.task_schedule[i][-1][:-1])[0],  # last element without timestep
+                                              self.timestep))
 
             # update the register with curr task
             self.task_register[i] = curr_task.copy()

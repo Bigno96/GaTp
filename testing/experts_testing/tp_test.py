@@ -88,7 +88,7 @@ class TpTest(unittest.TestCase):
                 time_list.append(time_diff)
 
                 # collect conflicts
-                coll_count, coll_list = count_collision(agent_schedule=agent_schedule)
+                coll_count, coll_time_list, coll_list = count_collision(agent_schedule=agent_schedule)
                 collision_count_list.append(coll_count)
 
                 # collect makespan

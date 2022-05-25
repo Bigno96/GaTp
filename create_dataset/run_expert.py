@@ -117,9 +117,11 @@ class ExpertWorker:
         self.bad_instances_list = bad_instances_list
 
     @abstractmethod
-    def __call__(self, environment):
+    def __call__(self,
+                 environment: EasyDict
+                 ) -> None:
         """
-        :param environment: Namespace
+        :param environment:
                 {'name': file path to the env data file,
                  'map': created map,
                  'start_pos_list: agents starting positions,
@@ -174,7 +176,7 @@ class TpWorker(ExpertWorker):
 
         else:
             # collect metrics
-            collision_count, _ = m.count_collision(agent_schedule=agent_schedule)
+            collision_count, _, _ = m.count_collision(agent_schedule=agent_schedule)
 
             # if collisions, regenerate
             if collision_count:

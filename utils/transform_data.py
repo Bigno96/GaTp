@@ -175,26 +175,33 @@ class DataTransformer:
 
         return environment, expert_sol
 
-    @staticmethod
-    def schedule_to_numpy(schedule: Dict[int, Deque[Tuple[int, int, int]]]
-                          ) -> np.array:
+    def get_online_train_data(self,
+                              input_map: np.array,
+                              expert_sol: Dict[str, Dict]
+                              ) -> Tuple[np.array, np.array, np.array]:
         """
-        Transform given schedule from dict to numpy array
-        :param schedule: dict -> {agent_id : schedule}
-                                 with schedule = deque([(x, y, 0), (x, y, 1), ...])
-        :return: converted schedule to numpy array,
-                 shape = (makespan, num_agents, 2)
+        Called during online dataset aggregation
+        Return tuple with all the data necessary for neural network training, appropriately transformed
+        Train data = (Input state, GSO, Target)
+        :param input_map: obstacle map
+        :param expert_sol: solution of the problem given by an expert algorithm
+        :return: (Input state, GSO, Target)
+                 Input state -> shape = (makespan, num_agent, num_input_channels, FOV+2*border, FOV+2*border)
+                 GSO -> shape = (makespan, num_agent, num_agent)
+                 Target -> shape = (makespan, num_agent, 5)
         """
-        # strip timesteps from agent schedule and convert to ndarray
-        pos_schedule = [[step[:-1]  # remove timestep at each step
-                         for step in schedule
-                         ]
-                        for schedule in schedule.values()  # for each agent
-                        ]
+        # 1) input tensor
+        input_state = self.build_train_input_state(input_map=input_map,
+                                                   agent_schedule=expert_sol['agent_schedule'],
+                                                   goal_schedule=expert_sol['goal_schedule'])
 
-        pos_schedule = np.array(pos_schedule, dtype=np.int8)
-        # reshape: num_agents x makespan x 2 -> makespan x num_agents x 2
-        return np.swapaxes(pos_schedule, axis1=0, axis2=1)
+        # 2) GSO
+        GSO = self.compute_gso(agent_schedule=expert_sol['agent_schedule'])
+
+        # 3) target
+        target = self.transform_agent_schedule(agent_schedule=expert_sol['agent_schedule'])
+
+        return input_state, GSO, target
 
     def build_train_input_state(self,
                                 input_map: np.array,
@@ -293,3 +300,24 @@ class DataTransformer:
                 matrix[(t+1, agent, move_idx)] = 1
 
         return matrix
+
+    @staticmethod
+    def schedule_to_numpy(schedule: Dict[int, Deque[Tuple[int, int, int]]]
+                          ) -> np.array:
+        """
+        Transform given schedule from dict to numpy array
+        :param schedule: dict -> {agent_id : schedule}
+                                 with schedule = deque([(x, y, 0), (x, y, 1), ...])
+        :return: converted schedule to numpy array,
+                 shape = (makespan, num_agents, 2)
+        """
+        # strip timesteps from agent schedule and convert to ndarray
+        pos_schedule = [[step[:-1]  # remove timestep at each step
+                         for step in schedule
+                         ]
+                        for schedule in schedule.values()  # for each agent
+                        ]
+
+        pos_schedule = np.array(pos_schedule, dtype=np.int8)
+        # reshape: num_agents x makespan x 2 -> makespan x num_agents x 2
+        return np.swapaxes(pos_schedule, axis1=0, axis2=1)

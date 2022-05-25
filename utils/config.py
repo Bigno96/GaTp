@@ -22,8 +22,8 @@ from easydict import EasyDict
 from yaml import safe_load
 
 CONFIG_FOLDER_PATH = 'GaTp/yaml_configs'
-PROJECT_ROOT = '/home/bigno/Bigno/Uni/TESI'
-APPEND_PROJECT_ROOT = False       # change this to prepend PROJECT_ROOT for creating folder paths
+PROJECT_ROOT = 'D:/Uni/TESI'
+APPEND_PROJECT_ROOT = True       # change this to prepend PROJECT_ROOT for creating folder paths
 
 
 def setup_logging(log_dir: str) -> None:
@@ -110,6 +110,16 @@ def process_config(args: argparse.Namespace) -> EasyDict:
     config.agent_type = args.agent_type
     # skip validation
     config.skip_valid = args.skip_valid
+    # dagger algorithm
+    config.use_dagger = args.dagger
+
+    if config.use_dagger and config.skip_valid:
+        print('When using dagger algorithm, validation cannot be skipped. Validation will be performed.')
+        config.skip_valid = False
+
+    if config.use_dagger and config.mode != 'train':
+        print('Cannot use dagger outside training mode!')
+        exit(-1)
 
     # prepend data root
     if APPEND_PROJECT_ROOT:

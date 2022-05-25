@@ -11,7 +11,6 @@ L.N. Smith,
 "Cyclical learning rates for training neural networks"
 In 2017 IEEE winter conference on applications of computer vision (WACV), pp. 464-472.
 """
-
 import torch
 import os
 import timeit
@@ -27,6 +26,7 @@ import models.magat_net as magat
 import utils.multi_agent_simulator as sim
 import utils.metrics as metrics
 import torch.multiprocessing as mp
+import utils.aggregator as agg
 
 from easydict import EasyDict
 from pytorch_model_summary import summary
@@ -407,7 +407,7 @@ class MagatAgent(agents.Agent):
         self.logger.info(f'Epoch {self.current_epoch}:'
                          f'[{len(self.data_loader.train_loader.dataset)}/{len(self.data_loader.train_loader.dataset)}'
                          f'({100.:.0f}%)]\t'
-                         f'Loss: {running_loss / logged_batch:.6f}')
+                         f'Loss: {running_loss / (logged_batch if logged_batch > 0 else 1):.6f}')
 
     def sim_agent_exec_single(self,
                               data_loader: data.DataLoader,
@@ -422,10 +422,11 @@ class MagatAgent(agents.Agent):
         """
         self.logger.info('Starting single process MAPD simulations')
 
-        # simulation handling classes and variables
+        # simulation handling class, performance recorder and dataset aggregation
         simulator = sim.MultiAgentSimulator(config=self.config,
                                             device=self.config.device)
         recorder = metrics.PerformanceRecorder(simulator=simulator)
+        aggregator = agg.Aggregator(config=self.config)
 
         performance_list: List[metrics.Performance] = []
 
@@ -438,7 +439,7 @@ class MagatAgent(agents.Agent):
 
         with torch.no_grad():
             # loop over all cases in the test/valid data loader
-            for case_idx, (obstacle_map, start_pos_list, task_list, makespan, service_time, _) \
+            for case_idx, (obstacle_map, start_pos_list, task_list, makespan, service_time, basename) \
                     in enumerate(data_loader):
                 # simulate the MAPD execution
                 # batch size = 1 -> unpack all tensors
@@ -458,6 +459,16 @@ class MagatAgent(agents.Agent):
                                           max_size=len(data_loader),
                                           print_valid_every=self.config.print_valid_every)
 
+                # collect challenging configurations from the current validation case
+                aggregator.collect_cases(simulator=simulator,
+                                         valid_basename=basename[0],    # list of 1, due to the batch size
+                                         epoch=self.current_epoch)
+
+        # extend training dataset with new solved cases
+        aggregator.extend_dataset(dataset=self.data_loader.train_dataset
+                                          if self.config.mode == 'train'
+                                          else None)
+
         # return average performances
         return metrics.get_avg_performance(performance_list=performance_list)
 
@@ -476,6 +487,7 @@ class MagatAgent(agents.Agent):
 
         # useful variables
         data_size = len(data_loader)
+        aggregator = agg.Aggregator(config=self.config)
 
         # load data from data loader
         with torch.no_grad():
@@ -484,16 +496,19 @@ class MagatAgent(agents.Agent):
                                       maxsize=data_size+1)
             data_queue = Queue(ctx=mp.get_context('spawn'),
                                maxsize=data_size+1)
+            aggregation_queue = Queue(ctx=mp.get_context('spawn'))
 
             # fill data queue
             for i, data_ in enumerate(data_loader):
                 data_queue.put((i, data_), block=True)
             # collect args for multiprocessing
-            # config, data queue, performance queue, checkpoint_path
+            # config, data queue, performance queue, aggregation_queue, checkpoint_path, current_epoch
             args = (self.config,
                     data_queue,
                     performance_queue,
-                    checkpoint_path)
+                    aggregation_queue,
+                    checkpoint_path,
+                    self.current_epoch)
 
             # spawn and run processes, wait all to finish
             mp.spawn(fn=sim_worker,
@@ -512,6 +527,17 @@ class MagatAgent(agents.Agent):
             performance_queue.close()
             performance_queue.join_thread()
 
+            # get list of conflicting cases joined amongst all processes
+            aggregation_queue.put(STOP_SENTINEL, block=True)  # termination sentinel
+            aggregator.cases_list = [case for case in iter(aggregation_queue.get, STOP_SENTINEL)]
+            aggregation_queue.close()
+            aggregation_queue.join_thread()
+
+            # extend training dataset
+            aggregator.extend_dataset(dataset=self.data_loader.train_dataset
+                                              if self.config.mode == 'train'
+                                              else None)
+
         # return average performances
         return metrics.get_avg_performance(performance_list=performance_list)
 
@@ -520,7 +546,9 @@ def sim_worker(process_id: int,
                config: EasyDict,
                data_queue: Queue,
                performance_queue: Queue,
+               aggregation_queue: Queue,
                checkpoint_path: str,
+               current_epoch: int
                ) -> None:
     """
     Class for multiprocessing simulation
@@ -529,12 +557,15 @@ def sim_worker(process_id: int,
     :param config: Namespace of configurations
     :param data_queue: contains shared input data to run simulation over
     :param performance_queue: shared queue to put simulation results
+    :param aggregation_queue: shared queue to put conflicting cases for dataset augmentation
     :param checkpoint_path: path to the checkpoint to load model from
+    :param current_epoch: id of the current training epoch, used for naming dagger cases
     """
-    # simulation handling class and performance recorder
+    # simulation handling class, performance recorder and dataset aggregation
     simulator = sim.MultiAgentSimulator(config=config,
                                         device=config.device)
     recorder = metrics.PerformanceRecorder(simulator=simulator)
+    aggregator = agg.Aggregator(config=config)
 
     # data size
     data_size = data_queue.qsize()
@@ -545,7 +576,7 @@ def sim_worker(process_id: int,
         while not data_queue.empty():
             # unpack tensors from input data queue
             case_idx, (obstacle_map, start_pos_list, task_list,
-                       makespan, service_time, _) = data_queue.get(block=True)
+                       makespan, service_time, basename) = data_queue.get(block=True)
 
             # load the model parameters
             checkpoint = torch.load(f=checkpoint_path,
@@ -568,5 +599,13 @@ def sim_worker(process_id: int,
             if case_idx % config.print_valid_every == 0:
                 print(f'Validation at {100 * case_idx / data_size:.0f}%')
 
+            # collect challenging configurations from the current validation case
+            aggregator.collect_cases(simulator=simulator,
+                                     valid_basename=basename,
+                                     epoch=current_epoch)
+
             # add metrics
             performance_queue.put(performance, block=True)
+
+        # add collect cases in the process for dataset extension
+        aggregation_queue.put(aggregator.cases_list, block=True)

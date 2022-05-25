@@ -41,6 +41,8 @@ def main():
                             help='Train, test or valid mode')
     arg_parser.add_argument('-skip_valid', action='store_true',
                             help='Set this flag to skip validation during training')
+    arg_parser.add_argument('-dagger', action='store_true',
+                            help='Set this flag to set dataset aggregation during training')
 
     # environment parameters, if omitted -> default values
     arg_parser.add_argument('-map_type', type=str, default='random_grid',

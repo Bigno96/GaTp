@@ -183,7 +183,7 @@ class TpAgentTest(unittest.TestCase):
             self.assertEqual(token[agent.name]['pos'], agent.pos)
 
             agent_schedule = build_ag_schedule(token=token)
-            collision_count, l_ = count_collision(agent_schedule=agent_schedule)
+            collision_count, l_, ls_ = count_collision(agent_schedule=agent_schedule)
 
             # no collision provoked by agent
             if collision_count > 0:
@@ -193,7 +193,7 @@ class TpAgentTest(unittest.TestCase):
                 for p in token.items():
                     print(p)
                 print('\n')
-                print(collision_count, l_)
+                print(collision_count, l_, ls_)
                 self.fail()
 
     def test_receive_token(self):
@@ -256,7 +256,7 @@ class TpAgentTest(unittest.TestCase):
                 self.assertFalse(agent.is_idle)
 
             agent_schedule = build_ag_schedule(token=token)
-            collision_count, l_ = count_collision(agent_schedule=agent_schedule)
+            collision_count, l_, ls_ = count_collision(agent_schedule=agent_schedule)
 
             # no collision
             self.assertFalse(collision_count)

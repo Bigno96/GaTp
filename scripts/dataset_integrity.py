@@ -16,7 +16,7 @@ def check_integrity():
     config.test_batch_size = 1
     config.data_loader_workers = 0
     config.pin_memory = True
-    config.data_root = '/home/bigno/Bigno/Uni/TESI/GaTp/datasets'
+    config.data_root = 'D:/Uni/TESI/GaTp/datasets'
     config.map_type = 'random_grid'
     config.map_shape = [20, 20]
     config.map_density = 0.1
