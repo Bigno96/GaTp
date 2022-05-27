@@ -34,7 +34,7 @@ def tp(input_map: np.array,
        parking_spot_list: List[Tuple[int, int]],
        agent_schedule: Dict[int, Deque[Tuple[int, int, int]]],
        goal_schedule: Dict[int, Deque[Tuple[int, int, int]]],
-       metrics: Dict['str', List[int or float]],
+       metrics: Dict[str, List[int or float]],
        execution: exp_utils.StopToken,
        imm_task_split: float = 0.,
        new_task_per_insertion: int = 1,
@@ -180,10 +180,11 @@ def online_tp(input_map: np.array,
               assigned_task_list: List[Tuple[Tuple[int, int], Tuple[int, int]]],
               agent_schedule: Dict[int, Deque[Tuple[int, int, int]]],
               goal_schedule: Dict[int, Deque[Tuple[int, int, int]]],
-              metrics: Dict['str', List[int or float]],
+              metrics: Dict[str, List[int or float]],
               execution: exp_utils.StopToken,
+              timestep_limit: int = 0,
               new_task_per_insertion: int = 1,
-              step_between_insertion: int = 1
+              step_between_insertion: int = 1,
               ) -> None:
     """
     Token Passing algorithm, called during Dataset Aggregation
@@ -206,6 +207,8 @@ def online_tp(input_map: np.array,
              'timestep_runtime': execution time of each timestep, in ms
     :param execution: used to terminate hanging instances
                       when using stop, return values behaviour is undefined
+    :param timestep_limit: for how many timestep to run the execution
+                           0 means no limit
     """
     # starting positions are used as non-task endpoints
     non_task_ep_list = start_pos_list
@@ -296,6 +299,10 @@ def online_tp(input_map: np.array,
         # exit condition, avoid hanging
         # undefined return behaviour
         if execution.is_cancelled:
+            return
+
+        # online execution during DAgger has limited number of timesteps
+        if timestep != 0 and timestep >= timestep_limit:
             return
 
         # add new tasks, if any, at the start of the iteration

@@ -14,7 +14,7 @@ import utils.expert_utils as exp_utils
 import data_loading.dataset as dset
 
 from easydict import EasyDict
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Deque
 from collections import deque
 from threading import Thread
 from multiprocessing import Pool, Manager
@@ -234,12 +234,12 @@ class OnlineTpWorker:
                  'assigned_task': list of tasks assigned to the agent at the start}
         """
         # setup return structures
-        agent_schedule = {}
-        goal_schedule = {}
-        metrics = {}
+        agent_schedule: Dict[int, Deque[Tuple[int, int, int]]] = {}
+        goal_schedule: Dict[int, Deque[Tuple[int, int, int]]] = {}
+        metrics: Dict[str, List[int or float]] = {}
         execution = exp_utils.StopToken()
 
-        # run online tp
+        # run online tp for trim_limit timesteps
         kwargs = {'input_map': case.map,
                   'start_pos_list': case.agent_pos,
                   'new_task_pool': case.new_task_pool,
@@ -249,6 +249,7 @@ class OnlineTpWorker:
                   'goal_schedule': goal_schedule,
                   'metrics': metrics,
                   'execution': execution,
+                  'timestep_limit': self.config.timestep_limit,
                   'new_task_per_insertion': self.config.new_task_per_timestep,
                   'step_between_insertion': self.config.step_between_insertion}
 
@@ -269,7 +270,6 @@ class OnlineTpWorker:
             expert_sol = {'agent_schedule': agent_schedule,
                           'goal_schedule': goal_schedule,
                           'metrics': metrics}
-
             self.map_queue.put(case.map, block=True)
             self.expert_sol_queue.put(expert_sol, block=True)
             self.basename_queue.put(case.basename, block=True)

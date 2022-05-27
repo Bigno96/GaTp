@@ -487,7 +487,6 @@ class MagatAgent(agents.Agent):
 
         # useful variables
         data_size = len(data_loader)
-        aggregator = agg.Aggregator(config=self.config)
 
         # load data from data loader
         with torch.no_grad():
@@ -528,8 +527,10 @@ class MagatAgent(agents.Agent):
             performance_queue.join_thread()
 
             # get list of conflicting cases joined amongst all processes
+            aggregator = agg.Aggregator(config=self.config)
             aggregation_queue.put(STOP_SENTINEL, block=True)  # termination sentinel
-            aggregator.cases_list = [case for case in iter(aggregation_queue.get, STOP_SENTINEL)]
+            aggregator.cases_list = [case for case_list in iter(aggregation_queue.get, STOP_SENTINEL)
+                                          for case in case_list]
             aggregation_queue.close()
             aggregation_queue.join_thread()
 
@@ -607,5 +608,5 @@ def sim_worker(process_id: int,
             # add metrics
             performance_queue.put(performance, block=True)
 
-        # add collect cases in the process for dataset extension
-        aggregation_queue.put(aggregator.cases_list, block=True)
+    # add collect cases in the process for dataset extension
+    aggregation_queue.put(aggregator.cases_list.copy(), block=True)

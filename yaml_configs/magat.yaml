@@ -57,7 +57,7 @@ mlp_learn_bias: True  # if True, learn bias in the MLP
 
 
 # training parameters
-batch_size: 4096  # batch size for training
+batch_size: 128  # batch size for training
 shuffle_train: True   # if True, train dataset is shuffled
 valid_batch_size: 1   # batch size for validation (simulation)
 test_batch_size: 1  # batch size for testing (simulation)
@@ -76,8 +76,9 @@ max_step_factor: 2  # multiplicative factor for simulation max step (target make
 
 # dataset aggregation
 expert_type: 'tp'   # expert to use
-max_new_instances: 20  # maximum number of new augmenting instances to find for each epoch
-                       # each instance is solved by the expert, generating N training entries
-                       # with N bounded by max_new_instances * max expert makespan
-selection_percentage: 0.1  # percentage of most conflicting timesteps to take from each simulation
+max_new_instances: 800  # maximum number of new augmenting instances to find for each epoch
+                        # each instance is solved by the expert, generating N training entries
+                        # with N bounded by max_new_instances * max expert makespan
+selection_percentage: 0.25  # percentage of most conflicting timesteps to take from each simulation
 timeout: 10   # seconds, maximum time of expert execution before cutting it off
+timestep_limit: 10   # for how many timestep to run the expert execution, 0 means no limit
