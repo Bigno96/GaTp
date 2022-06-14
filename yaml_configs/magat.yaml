@@ -57,7 +57,7 @@ mlp_learn_bias: True  # if True, learn bias in the MLP
 
 
 # training parameters
-batch_size: 4096  # batch size for training
+batch_size: 16  # batch size for training
 shuffle_train: True   # if True, train dataset is shuffled
 valid_batch_size: 1   # batch size for validation (simulation)
 test_batch_size: 1  # batch size for testing (simulation)
