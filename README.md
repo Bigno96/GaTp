@@ -10,7 +10,9 @@ Needs to be downloaded and placed under GaTp/
 To run a training session from scratch, with default params:\
 python GaTp/main.py -agent_type magat -mode train  
 
-Model parameters are configured in GaTp/yaml_configs/magat.yaml
+Configuration parameters details can be found in GaTp/main.py as comments near the parameter values
+
+Model parameters are configured and explained in GaTp/yaml_configs/magat.yaml or /gatp.yaml
 
 If a path error at the start is raised (no config file found), change in GaTp/utils/config.py:\
 PROJECT_ROOT -> path to the GaTp/ folder\
